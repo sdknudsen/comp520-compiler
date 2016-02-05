@@ -17,26 +17,29 @@ rule lex = parse
 	| '-'		{ MINUS }
 	| '*'		{ TIMES }
 	| '/'		{ DIV }
-	| '%'		{  }
+(*	| '%'		{  }
 	| '&'		{  }
 	| '|'		{  }
 	| '^'		{  }
 	| '<'		{  }
 	| '>'		{  }
-	| '='		{ ASSIGNMENT }
 	| '!'		{  }
+*)
+	| '='		{ ASSIGNMENT }
 	| '('		{ LPAREN }
 	| ')'		{ RPAREN }
+(*
 	| '['		{  }
 	| ']'		{  }
 	| '{'		{  }
 	| '}'		{  }
 	| ','		{  }
 	| '.'		{  }
+*)
 	| ';'		{ SEMICOLON }
 	| ':'		{ COLON }
 
-	| "<<"		{  }
+(*	| "<<"		{  }
 	| ">>"		{  }
 	| "&^"		{  }
 	| "+="		{  }
@@ -61,9 +64,11 @@ rule lex = parse
 	| ">="		{  }
 	| ":="		{  }
 	| "..."		{  }
+*)
 
 
 (* golite keywords *)
+(*
 	| "break"		{ BREAK }
 	| "case"		{ CASE }
 	| "chan"		{ CHAN }
@@ -98,7 +103,7 @@ rule lex = parse
 	| "print"		{ PRINT }
 	| "println"		{ PRINTLN }
 	| "append"		{ APPEND }
-
+*)
 
 (* from minilang *)
 	| "var"		{ VAR }

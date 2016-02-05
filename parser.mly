@@ -23,7 +23,7 @@ open Error
 
 %left PLUS MINUS
 %left TIMES DIV 
-%nonassoc UMINUS
+%nonassoc NEG
 
 %start main
 %type <Ast.ast> main
@@ -57,9 +57,9 @@ expr:	  INT			{ ILit($1) }
 	| ID			{ Var($1) }
 
 	| LPAREN expr RPAREN	{ $2 }
-	| expr PLUS expr	{ Sum($1,$3) }
-	| expr MINUS expr	{ Diff($1,$3) }
-	| expr TIMES expr	{ Prod($1,$3) }
-	| expr DIV expr		{ Quot($1,$3) }
-	| MINUS expr %prec UMINUS	{ Neg($2) }
-    	| error				{ raise (ParseError($startpos,"expression")) }
+	| expr PLUS expr	{ Bexp(PLUS,$1,$3) }
+	| expr MINUS expr	{ Bexp(MINUS,$1,$3) }
+	| expr TIMES expr	{ Bexp(TIMES,$1,$3) }
+	| expr DIV expr		{ Bexp(DIV,$1,$3) }
+	| MINUS expr %prec NEG	{ Uexp(NEG,$2) }
+    	| error			{ raise (ParseError($startpos,"expression")) }

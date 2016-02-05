@@ -21,11 +21,8 @@ let ppTree (TProg(decls,stmts)) outc =
     | FLit(v) -> Printf.fprintf outc "%f" v
     | SLit(v) -> ppStr ("\"" ^ v ^ "\"")
     | Var(x) -> ppStr x
-    | Sum(e1,e2) -> ppBinExp e1 e2 " + "
-    | Diff(e1,e2) -> ppBinExp e1 e2 " - "
-    | Prod(e1,e2) -> ppBinExp e1 e2 " * "
-    | Quot(e1,e2) -> ppBinExp e1 e2 " / "
-    | Neg(e) -> ppStr "-("; ppExpr e; ppStr ")"
+    | Bexp(op,e1,e2) -> ppBinExp e1 e2 (str_of_binop op)
+    | Uexp(op,e) -> ppStr ((str_of_unop op)^"("); ppExpr e; ppStr ")"
   in
   let printDecl (Dec(id,typ)) = match typ with
     | TInt -> ppStr ("var " ^ id ^ " : int;\n")
@@ -66,21 +63,19 @@ let ppC ((TProg(decls,stmts)),gamma) outc =
     | ILit(v) -> Printf.fprintf outc "%d" v
     | FLit(v) -> Printf.fprintf outc "%f" v
     | SLit(v) -> ppStr ("\"" ^ v ^ "\"")
-    | Var(x) -> ppStr ("_"^x) (* something else here? *)
-    | Sum(e1,e2) ->
-       (match t with
-	| TString -> ppStr "concat("; ppExpr e1; ppStr ","; ppExpr e2; ppStr ")"
-	| _ -> ppBinExp e1 e2 " + ")
-    | Diff(e1,e2) -> 
-       (match t with
-	| TString -> ppExpr (Sum(e1, (Neg(e2),t)), t)
-	| _ -> ppBinExp e1 e2 " - ")
-    | Prod(e1,e2) -> ppBinExp e1 e2 " * "
-    | Quot(e1,e2) -> ppBinExp e1 e2 " / "
-    | Neg(e1) ->
-       (match t with
-	| TString -> ppStr "rev("; ppExpr e1; ppStr ")"
-	| _ -> ppStr "-("; ppExpr e1; ppStr ")")
+    | Var(x) -> ppStr ("_"^x)
+    | Bexp(op,e1,e2) -> ppBinExp e1 e2 (str_of_binop op)
+    (*    (match t with *)
+    (*     | TString -> ppStr "concat("; ppExpr e1; ppStr ","; ppExpr e2; ppStr ")" *)
+    (* | Diff(e1,e2) ->  *)
+    (*    (match t with *)
+    (*     | TString -> ppExpr (Sum(e1, (Neg(e2),t)), t) *)
+    (*     | _ -> ppBinExp e1 e2 " - ") *)
+    (* | Prod(e1,e2) -> ppBinExp e1 e2 " * " *)
+    (* | Quot(e1,e2) -> ppBinExp e1 e2 " / " *)
+    | Uexp(op,e1) -> ppStr ((str_of_unop op)^"("); ppExpr e1; ppStr ")"
+       (* (match t with *)
+       (*  | TString -> ppStr "rev("; ppExpr e1; ppStr ")" *)
   in
   let printDecl (Dec(id,typ)) = match typ with
     | TInt -> tab(); ppStr ("int _" ^ id ^ " = 0;\n")
@@ -122,4 +117,3 @@ let ppC ((TProg(decls,stmts)),gamma) outc =
   List.iter printDecl decls; println();
   List.iter ppStmt stmts; tab();
   ppStr cTail
-
