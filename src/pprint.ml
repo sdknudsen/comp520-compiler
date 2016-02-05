@@ -1,5 +1,5 @@
 open Ast
-open CFunctions
+(* open CFunctions *)
        
 (* let ppTable gamma outc =
   let str_of_typ = function

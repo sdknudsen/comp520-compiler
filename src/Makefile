@@ -3,8 +3,8 @@ SHELL = /bin/sh
 .PHONY: build clean
 
 build:
-	ocamlbuild -use-menhir run.native
+	ocamlbuild -use-menhir main.native
 
 clean:
 	rm -rf _build
-	rm -f run.native
+	rm -f main.native
