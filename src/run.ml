@@ -16,10 +16,10 @@ let _ =
     let lexbuf = Lexing.from_channel filein in
     let untypedTree = Parser.main Lexer.lex lexbuf in
     let symTable = Ast.symTable untypedTree in
-    let _ = write Pprint.ppTable symTable name ".symbol.txt" in
+    (* let _ = write Pprint.ppTable symTable name ".symbol.txt" in *)
     let typedTree = Ast.typeAST untypedTree in
     let _ = write Pprint.ppTree typedTree name ".pretty.min" in
-    let _ = write Pprint.ppC (typedTree,symTable) name ".c" in
+    (* let _ = write Pprint.ppC (typedTree,symTable) name ".c" in *)
     print_string "Valid\n"
 
   with Lexer.LexError(p) -> print_string (errorMsg "Lex error" p);

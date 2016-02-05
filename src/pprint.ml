@@ -1,12 +1,12 @@
 open Ast
 open CFunctions
        
-let ppTable gamma outc =
+(* let ppTable gamma outc =
   let str_of_typ = function
     | TInt -> "int"
     | TFloat -> "float"
     | TString -> "string" in
-  Ctx.iter (fun k v -> Printf.fprintf outc "%s" (k ^ " : " ^ str_of_typ v ^ "\n")) gamma
+  Ctx.iter (fun k v -> Printf.fprintf outc "%s" (k ^ " : " ^ str_of_typ v ^ "\n")) gamma *)
 
 let ppTree (TProg(decls,stmts)) outc =
   let tabCount = ref 0 in
@@ -50,7 +50,7 @@ let ppTree (TProg(decls,stmts)) outc =
   in
   List.iter printDecl decls; println(); List.iter ppStmt stmts
 
-let ppC ((TProg(decls,stmts)),gamma) outc =
+(* let ppC ((TProg(decls,stmts)),gamma) outc =
   let tabCount = ref 1 in
   let println() = Printf.fprintf outc "\n" in
   let ppStr s = Printf.fprintf outc "%s" s in
@@ -79,7 +79,7 @@ let ppC ((TProg(decls,stmts)),gamma) outc =
   in
   let printDecl (Dec(id,typ)) = match typ with
     | TInt -> tab(); ppStr ("int _" ^ id ^ " = 0;\n")
-    | TString -> tab(); ppStr ("char* _" ^ id ^ " = \"\";\n") (* !?! *)
+    | TString -> tab(); ppStr ("char* _" ^ id ^ " = \"\";\n") !?!
     | TFloat -> tab(); ppStr ("float _" ^ id ^ " = 0.0;\n")
   in
   let rec ppStmt = function
@@ -116,4 +116,4 @@ let ppC ((TProg(decls,stmts)),gamma) outc =
   ppStr cHeader;
   List.iter printDecl decls; println();
   List.iter ppStmt stmts; tab();
-  ppStr cTail
+  ppStr cTail *)
