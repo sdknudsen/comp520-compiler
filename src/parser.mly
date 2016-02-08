@@ -1,12 +1,11 @@
 %{
-open Ast
-open Error
+  open Ast
 %}
 
 %token <int> INT
 %token <float> FLOAT
-%token <string> ID
 %token <string> STRING
+%token <string> ID
 
 %token PLUS MINUS TIMES DIV
 %token EOF
@@ -25,41 +24,39 @@ open Error
 %left TIMES DIV 
 %nonassoc NEG
 
-%start main
-%type <Ast.ast> main
+%start <Ast.ast> program
+
 %%
 
-main:	  declaration* stmt* EOF	{ Prog($1,$2) }
-;
+program:
+  | declaration* statement* EOF { Prog($1,$2) }
 
 declaration:
-	  VAR ID COLON typ SEMICOLON	{ Dec($2,$4) }
-;
+  | VAR ID COLON decl_type SEMICOLON { Dec($2,$4) }
 
-typ:	  T_INT 			{ TInt }
-	| T_FLOAT			{ TFloat }
-	| T_STRING			{ TString }
-;
+decl_type:
+  | T_INT    { TInt }
+  | T_FLOAT  { TFloat }
+  | T_STRING { TString }
 
-stmt:	  ID ASSIGNMENT expr SEMICOLON 	{ Assign($1,$3) }
-	| PRINT expr SEMICOLON		{ Print($2) }
-	| READ ID SEMICOLON		{ Read($2) }
+statement:
+  | ID ASSIGNMENT expression SEMICOLON  { Assign($1,$3) }
+  | PRINT expression SEMICOLON    { Print($2) }
+  | READ ID SEMICOLON   { Read($2) }
+  | IF expression THEN statement* ELSE statement* ENDIF { Ifte($2,$4,$6) }
+  | IF expression THEN statement* ENDIF  { Ift($2,$4) }
+  | WHILE expression DO statement* DONE  { While($2,$4) }
+  | error       { Error.print_error $startpos "syntax error in statement" }
 
-	| IF expr THEN stmt* ELSE stmt* ENDIF { Ifte($2,$4,$6) }
-	| IF expr THEN stmt* ENDIF 	{ Ift($2,$4) }
-	| WHILE expr DO stmt* DONE 	{ While($2,$4) }
-    	| error				{ raise (ParseError($startpos,"statement")) }
-;
-
-expr:	  INT			{ ILit($1) }
-	| FLOAT			{ FLit($1) }
-	| STRING		{ SLit($1) }
-	| ID			{ Var($1) }
-
-	| LPAREN expr RPAREN	{ $2 }
-	| expr PLUS expr	{ Bexp(PLUS,$1,$3) }
-	| expr MINUS expr	{ Bexp(MINUS,$1,$3) }
-	| expr TIMES expr	{ Bexp(TIMES,$1,$3) }
-	| expr DIV expr		{ Bexp(DIV,$1,$3) }
-	| MINUS expr %prec NEG	{ Uexp(NEG,$2) }
-    	| error			{ raise (ParseError($startpos,"expression")) }
+expression:
+  | INT     { ILit($1) }
+  | FLOAT     { FLit($1) }
+  | STRING    { SLit($1) }
+  | ID      { Var($1) }
+  | LPAREN expression RPAREN  { $2 }
+  | expression PLUS expression  { Bexp(PLUS,$1,$3) }
+  | expression MINUS expression { Bexp(MINUS,$1,$3) }
+  | expression TIMES expression { Bexp(TIMES,$1,$3) }
+  | expression DIV expression   { Bexp(DIV,$1,$3) }
+  | MINUS expression %prec NEG  { Uexp(NEG,$2) }
+  | error     { Error.print_error $startpos "syntax error in expression" }

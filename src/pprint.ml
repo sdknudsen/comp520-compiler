@@ -87,16 +87,16 @@ let ppTree (TProg(decls,stmts)) outc =
     | Print(e) ->
        tab(); ppStr "printf(\"";
        (match snd e with
-	| TInt -> ppStr "%d\\n\", ";
-	| TFloat -> ppStr "%f\\n\", ";
-	| TString -> ppStr "%s\\n\", ";
+  | TInt -> ppStr "%d\\n\", ";
+  | TFloat -> ppStr "%f\\n\", ";
+  | TString -> ppStr "%s\\n\", ";
        ); ppExpr e; ppStr ");\n"
     | Read(id) -> 
        (match Ctx.find id gamma with
-	| TInt -> tab(); ppStr "scanf(\"%d\", &"
-	| TFloat -> tab(); ppStr "scanf(\"%f\", &"
-	| TString -> tab(); ppStr ("_"^id^" = malloc(sizeof(char)*32);\n");
-		     tab(); ppStr "scanf(\"%s\", "
+  | TInt -> tab(); ppStr "scanf(\"%d\", &"
+  | TFloat -> tab(); ppStr "scanf(\"%f\", &"
+  | TString -> tab(); ppStr ("_"^id^" = malloc(sizeof(char)*32);\n");
+         tab(); ppStr "scanf(\"%s\", "
        ); ppStr ("_"^id^");\n")
 
     | Ifte(e,xs,ys) ->

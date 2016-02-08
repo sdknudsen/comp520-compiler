@@ -4,28 +4,28 @@ exception DeclError of string
 
 type id = string
 type typ = TInt
-	 | TString
-	 | TFloat
+   | TString
+   | TFloat
 
 type binop = PLUS | MINUS | TIMES | DIV
 type unop = NEG
 (* type info =  *)
 
 type 'a exprF = ILit of int
-	      | FLit of float
-	      | SLit of string
-	      | Var of string
-	      | Bexp of binop * 'a * 'a
-	      | Uexp of unop * 'a
+        | FLit of float
+        | SLit of string
+        | Var of string
+        | Bexp of binop * 'a * 'a
+        | Uexp of unop * 'a
 type expr = expr exprF
 type t_expr = (t_expr * typ) exprF
 
 type ('e,'s) stmtF = Assign of id * 'e
-		   | Print of 'e
-		   | Read of id
-		   | Ifte of 'e * 's list * 's list
-		   | Ift of 'e * 's list 
-		   | While of 'e * 's list 
+       | Print of 'e
+       | Read of id
+       | Ifte of 'e * 's list * 's list
+       | Ift of 'e * 's list 
+       | While of 'e * 's list 
 type stmt = (expr,stmt) stmtF
 type t_stmt = (t_expr * typ, t_stmt) stmtF
 
@@ -36,9 +36,9 @@ type t_ast = TProg of declaration list * t_stmt list
 
 let makeContext decls = 
   List.fold_left (fun gam (Dec(k,v)) -> if Ctx.mem k gam
-				        then raise (DeclError("Variable \""^k^"\" already declared"))
-				        else (Ctx.add) k v gam)
-		 (Ctx.empty) decls
+                then raise (DeclError("Variable \""^k^"\" already declared"))
+                else (Ctx.add) k v gam)
+     (Ctx.empty) decls
 
 let symTable (Prog(decls,_)) = makeContext decls
 
@@ -67,13 +67,13 @@ let typeAST (Prog(decls,stmts)) =
          let te1 = typeExpr gamma e1 in 
          let te2 = typeExpr gamma e2 in 
          let t = (match (typOf te1, typOf te2, op) with
-	          | TInt, TInt, _ -> TInt
-	          | TInt, TFloat, _ -> TFloat
-	          | TFloat, TInt, _ -> TFloat
-	          | TFloat, TFloat, _ -> TFloat
-	          | TString, TString, PLUS -> TString
-	          | TString, TString, MINUS -> TString
-	          | _ -> raise (TypeError ("Mismatch with '" ^ str_of_binop op ^ "' operation")))
+            | TInt, TInt, _ -> TInt
+            | TInt, TFloat, _ -> TFloat
+            | TFloat, TInt, _ -> TFloat
+            | TFloat, TFloat, _ -> TFloat
+            | TString, TString, PLUS -> TString
+            | TString, TString, MINUS -> TString
+            | _ -> raise (TypeError ("Mismatch with '" ^ str_of_binop op ^ "' operation")))
          in (Bexp(op,te1,te2), t)
 
       | Uexp(op,e) ->
