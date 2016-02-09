@@ -3,36 +3,46 @@ exception TypeError of string
 exception DeclError of string
 
 type id = string
-type typ = TInt
-   | TString
-   | TFloat
+type binop = Plus | Minus | Times | Div
+type unop = Neg | Pos
 
-type binop = PLUS | MINUS | TIMES | DIV
-type unop = NEG
 (* type info =  *)
 
+
+
 type 'a exprF = ILit of int
-        | FLit of float
-        | SLit of string
-        | Var of string
-        | Bexp of binop * 'a * 'a
-        | Uexp of unop * 'a
+	      | FLit of float
+	      | SLit of string
+	      | Iden of id 
+	      | Bexp of binop * 'a * 'a
+	      | Uexp of unop * 'a
 type expr = expr exprF
-type t_expr = (t_expr * typ) exprF
+(*type t_expr = (t_expr * id) exprF*)
 
-type ('e,'s) stmtF = Assign of id * 'e
-       | Print of 'e
-       | Read of id
-       | Ifte of 'e * 's list * 's list
-       | Ift of 'e * 's list 
-       | While of 'e * 's list 
-type stmt = (expr,stmt) stmtF
-type t_stmt = (t_expr * typ, t_stmt) stmtF
 
-type declaration = Dec of id * typ
+type 'e assignment = (id * 'e) list
 
-type ast = Prog of declaration list * stmt list
-type t_ast = TProg of declaration list * t_stmt list
+type ('e,'s) stmtF = Assign of 'e assignment
+		   | Print of 'e
+		   | If_stmt of 'e * 's list * 's list option 
+		   | For_stmt of ('e * ('e assignment * 'e assignment) option) option
+                               * 's list
+                   | Empty
+
+type stmt = (expr, stmt) stmtF
+(*type t_stmt = (t_expr * id, t_stmt) stmtF*)
+
+type declaration = Dec of id * id
+
+type ast = Prog of stmt list
+(* type t_ast = TProg of t_stmt list *)
+
+
+
+
+
+
+(*
 
 let makeContext decls = 
   List.fold_left (fun gam (Dec(k,v)) -> if Ctx.mem k gam
@@ -111,3 +121,4 @@ let typeAST (Prog(decls,stmts)) =
        else raise (TypeError "Expression in while statement must have int type")
   and typeStmts xs = List.map typeStmt xs in
   TProg(decls, typeStmts stmts)
+*)
