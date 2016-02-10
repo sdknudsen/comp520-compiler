@@ -11,11 +11,13 @@ type unop = Neg | Pos
 
 
 type 'a exprF = ILit of int
-	      | FLit of float
-	      | SLit of string
-	      | Iden of id 
-	      | Bexp of binop * 'a * 'a
-	      | Uexp of unop * 'a
+        | FLit of float
+        | BLit of bool
+        | RLit of char
+        | SLit of string
+        | Iden of id 
+        | Bexp of binop * 'a * 'a
+        | Uexp of unop * 'a
 type expr = expr exprF
 (*type t_expr = (t_expr * id) exprF*)
 
@@ -23,9 +25,9 @@ type expr = expr exprF
 type 'e assignment = (id * 'e) list
 
 type ('e,'s) stmtF = Assign of 'e assignment
-		   | Print of 'e
-		   | If_stmt of 'e * 's list * 's list option 
-		   | For_stmt of ('e * ('e assignment * 'e assignment) option) option
+       | Print of 'e
+       | If_stmt of 'e * 's list * 's list option 
+       | For_stmt of ('e * ('e assignment * 'e assignment) option) option
                                * 's list
                    | Empty
 

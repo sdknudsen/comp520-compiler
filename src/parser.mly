@@ -2,21 +2,23 @@
   open Ast
 %}
 
-%token <string>	STR
-%token <int>	INT
-%token <float>	FLOAT
-%token <string>	ID
+%token <int>    INT
+%token <float>  FLOAT64
+%token <bool>   BOOL
+%token <char>   RUNE
+%token <string> STRING
+%token <string> ID
 
 %token EOF
 %token PLUS MINUS TIMES DIV PERCENT
-%token BITAND BITNOT CIRCUMFLEX
+%token BITAND BITOR CIRCUMFLEX
 %token BANG ASSIGNMENT
 
-%token LCHEVRON	RCHEVRON
-%token LPAREN	RPAREN
-%token LBRACKET	RBRACKET
-%token LBRACE	RBRACE
-%token LSHIFT	RSHIFT
+%token LCHEVRON RCHEVRON
+%token LPAREN RPAREN
+%token LBRACKET RBRACKET
+%token LBRACE RBRACE
+%token LSHIFT RSHIFT
 
 %token COMMA DOT SEMICOLON COLON
 
@@ -58,11 +60,9 @@
 %token TYPE
 %token VAR
 
-(* goline keywords *)
-%token PRINT
-
-
-
+(* GoLite keywords *)
+%token T_INT T_FLOAT64 T_BOOL T_RUNE T_STRING
+%token PRINT PRINTLN APPEND
 
 %left PLUS MINUS
 %left TIMES DIV 
@@ -73,7 +73,7 @@
 %%
 
 program:
-stmt* EOF	{ Prog($1) }
+stmt* EOF { Prog($1) }
 ;
 
 stmts_block: LBRACE stmt* RBRACE { $2 };
@@ -94,10 +94,10 @@ decl_line:
 *)
 
 for_stmt:
-  FOR b=stmts_block			{ For_stmt(None, b) }
-| FOR c=expr b=stmts_block		{ For_stmt(Some(c, None), b) }
+  FOR b=stmts_block     { For_stmt(None, b) }
+| FOR c=expr b=stmts_block    { For_stmt(Some(c, None), b) }
 | FOR i=assignment SEMICOLON c=expr SEMICOLON u=assignment
-    b=stmts_block			{ For_stmt(Some(c, Some((i,u))), b)}
+    b=stmts_block     { For_stmt(Some(c, Some((i,u))), b)}
 ;
 
 
@@ -106,9 +106,9 @@ for_stmt:
   that we must enclose the if statement in a list. Maybe use a `either` type?
 *)
 if_stmt:
-  IF expr stmts_block			{ If_stmt($2, $3, None) }
-| IF expr stmts_block ELSE stmts_block	{ If_stmt($2, $3, Some($5)) }
-| IF expr stmts_block ELSE if_stmt	{ If_stmt($2, $3, Some([$5])) }
+  IF expr stmts_block     { If_stmt($2, $3, None) }
+| IF expr stmts_block ELSE stmts_block  { If_stmt($2, $3, Some($5)) }
+| IF expr stmts_block ELSE if_stmt  { If_stmt($2, $3, Some([$5])) }
 ;
 
 
@@ -118,20 +118,20 @@ if_stmt:
   parameters.
 *)
 stmt:
-  assignment SEMICOLON 			{ Assign($1) }
-(* | PRINT LPAREN expr* RPAREN SEMICOLON	{ Print($2) } *)
-| for_stmt SEMICOLON			{ $1 }
-| if_stmt SEMICOLON			{ $1 }
-| SEMICOLON				{ Empty }
+  assignment SEMICOLON      { Assign($1) }
+(* | PRINT LPAREN expr* RPAREN SEMICOLON  { Print($2) } *)
+| for_stmt SEMICOLON      { $1 }
+| if_stmt SEMICOLON     { $1 }
+| SEMICOLON       { Empty }
 
 (*| error { raise (ParseError($startpos,"statement")) }*)
 ;
 
 %inline e_binop:
-  PLUS	{ Plus }
-| MINUS	{ Minus }
-| TIMES	{ Times }
-| DIV	{ Div }
+  PLUS  { Plus }
+| MINUS { Minus }
+| TIMES { Times }
+| DIV { Div }
 ;
 
 %inline e_prefix_op:
@@ -140,34 +140,36 @@ stmt:
 ;
 
 expr:
-  INT			{ ILit($1) }
-| FLOAT			{ FLit($1) }
-| STR			{ SLit($1) }
-| ID			{ Iden($1) }
-| LPAREN expr RPAREN	{ $2 }
-| expr e_binop expr	{ Bexp($2, $1, $3) }
-| e_prefix_op expr	{ Uexp($1, $2) }
+  INT     { ILit($1) }
+| FLOAT64     { FLit($1) }
+| BOOL     { BLit($1) }
+| RUNE     { RLit($1) }
+| STRING     { SLit($1) }
+| ID      { Iden($1) }
+| LPAREN expr RPAREN  { $2 }
+| expr e_binop expr { Bexp($2, $1, $3) }
+| e_prefix_op expr  { Uexp($1, $2) }
 
 (*| error { raise (ParseError($startpos,"expression")) }*)
 ;
 
 
 %inline a_binop:
-| TIMESEQ	{ Times }
-| DIVEQ		{ Div }
-| PLUSEQ	{ Plus }
-| MINUSEQ	{ Minus }
+| TIMESEQ { Times }
+| DIVEQ   { Div }
+| PLUSEQ  { Plus }
+| MINUSEQ { Minus }
 ;
 
 %inline a_postfix:
-  INC	{ Plus }
-| DEC	{ Minus }
+  INC { Plus }
+| DEC { Minus }
 ;
 
 (*
 assignment_rec:
-  ID COMMA assignment_rec COMMA expr		{ ($1::(fst $2), $3::(snd $2)) } 
-| ID ASSIGNMENT expr				{ ([$1], [$2]) }
+  ID COMMA assignment_rec COMMA expr    { ($1::(fst $2), $3::(snd $2)) } 
+| ID ASSIGNMENT expr        { ([$1], [$2]) }
 ;
 *)
 
@@ -175,8 +177,8 @@ assignment_rec:
   TODO: Handle multiple assignements
 *)
 assignment:
-(*  assignment_rec	{ (fst $1, rev (snd $1)) }
+(*  assignment_rec  { (fst $1, rev (snd $1)) }
 | *)
-  ID a_binop expr	{ [($1, Bexp($2, Iden($1), $3))] }
-| ID a_postfix		{ [($1, Bexp($2, Iden($1), ILit(1)))] }
+  ID a_binop expr { [($1, Bexp($2, Iden($1), $3))] }
+| ID a_postfix    { [($1, Bexp($2, Iden($1), ILit(1)))] }
 ;

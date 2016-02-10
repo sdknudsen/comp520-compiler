@@ -12,4 +12,5 @@ let _ =
     print_endline "Valid"
   with
     | Error.CompileError message -> print_endline ("Invalid" ^ message)
-    | Parser.Error -> print_endline ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+    | Parser.Error -> print_endline
+      ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
