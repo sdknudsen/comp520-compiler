@@ -29,7 +29,7 @@ let hex_lit   = '0' ('x' | 'X') hex_digit+
 let r_str_lit = '`' (ascii | esc_char)* '`'
 let i_str_lit = '"' ascii* '"'
 
-let int_lit   = dec_digit | oct_digit | hex_digit
+let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
 let bool_lit  = "true" | "false"
 let rune_lit  = ascii | esc_char
