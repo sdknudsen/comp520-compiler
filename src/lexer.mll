@@ -3,6 +3,13 @@
   open Parser
 
   let insert_semic = ref false
+
+  let keywords = ["break"; "case"; "chan"; "const"; "continue"; "default";
+                  "defer"; "else"; "fallthrough"; "for"; "func"; "go"; "goto";
+                  "if"; "import"; "interface"; "map"; "package"; "range";
+                  "return"; "select"; "struct"; "switch"; "type"; "var";
+                  "int"; "float64"; "bool"; "rune"; "string";
+                  "print"; "println"; "append"]
 }
 
 let ascii     = ['A'-'Z' 'a'-'z' '0'-'9' ' ' '!' '"' '#' '$' '%' '&' '\''
@@ -23,9 +30,50 @@ let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
 let bool_lit  = "true" | "false"
 let rune_lit  = ascii | esc_char
 let str_lit   = r_str_lit | i_str_lit
-let iden      = letter (letter | dec_digit)*
+let ident     = letter (letter | dec_digit)*
 
 rule token = parse
+  | eof           { EOF }
+  | [' ' '\t']+   { token lexbuf }
+
+(* Go keywords *)
+  | "break"       { insert_semic:=true;  BREAK }
+  | "case"        { insert_semic:=false; CASE }
+  | "chan"        { insert_semic:=false; CHAN }
+  | "const"       { insert_semic:=false; CONST }
+  | "continue"    { insert_semic:=true;  CONTINUE }
+  | "default"     { insert_semic:=false; DEFAULT }
+  | "defer"       { insert_semic:=false; DEFER }
+  | "else"        { insert_semic:=false; ELSE }
+  | "fallthrough" { insert_semic:=true;  FALLTHROUGH }
+  | "for"         { insert_semic:=false; FOR }
+  | "func"        { insert_semic:=false; FUNC }
+  | "go"          { insert_semic:=false; GO }
+  | "goto"        { insert_semic:=false; GOTO }
+  | "if"          { insert_semic:=false; IF }
+  | "import"      { insert_semic:=false; IMPORT }
+  | "interface"   { insert_semic:=false; INTERFACE}
+  | "map"         { insert_semic:=false; MAP }
+  | "package"     { insert_semic:=false; PACKAGE }
+  | "range"       { insert_semic:=false; RANGE }
+  | "return"      { insert_semic:=true;  RETURN }
+  | "select"      { insert_semic:=false; SELECT }
+  | "struct"      { insert_semic:=false; STRUCT }
+  | "switch"      { insert_semic:=false; SWITCH }
+  | "type"        { insert_semic:=false; TYPE }
+  | "var"         { insert_semic:=false; VAR }
+
+(* GoLite keywords *)
+  | "int"         { insert_semic:=false; T_INT }
+  | "float64"     { insert_semic:=false; T_FLOAT64 }
+  | "bool"        { insert_semic:=false; T_BOOL }
+  | "rune"        { insert_semic:=false; T_RUNE }
+  | "string"      { insert_semic:=false; T_STRING }
+  | "print"       { insert_semic:=false; PRINT }
+  | "println"     { insert_semic:=false; PRINTLN }
+  | "append"      { insert_semic:=false; APPEND }
+
+(* Operators *)
   | '+'           { insert_semic:=false; PLUS }
   | '-'           { insert_semic:=false; MINUS }
   | '*'           { insert_semic:=false; TIMES }
@@ -74,55 +122,28 @@ rule token = parse
   | ":="          { insert_semic:=false; COLONEQ }
   | "..."         { insert_semic:=false; ELLIPSIS }
 
-(* Go keywords *)
-  | "break"       { insert_semic:=true;  BREAK }
-  | "case"        { insert_semic:=false; CASE }
-  | "chan"        { insert_semic:=false; CHAN }
-  | "const"       { insert_semic:=false; CONST }
-  | "continue"    { insert_semic:=true;  CONTINUE }
-  | "default"     { insert_semic:=false; DEFAULT }
-  | "defer"       { insert_semic:=false; DEFER }
-  | "else"        { insert_semic:=false; ELSE }
-  | "fallthrough" { insert_semic:=true;  FALLTHROUGH }
-  | "for"         { insert_semic:=false; FOR }
-  | "func"        { insert_semic:=false; FUNC }
-  | "go"          { insert_semic:=false; GO }
-  | "goto"        { insert_semic:=false; GOTO }
-  | "if"          { insert_semic:=false; IF }
-  | "import"      { insert_semic:=false; IMPORT }
-  | "interface"   { insert_semic:=false; INTERFACE}
-  | "map"         { insert_semic:=false; MAP }
-  | "package"     { insert_semic:=false; PACKAGE }
-  | "range"       { insert_semic:=false; RANGE }
-  | "return"      { insert_semic:=true;  RETURN }
-  | "select"      { insert_semic:=false; SELECT }
-  | "struct"      { insert_semic:=false; STRUCT }
-  | "switch"      { insert_semic:=false; SWITCH }
-  | "type"        { insert_semic:=false; TYPE }
-  | "var"         { insert_semic:=false; VAR }
+(* Comments *)
+  | "//" [^'\r''\n']*                { token lexbuf }
+  | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
 
-(* GoLite keywords *)
-  | "int"         { insert_semic:=false; T_INT }
-  | "float64"     { insert_semic:=false; T_FLOAT64 }
-  | "bool"        { insert_semic:=false; T_BOOL }
-  | "rune"        { insert_semic:=false; T_RUNE }
-  | "string"      { insert_semic:=false; T_STRING }
-  | "print"       { insert_semic:=false; PRINT }
-  | "println"     { insert_semic:=false; PRINTLN }
-  | "append"      { insert_semic:=false; APPEND }
-
+(* Literals *)
   | int_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
   | rune_lit as c { insert_semic:=true; RUNE c.[0] }
   | str_lit as s  { insert_semic:=true; STRING s }
-  | iden as x     { insert_semic:=true; ID x }
 
-  | [' ' '\t']+                      { token lexbuf }
-  | "//" [^'\r''\n']*                { token lexbuf }
-  | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
+(* Identifiers *)
+  | ident as x {
+      let l = String.lowercase x in
+      if List.mem l keywords
+      then Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf "cannot use reserved word '%s' as identifier" x)
+      else (insert_semic:=true; ID x)
+    }
 
-  | eof { EOF }
+(* Semicolons *)
   | eol {
       new_line lexbuf;
       if !insert_semic
@@ -130,8 +151,8 @@ rule token = parse
       else (insert_semic:=false; token lexbuf)
     }
 
+(* Unknown *)
   | _ {
-      insert_semic:=false;
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf "unexpected token '%s'" (lexeme lexbuf))
