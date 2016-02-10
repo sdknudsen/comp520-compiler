@@ -22,10 +22,14 @@ let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'')
+
+let dec_lit   = ['1'-'9'] dec_digit*
+let oct_lit   = '0' oct_digit*
+let hex_lit   = '0' ('x' | 'X') hex_digit+
 let r_str_lit = '`' (ascii | esc_char)* '`'
 let i_str_lit = '"' ascii* '"'
 
-let int_lit   = dec_digit+ | oct_digit+ | hex_digit+
+let int_lit   = dec_digit | oct_digit | hex_digit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
 let bool_lit  = "true" | "false"
 let rune_lit  = ascii | esc_char
