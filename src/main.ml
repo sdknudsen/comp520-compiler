@@ -3,17 +3,16 @@ open Tokens
 let lex in_channel =
   let lexbuf = Lexing.from_channel in_channel in
   try
-  let rec consume lb =
-    let t = Lexer.token lb in
+    let rec consume lb =
+      let t = Lexer.token lb in
       match t with
        | EOF    -> (print_endline (Lexer.print_token EOF))
        | _      -> (print_endline (Lexer.print_token t);
                    consume lb)
-  in consume lexbuf
+    in consume lexbuf
   with
     | Error.CompileError message -> print_endline ("Invalid" ^ message)
-    | Parser.Error -> print_endline
-      ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+
 
 let parse in_channel =
   let lexbuf = Lexing.from_channel in_channel in
