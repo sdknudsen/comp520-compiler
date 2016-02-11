@@ -1,1 +1,4 @@
 true: use_menhir, rectypes, annot
+
+<tokens.mly>: only_token
+<parser.mly>: external_token

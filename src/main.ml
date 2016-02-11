@@ -1,16 +1,54 @@
-let _ =
-  (* let write f obj name suff = f obj (open_out (name ^ suff)) in *)
-  let filename = Sys.argv.(1) in
-  (* let name = Filename.chop_suffix filename ".go" in *)
-  let filein = open_in filename in
-  let lexbuf = Lexing.from_channel filein in
+open Tokens
+
+let lex in_channel =
+  let lexbuf = Lexing.from_channel in_channel in
   try
-    let untypedTree = Parser.program Lexer.token lexbuf in
-    (* let typedTree = Ast.typeAST untypedTree in
-    let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
-    ignore (untypedTree);
-    print_endline "Valid"
+  let rec consume lb =
+    let t = Lexer.token lb in
+      match t with
+       | EOF -> (print_endline (Lexer.print_token EOF))
+       | _ as a     -> (print_endline (Lexer.print_token a);
+                   consume lb)
+  in consume lexbuf
   with
     | Error.CompileError message -> print_endline ("Invalid" ^ message)
     | Parser.Error -> print_endline
       ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+
+let pretty    in_channel = print_endline "I'm pretty"
+let parse     in_channel = print_endline "Parsing with parsimony"
+let compile   in_channel = print_endline "Compiling is complicated"
+
+(*
+let compile in_channel =
+  let lexbuf = Lexing.from_channel in_channel in
+  try
+     let untypedTree = Parser.program Lexer.token lexbuf in
+     (* let typedTree = Ast.typeAST untypedTree in
+     let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
+     ignore (untypedTree);
+     print_endline "Valid"
+  with
+    | Error.CompileError message -> print_endline ("Invalid" ^ message)
+    | Parser.Error -> print_endline
+      ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+*)
+
+
+let main =
+let usage_msg = "golite [pretty|compile] [<file>]"
+in let action = ref compile
+in let in_channel = ref stdin
+in let anon_fn str =
+  match str with
+    | "lex"     -> action := lex
+    | "pretty"  -> action := pretty
+    | "parse"   -> action := parse
+    | "compile" -> action := compile
+    | _ as f (* file *) -> in_channel := open_in f
+in begin
+  Arg.parse [] anon_fn usage_msg;
+  !action !in_channel;
+end
+
+let _ = main

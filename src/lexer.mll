@@ -1,6 +1,6 @@
 {
   open Lexing
-  open Parser
+  open Tokens 
 
   let insert_semic = ref false
 
@@ -10,7 +10,110 @@
                   "return"; "select"; "struct"; "switch"; "type"; "var";
                   "int"; "float64"; "bool"; "rune"; "string";
                   "print"; "println"; "append"]
+
+  let print_token t = match t with
+| INT(i)     -> "INT(" ^ (string_of_int i) ^ ")"
+| FLOAT64(f) -> "FLOAT(" ^ (string_of_float f) ^ ")"
+| BOOL(b)    -> "BOOL(" ^ (string_of_bool b) ^ ")"
+| RUNE(r)    -> "ID(" ^ (String.make 1 r) ^ ")"
+| STRING(s)  -> "STRING(" ^ s ^ ")"
+| ID(i)      -> "ID(" ^ i ^ ")"
+
+| EOF   -> "EOF"
+
+| PLUS  -> "PLUS"
+| MINUS -> "MINUS"
+| TIMES -> "TIMES"
+| DIV   -> "DIV"
+| PERCENT -> "PERCENT"
+| BITAND  -> "BITAND"
+| BITOR   -> "BITOR"
+| CIRCUMFLEX -> "CIRCUMFLEX"
+| BANG       -> "BANG"
+| ASSIGNMENT -> "ASSIGNMENT"
+
+| LCHEVRON -> "LCHEVRON"
+| RCHEVRON -> "RCHEVRON"
+| LPAREN   -> "LPAREN"
+| RPAREN   -> "RPAREN"
+| LBRACKET -> "LBRACKET"
+| RBRACKET -> "RBRACKET"
+| LBRACE   -> "LBRACE"
+| RBRACE   -> "RBRACE"
+| LSHIFT   -> "LSHIFT"
+| RSHIFT   -> "RSHIFT"
+
+| COMMA     -> "COMMA"
+| DOT       -> "DOT"
+| SEMICOLON -> "SEMICOLON"
+| COLON     -> "COLON"
+
+| BITNAND -> "BITNAND"
+| PLUSEQ -> "PLUSEQ"
+| MINUSEQ -> "MINUSEQ"
+| TIMESEQ -> "TIMESEQ"
+| DIVEQ -> "DIVEQ"
+| PERCENTEQ -> "PERCENTEQ"
+| AMPEQ -> "AMPEQ"
+| BITOREQ -> "BITOREQ"
+| BITNOTEQ -> "BITNOTEQ"
+| LSHIFTEQ -> "LSHIFTEQ"
+| RSHIFTEQ -> "RSHIFTEQ"
+| BITNANDEQ -> "BITNANDEQ"
+| BOOL_AND -> "BOOL_AND"
+| BOOL_OR -> "BOOL_OR"
+| LARROW -> "LARROW"
+| INC -> "INC"
+| DEC -> "DEC"
+| EQUALS -> "EQUALS"
+| NOTEQUALS -> "NOTEQUALS"
+| LTEQ -> "LTEQ"
+| GTEQ -> "GTEQ"
+| COLONEQ -> "COLONEQ"
+| ELLIPSIS -> "ELLIPSIS"
+| BREAK -> "BREAK"
+| CASE -> "CASE"
+| CHAN -> "CHAN"
+| CONST -> "CONST"
+| CONTINUE -> "CONTINUE"
+| DEFAULT -> "DEFAULT"
+| DEFER -> "DEFER"
+| ELSE -> "ELSE"
+| FALLTHROUGH -> "FALLTHROUGH"
+| FOR -> "FOR"
+| FUNC -> "FUNC"
+| GO -> "GO"
+| GOTO -> "GOTO"
+| IF -> "IF"
+| IMPORT -> "IMPORT"
+| INTERFACE -> "INTERFACE"
+| MAP -> "MAP"
+| PACKAGE -> "PACKAGE"
+| RANGE -> "RANGE"
+| RETURN -> "RETURN"
+| SELECT -> "SELECT"
+| STRUCT -> "STRUCT"
+| SWITCH -> "SWITCH"
+| TYPE -> "TYPE"
+| VAR -> "VAR"
+
+
+(* GoLite keywords *)
+(*
+| T_INT -> "T_INT"
+| T_FLOAT64 -> "T_FLOAT64"
+| T_BOOL -> "T_BOOL"
+| T_RUNE -> "T_RUNE"
+| T_STRING -> "T_STRING"
+| PRINT -> "PRINT"
+| PRINTLN -> "PRINTLN"
+| APPEND -> "APPEND"
+*)
+
 }
+
+
+let clean_ascii = [' ' '!' '#'-'&' '('-'[' ']'-'_' 'a'-'~']
 
 let ascii     = ['A'-'Z' 'a'-'z' '0'-'9' ' ' '!' '"' '#' '$' '%' '&' '\''
                  '(' ')' '*' '+' ',' '-' '.' '/' ':' ';' '<' '=' '>' '?'
@@ -68,6 +171,7 @@ rule token = parse
   | "var"         { insert_semic:=false; VAR }
 
 (* GoLite keywords *)
+(*
   | "int"         { insert_semic:=false; T_INT }
   | "float64"     { insert_semic:=false; T_FLOAT64 }
   | "bool"        { insert_semic:=false; T_BOOL }
@@ -76,9 +180,9 @@ rule token = parse
   | "print"       { insert_semic:=false; PRINT }
   | "println"     { insert_semic:=false; PRINTLN }
   | "append"      { insert_semic:=false; APPEND }
+*)
 
 (* Operators *)
-  | '+'           { insert_semic:=false; PLUS }
   | '-'           { insert_semic:=false; MINUS }
   | '*'           { insert_semic:=false; TIMES }
   | '/'           { insert_semic:=false; DIV }
@@ -125,6 +229,7 @@ rule token = parse
   | ">="          { insert_semic:=false; GTEQ }
   | ":="          { insert_semic:=false; COLONEQ }
   | "..."         { insert_semic:=false; ELLIPSIS }
+  | '+'           { insert_semic:=false; PLUS }
 
 (* Comments *)
   | "//" [^'\r''\n']*                { token lexbuf }
@@ -136,6 +241,11 @@ rule token = parse
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
   | rune_lit as c { insert_semic:=true; RUNE c.[0] }
   | str_lit as s  { insert_semic:=true; STRING s }
+
+(* String error handling *)
+  | '"'	{ string_error lexbuf }
+  | '`'	{ raw_string_error lexbuf }
+
 
 (* Identifiers *)
   | ident as x {
@@ -160,4 +270,26 @@ rule token = parse
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf "unexpected token '%s'" (lexeme lexbuf))
+    }
+
+and string_error = parse
+  | clean_ascii | '`'	{ string_error lexbuf}
+  | '\\' dec_digit+ 	{ raw_string_error lexbuf}
+  | esc_char	 	{ raw_string_error lexbuf}
+  | _ as c {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf
+          "unexpected character \\'%d' in string"
+          (Char.code c))
+    }
+
+and raw_string_error = parse
+  | clean_ascii | '"' | ''' | '\\'	{ raw_string_error lexbuf}
+  | _ as c {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf
+           "unexpected character \\'%d' in string"
+           (Char.code c))
     }
