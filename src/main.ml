@@ -6,8 +6,8 @@ let lex in_channel =
   let rec consume lb =
     let t = Lexer.token lb in
       match t with
-       | EOF -> (print_endline (Lexer.print_token EOF))
-       | _ as a     -> (print_endline (Lexer.print_token a);
+       | EOF    -> (print_endline (Lexer.print_token EOF))
+       | _      -> (print_endline (Lexer.print_token t);
                    consume lb)
   in consume lexbuf
   with
@@ -15,12 +15,7 @@ let lex in_channel =
     | Parser.Error -> print_endline
       ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
 
-let pretty    in_channel = print_endline "I'm pretty"
-let parse     in_channel = print_endline "Parsing with parsimony"
-let compile   in_channel = print_endline "Compiling is complicated"
-
-(*
-let compile in_channel =
+let parse in_channel =
   let lexbuf = Lexing.from_channel in_channel in
   try
      let untypedTree = Parser.program Lexer.token lexbuf in
@@ -32,20 +27,32 @@ let compile in_channel =
     | Error.CompileError message -> print_endline ("Invalid" ^ message)
     | Parser.Error -> print_endline
       ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+
+
+let pretty    in_channel = print_endline "I'm pretty"
+let typecheck in_channel = print_endline "Typical typechecker"
+let compile   in_channel = print_endline "Compiling is complicated"
+
+
+(*
+let compile in_channel =
+
 *)
 
 
 let main =
-let usage_msg = "golite [pretty|compile] [<file>]"
+let usage_msg = "golite [lex|parse|pretty|typecheck|compile] [<file>]"
 in let action = ref compile
 in let in_channel = ref stdin
 in let anon_fn str =
   match str with
-    | "lex"     -> action := lex
-    | "pretty"  -> action := pretty
-    | "parse"   -> action := parse
-    | "compile" -> action := compile
-    | _ as f (* file *) -> in_channel := open_in f
+    | "lex"       -> action := lex
+    | "pretty"    -> action := pretty
+    | "parse"     -> action := parse
+    | "typecheck" -> action := typecheck
+    | "compile"   -> action := compile
+    (* unknown arguments are considered as a file *)
+    | _ as f    -> in_channel := open_in f
 in begin
   Arg.parse [] anon_fn usage_msg;
   !action !in_channel;
