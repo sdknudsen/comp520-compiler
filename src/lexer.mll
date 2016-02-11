@@ -113,14 +113,14 @@
 }
 
 
-let clean_ascii = [' ' '!' '#'-'&' '('-'[' ']'-'_' 'a'-'~']
+let clean_ascii = [' '-'!' '#'-'&' '('-'[' ']'-'_' 'a'-'~']
 
 let ascii     = ['A'-'Z' 'a'-'z' '0'-'9' ' ' '!' '"' '#' '$' '%' '&' '\''
                  '(' ')' '*' '+' ',' '-' '.' '/' ':' ';' '<' '=' '>' '?'
                  '@' '[' '\\' ']' '^' '_' '`' '{' '|' '}' '~']
 
 let eol       = '\r' | '\n' | ('\r' '\n')
-let letter    = ['A'-'Z' 'a'-'z' '_']
+let letter    = (['A'-'Z' 'a'-'z'] | '_')
 let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
@@ -129,14 +129,14 @@ let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'')
 let dec_lit   = ['1'-'9'] dec_digit*
 let oct_lit   = '0' oct_digit*
 let hex_lit   = '0' ('x' | 'X') hex_digit+
-let r_str_lit = '`' (ascii | esc_char)* '`'
-let i_str_lit = '"' ascii* '"'
+
+let raw_str_char = (ascii | esc_char)
+let str_char  = (clean_ascii | ''' | '`' | esc_char )
+let rune_char = (ascii | esc_char)
 
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
 let bool_lit  = "true" | "false"
-let rune_lit  = ascii | esc_char
-let str_lit   = r_str_lit | i_str_lit
 let ident     = letter (letter | dec_digit)*
 
 rule token = parse
@@ -239,8 +239,9 @@ rule token = parse
   | int_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
-  | rune_lit as c { insert_semic:=true; RUNE c.[0] }
-  | str_lit as s  { insert_semic:=true; STRING s }
+  | ''' (rune_char as c) '''     { insert_semic:=true; RUNE c.[0] }
+  | '"' (str_char* as s) '"'     { insert_semic:=true; STRING s }
+  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING s }
 
 (* String error handling *)
   | '"'	{ string_error lexbuf }
@@ -273,23 +274,29 @@ rule token = parse
     }
 
 and string_error = parse
-  | clean_ascii | '`'	{ string_error lexbuf}
-  | '\\' dec_digit+ 	{ raw_string_error lexbuf}
-  | esc_char	 	{ raw_string_error lexbuf}
+  | clean_ascii | '`'	{ string_error lexbuf }
+  | '\\' dec_digit+ 	{ string_error lexbuf }
+  | esc_char	 	{ string_error lexbuf }
+  | '\\' as c { 
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf
+          "unexpected character `%c` in string" c)
+    }
   | _ as c {
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf
-          "unexpected character \\'%d' in string"
+          "unexpected character \\%d in string"
           (Char.code c))
     }
 
 and raw_string_error = parse
-  | clean_ascii | '"' | ''' | '\\'	{ raw_string_error lexbuf}
+  | clean_ascii | '"' | ''' | '\\'	{ raw_string_error lexbuf }
   | _ as c {
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf
-           "unexpected character \\'%d' in string"
+           "unexpected character \\%d in string"
            (Char.code c))
     }
