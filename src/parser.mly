@@ -20,28 +20,31 @@ declaration:
   | decl = func_decl { decl }
 
 var_decl:
-  | VAR var_stmt SEMICOLON { None }
   | VAR LPAREN var_stmt* RPAREN SEMICOLON { None }
+  | VAR ID LBRACKET INT RBRACKET golite_type { None }
+  | VAR ID LBRACKET RBRACKET golite_type { None }
+  | VAR var_stmt { None }
   | VAR error { Error.print_error $startpos "error at variable declaration" }
   | ID COLONEQ expression SEMICOLON { None }
-  | ID error { Error.print_error $startpos "error at variable declaration" }
+  | ID COLONEQ error { Error.print_error $startpos "error at variable declaration" }
 
 var_stmt:
+  | identifiers golite_type ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
+  | identifiers ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
   | identifiers golite_type { None }
-  | identifiers ASSIGNMENT expression {None}
-  | identifiers golite_type ASSIGNMENT expression {None}
 
 type_decl:
+  | TYPE LPAREN type_stmt* RPAREN SEMICOLON { None }
   | TYPE type_stmt { None }
-  | TYPE RPAREN type_stmt* RPAREN { None }
   | TYPE error { Error.print_error $startpos "error at type declaration" }
 
 type_stmt:
+  | ID STRUCT LBRACE identifiers golite_type RBRACE SEMICOLON { None }
   | ID golite_type { None }
 
 func_decl:
-  | FUNC ID LPAREN parameters RPAREN LBRACE statement* RETURN RBRACE { None }
-  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE statement* RETURN ID RBRACE { None }
+  | FUNC ID LPAREN parameters RPAREN LBRACE statement* RETURN SEMICOLON RBRACE SEMICOLON { None }
+  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE statement* RETURN ID SEMICOLON RBRACE SEMICOLON { None }
   | FUNC error { Error.print_error $startpos "error at function declaration" }
 
 identifiers:
@@ -62,9 +65,11 @@ golite_type:
 
 statement:
   | ID ASSIGNMENT expression { None }
+  | error { Error.print_error $startpos "error at statement" }
   | decl = var_decl { decl }
   | decl = type_decl { decl }
-  | error { Error.print_error $startpos "error at statement" }
+  (*| for_stmt SEMICOLON { $1 }
+  | if_stmt SEMICOLON { $1 }*)
   (* need to support empty statement *)
 
 expression:
