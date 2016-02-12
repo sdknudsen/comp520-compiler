@@ -9,14 +9,15 @@ else
     echo "usage: bash runtests [v|i|valid|invalid]";
     exit
 fi
-ls $folder > testProgs.txt
+ls $folder > _test_progs.txt
 
 while [[ -s "testProgs.txt" ]]
 do
-curr=$(head -n 1 testProgs.txt)
+curr=$(head -n 1 _test_progs.txt)
 echo $curr
 ../src/main.native $folder/$curr
 echo ""
-sed -i -e "1d" testProgs.txt
+sed -i -e "1d" _test_progs.txt
 done
-rm testProgs.txt*
+rm _test_progs.txt
+rm _test_progs.txt-e
