@@ -4,12 +4,12 @@
 
   let insert_semic = ref false
 
-  let keywords = ["break"; "case"; "chan"; "const"; "continue"; "default";
+  (*let keywords = ["break"; "case"; "chan"; "const"; "continue"; "default";
                   "defer"; "else"; "fallthrough"; "for"; "func"; "go"; "goto";
                   "if"; "import"; "interface"; "map"; "package"; "range";
                   "return"; "select"; "struct"; "switch"; "type"; "var";
                   "int"; "float64"; "bool"; "rune"; "string";
-                  "print"; "println"; "append"]
+                  "print"; "println"; "append"]*)
 
   let print_token t = match t with
 | INT(i)     -> "INT(" ^ (string_of_int i) ^ ")"
@@ -249,7 +249,9 @@ rule token = parse
 
 
 (* Identifiers *)
-  | ident as x {
+  | ident as x { insert_semic:=true; ID x }
+  (*
+    | ident as x {
       let l = String.lowercase x in
       if List.mem l keywords
       then Error.print_error
@@ -257,6 +259,7 @@ rule token = parse
         (Printf.sprintf "cannot use reserved word '%s' as identifier" x)
       else (insert_semic:=true; ID x)
     }
+  *)
 
 (* Semicolons *)
   | eol {

@@ -2,10 +2,87 @@
   open Ast
 %}
 
-%start <Ast.ast> program
+%start <'a option list> program (* <Ast.ast> *)
 
 %%
 
+program:
+  | pkg = package decls = declaration* EOF { ignore(pkg); decls }
+  | error { Error.print_error $startpos "syntax error" }
+
+package:
+  | PACKAGE ID SEMICOLON { None }
+  | PACKAGE error { Error.print_error $startpos "package identifier" }
+
+declaration:
+  | decl = var_decl { decl }
+  | decl = type_decl { decl }
+  | decl = func_decl { decl }
+
+var_decl:
+  | VAR var_stmt SEMICOLON { None }
+  | VAR LPAREN var_stmt* RPAREN SEMICOLON { None }
+  | VAR error { Error.print_error $startpos "error at variable declaration" }
+  | ID COLONEQ expression SEMICOLON { None }
+  | ID error { Error.print_error $startpos "error at variable declaration" }
+
+var_stmt:
+  | identifiers golite_type { None }
+  | identifiers ASSIGNMENT expression {None}
+  | identifiers golite_type ASSIGNMENT expression {None}
+
+type_decl:
+  | TYPE type_stmt { None }
+  | TYPE RPAREN type_stmt* RPAREN { None }
+  | TYPE error { Error.print_error $startpos "error at type declaration" }
+
+type_stmt:
+  | ID golite_type { None }
+
+func_decl:
+  | FUNC ID LPAREN parameters RPAREN LBRACE statement* RETURN RBRACE { None }
+  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE statement* RETURN ID RBRACE { None }
+  | FUNC error { Error.print_error $startpos "error at function declaration" }
+
+identifiers:
+  | ids = separated_nonempty_list(COMMA, ID) { ids }
+
+parameters:
+  | params = separated_list(COMMA, param_expr) { params }
+
+param_expr:
+  | identifiers golite_type { None }
+
+golite_type:
+  | T_INT { None }
+  | T_FLOAT64 { None }
+  | T_BOOL { None }
+  | T_RUNE { None }
+  | T_STRING { None }
+
+statement:
+  | ID ASSIGNMENT expression { None }
+  | decl = var_decl { decl }
+  | decl = type_decl { decl }
+  | error { Error.print_error $startpos "error at statement" }
+  (* need to support empty statement *)
+
+expression:
+  | LPAREN expr = expression RPAREN { expr }
+  | expression PLUS expression { None }
+  | expression MINUS expression { None }
+  | expression TIMES expression { None }
+  | expression DIV expression { None }
+  | MINUS expression %prec NEG { None }
+  | ID { None }
+  | INT { None }
+  | FLOAT64 { None }
+  | BOOL { None }
+  | RUNE { None }
+  | STRING { None }
+  | error { Error.print_error $startpos "error at expression" }
+
+(*
 program:
   stmt* EOF { Prog($1) }
 ;
@@ -118,3 +195,4 @@ assignment:
   ID a_binop expr { [($1, Bexp($2, Iden($1), $3))] }
 | ID a_postfix    { [($1, Bexp($2, Iden($1), ILit(1)))] }
 ;
+*)
