@@ -3,8 +3,9 @@ module Ctx = Map.Make(String)
 
 type id = string
 (* can a variable have the same name as a type? *)
-(* type tm_id = string *)
-(* type tp_id = string *)
+type var_id = string
+type typ_id = string
+type fun_id = string
 
 type binop = Plus | Minus | Times | Div
 type unop = Neg | Pos
@@ -56,3 +57,21 @@ let str_of_binop = function
 let str_of_unop = function
   | NEG -> "-"
   | _ -> failwith "string not yet declared"
+
+(* get a typed declaration list from the reversed declarations in the parser *)
+let rev_decls ds = 
+  let rec get_ls_tup = function
+    | [] -> ([], [], None)
+    | [(var, expr, Some t)] -> ([var], [expr], Some t)
+    | (var, expr, None)::tl -> let (vs, es, tp) = get_ls_tup tl in
+                               (var::vs, expr::es, tp)
+    | _ -> failwith "error" (* change the error *)
+  in
+  let rec zipDecls = function
+    | x::xs, y::ys, tp -> (x,y,tp)::zipDecls(xs,ys,tp)
+    | _ -> []
+  in
+  let (vs, es, t) = get_ls_tup ds in
+  zipDecls(vs,(List.rev es),t)
+
+              (* (id * expr * typ option) list *)
