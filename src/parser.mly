@@ -2,36 +2,43 @@
   open Ast
 %}
 
-%start <'a option list> program (* <Ast.ast> *)
+%start <Ast.ast> program
 
 %%
 
 program:
-  | pkg = package decls = declaration* EOF { ignore(pkg); decls }
+  | pkg=package decls=decl+ EOF { Prog(pkg, decls) }
   | error { Error.print_error $startpos "syntax error" }
 
 package:
-  | PACKAGE ID SEMICOLON { None }
+  | PACKAGE ID SEMICOLON { Pkg($2) }
   | PACKAGE error { Error.print_error $startpos "package identifier" }
 
-declaration:
-  | decl = var_decl { decl }
-  | decl = type_decl { decl }
-  | decl = func_decl { decl }
+decl:
+  | vd=var_decl { vd }
+  | td=type_decl { td }
+  | fd=func_decl { fd }
 
 var_decl:
   | VAR LPAREN var_stmt* RPAREN SEMICOLON { None }
   | VAR ID LBRACKET INT RBRACKET golite_type { None }
   | VAR ID LBRACKET RBRACKET golite_type { None }
-  | VAR var_stmt { None }
+  | VAR var_stmt { Some($2) }
   | VAR error { Error.print_error $startpos "error at variable declaration" }
-  | ID COLONEQ expression SEMICOLON { None }
+  | ID COLONEQ expr SEMICOLON { None }
   | ID COLONEQ error { Error.print_error $startpos "error at variable declaration" }
 
 var_stmt:
-  | identifiers golite_type ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
-  | identifiers ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
-  | identifiers golite_type { None }
+  | var_rec { Some(Var_decl($1)) }
+  | id_rec { Some(Var_decl($1)) }
+
+var_rec:
+  | ID COMMA var_rec COMMA expr { ($1,$5,None)::$3 }
+  | ID option(golite_type) ASSIGNMENT expr { [($1,$4,$2)] }
+
+id_rec:
+  | ID COMMA id_rec { ($1,None,None)::$3 }
+  | ID golite_type { [($1,None,$2)] }
 
 type_decl:
   | TYPE LPAREN type_stmt* RPAREN SEMICOLON { None }
@@ -43,49 +50,91 @@ type_stmt:
   | ID golite_type { None }
 
 func_decl:
-  | FUNC ID LPAREN parameters RPAREN LBRACE statement* RETURN SEMICOLON RBRACE SEMICOLON { None }
-  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE statement* RETURN ID SEMICOLON RBRACE SEMICOLON { None }
+  | FUNC ID LPAREN parameters RPAREN LBRACE stmt*
+      RETURN SEMICOLON RBRACE SEMICOLON { Func_decl($2, $4, $7, None, None) }
+  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE stmt*
+      RETURN ID SEMICOLON RBRACE SEMICOLON { Func_decl($2, $4, $8, Some($10), Some($6)) }
   | FUNC error { Error.print_error $startpos "error at function declaration" }
 
 identifiers:
-  | ids = separated_nonempty_list(COMMA, ID) { ids }
+  | ids=separated_nonempty_list(COMMA, ID) { ids }
 
 parameters:
-  | params = separated_list(COMMA, param_expr) { params }
+  | params=separated_list(COMMA, param_expr) { params }
 
 param_expr:
   | identifiers golite_type { None }
 
 golite_type:
-  | T_INT { None }
-  | T_FLOAT64 { None }
-  | T_BOOL { None }
-  | T_RUNE { None }
-  | T_STRING { None }
+  | ID { $1 }
+(*
+  | T_INT { TInt }
+  | T_FLOAT64 { TFloat }
+  | T_BOOL { TBool }
+  | T_RUNE { TRune }
+  | T_STRING { TString }
+*)
 
-statement:
-  | ID ASSIGNMENT expression { None }
+stmt:
+  | assignment SEMICOLON { Some(Assign($1)) }
+  | for_stmt SEMICOLON { $1 }
+  | if_stmt SEMICOLON { $1 }
+  | vd=var_decl { vd }
+  | td=type_decl { td }
   | error { Error.print_error $startpos "error at statement" }
-  | decl = var_decl { decl }
-  | decl = type_decl { decl }
-  (*| for_stmt SEMICOLON { $1 }
-  | if_stmt SEMICOLON { $1 }*)
   (* need to support empty statement *)
 
-expression:
-  | LPAREN expr = expression RPAREN { expr }
-  | expression PLUS expression { None }
-  | expression MINUS expression { None }
-  | expression TIMES expression { None }
-  | expression DIV expression { None }
-  | MINUS expression %prec NEG { None }
-  | ID { None }
-  | INT { None }
-  | FLOAT64 { None }
-  | BOOL { None }
-  | RUNE { None }
-  | STRING { None }
+stmts_block:
+  | LBRACE stmt* RBRACE { $2 }
+
+for_stmt:
+  | FOR b=stmts_block     { For_stmt(None, b) }
+  | FOR c=expr b=stmts_block    { For_stmt(Some(c, None), b) }
+  | FOR i=assignment SEMICOLON c=expr SEMICOLON u=assignment
+        b=stmts_block     { For_stmt(Some(c, Some((i,u))), b)}
+
+if_stmt:
+  | IF expr stmts_block     { Some(If_stmt($2, $3, None)) }
+  | IF expr stmts_block ELSE stmts_block  { Some(If_stmt($2, $3, Some($5))) }
+  | IF expr stmts_block ELSE if_stmt  { Some(If_stmt($2, $3, Some([$5]))) }
+
+expr:
+  | LPAREN e=expr RPAREN { e }
+  | expr e_binop expr { Bexp($2, $1, $3) }
+  | e_prefix_op expr  { Uexp($1, $2) }
+  | INT     { ILit($1) }
+  | FLOAT64     { FLit($1) }
+  | BOOL     { BLit($1) }
+  | RUNE     { RLit($1) }
+  | STRING     { SLit($1) }
+  | ID      { Iden($1) }
   | error { Error.print_error $startpos "error at expression" }
+
+assignment:
+  (*| identifiers ASSIGNMENT expr { None }*)
+  | ID ASSIGNMENT expr { ([$1], [$3]) }
+  | ID a_binop expr { [($1, Bexp($2, Iden($1), $3))] }
+  | ID a_postfix    { [($1, Bexp($2, Iden($1), ILit(1)))] }
+
+%inline e_binop:
+  | PLUS  { Plus }
+  | MINUS { Minus }
+  | TIMES { Times }
+  | DIV   { Div }
+
+%inline e_prefix_op:
+  | PLUS  { Pos }
+  | MINUS { Neg }
+
+%inline a_binop:
+  | PLUSEQ  { Plus }
+  | MINUSEQ { Minus }
+  | TIMESEQ { Times }
+  | DIVEQ   { Div }
+
+%inline a_postfix:
+  | INC { Plus }
+  | DEC { Minus }
 
 (*
 program:

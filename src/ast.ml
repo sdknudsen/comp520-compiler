@@ -36,17 +36,20 @@ type ('e,'s) stmtF = Assign of 'e assignment
        | If_stmt of 'e * 's list * 's list option 
        | For_stmt of ('e * ('e assignment * 'e assignment) option) option
                      * 's list
+  | Var_decl of (id * 'e option * id option) list
+  | Func_decl of id * (id list * id) list * 's list * id option * id option
        | Empty
 
 type stmt = (expr, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 
-type declaration = Dec of id * id
+(* type declaration = Dec of id * id *)
+type package = Pkg of id
 
-type ast = Prog of stmt list
+type ast = Prog of package * stmt list
 (* type t_ast = TProg of t_stmt list *)
 
-
+(* 
 let str_of_binop = function
   | PLUS -> "+"
   | MINUS -> "-"
@@ -57,7 +60,7 @@ let str_of_binop = function
 let str_of_unop = function
   | NEG -> "-"
   | _ -> failwith "string not yet declared"
-
+ *)
 (* get a typed declaration list from the reversed declarations in the parser *)
 let rev_decls ds = 
   let rec get_ls_tup = function
