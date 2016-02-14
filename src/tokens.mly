@@ -3,7 +3,7 @@
 %token <bool>   BOOL
 %token <char>   RUNE
 %token <string> STRING
-%token <string> ID
+%token <string> IDEN
 
 %token EOF
 %token PLUS MINUS TIMES DIV PERCENT
