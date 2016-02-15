@@ -17,7 +17,7 @@
 | BOOL(b)    -> "BOOL(" ^ (string_of_bool b) ^ ")"
 | RUNE(r)    -> "RUNE(" ^ (String.make 1 r) ^ ")"
 | STRING(s)  -> "STRING(" ^ s ^ ")"
-| ID(i)      -> "ID(" ^ i ^ ")"
+| IDEN(i)    -> "ID(" ^ i ^ ")"
 
 | EOF   -> "EOF"
 
@@ -137,7 +137,7 @@ let rune_char = (ascii | esc_char)
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
 let bool_lit  = "true" | "false"
-let ident     = letter (letter | dec_digit)*
+let iden     = letter (letter | dec_digit)*
 
 rule token = parse
   | eof           { EOF }
@@ -249,9 +249,9 @@ rule token = parse
 
 
 (* Identifiers *)
-  | ident as x { insert_semic:=true; ID x }
+  | iden as x { insert_semic:=true; IDEN x }
   (*
-    | ident as x {
+    | iden as x {
       let l = String.lowercase x in
       if List.mem l keywords
       then Error.print_error

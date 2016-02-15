@@ -2,90 +2,149 @@
   open Ast
 %}
 
-%start <'a option list> program (* <Ast.ast> *)
+%start <Ast.ast> program
 
 %%
 
 program:
-  | pkg = package decls = declaration* EOF { ignore(pkg); decls }
+  | pkg=package decls=decl+ EOF { Prog(pkg, decls) }
   | error { Error.print_error $startpos "syntax error" }
 
 package:
-  | PACKAGE ID SEMICOLON { None }
+  | PACKAGE pkg_id=IDEN SEMICOLON { Pkg(pkg_id) }
   | PACKAGE error { Error.print_error $startpos "package identifier" }
 
-declaration:
-  | decl = var_decl { decl }
-  | decl = type_decl { decl }
-  | decl = func_decl { decl }
+decl:
+  | vd=var_decl { vd }
+  | td=type_decl { td }
+  | fd=func_decl { fd }
 
 var_decl:
-  | VAR LPAREN var_stmt* RPAREN SEMICOLON { None }
-  | VAR ID LBRACKET INT RBRACKET golite_type { None }
-  | VAR ID LBRACKET RBRACKET golite_type { None }
-  | VAR var_stmt { None }
+  | VAR LPAREN vss=var_stmts RPAREN SEMICOLON { vss }
+  | VAR vs=var_stmt { vs }
   | VAR error { Error.print_error $startpos "error at variable declaration" }
-  | ID COLONEQ expression SEMICOLON { None }
-  | ID COLONEQ error { Error.print_error $startpos "error at variable declaration" }
+  | var_id=IDEN COLONEQ e=expr SEMICOLON { Var_decl([(var_id, Some(e), None)]) }
+  | IDEN COLONEQ error { Error.print_error $startpos "error at variable declaration" }
+
+var_stmts:
+  | vss=var_stmts vs=var_stmt { ignore(vss); vs }
+  | vs=var_stmt { vs }
+
+(*
+var_stmt:
+  | identifiers typ_id=IDEN ASSIGNMENT separated_list(COMMA, expr) SEMICOLON {None}
+  | identifiers ASSIGNMENT separated_list(COMMA, expr) SEMICOLON {None}
+  | identifiers typ_id=IDEN { None }
+*)
 
 var_stmt:
-  | identifiers golite_type ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
-  | identifiers ASSIGNMENT separated_list(COMMA, expression) SEMICOLON {None}
-  | identifiers golite_type { None }
+  | vrec1=var_rec1 { Var_decl(vrec1) }
+  | vrec2=var_rec2 { Var_decl(vrec2) }
+  (*
+  | var_id=IDEN LBRACKET INT RBRACKET typ_id=IDEN { None }
+  | var_id=IDEN LBRACKET RBRACKET typ_id=IDEN { None }
+  *)
+
+var_rec1:
+  | var_id=IDEN COMMA next=var_rec1 { (var_id, None, None) :: next }
+  | var_id=IDEN typ_id=IDEN { [(var_id, None, Some(typ_id))] }
+
+var_rec2:
+  | var_id=IDEN COMMA next=var_rec2 COMMA e=expr { (var_id, Some(e), None) :: next }
+  | var_id=IDEN typ_id=option(IDEN) ASSIGNMENT e=expr { [(var_id, Some(e), typ_id)] }
 
 type_decl:
-  | TYPE LPAREN type_stmt* RPAREN SEMICOLON { None }
-  | TYPE type_stmt { None }
+  | TYPE LPAREN tss=type_stmts RPAREN SEMICOLON { tss }
+  | TYPE ts=type_stmt { ts }
   | TYPE error { Error.print_error $startpos "error at type declaration" }
 
-type_stmt:
-  | ID STRUCT LBRACE identifiers golite_type RBRACE SEMICOLON { None }
-  | ID golite_type { None }
+type_stmts:
+  | tss=type_stmts ts=type_stmt { ignore(tss); ts }
+  | ts=type_stmt { ts }
 
-func_decl:
-  | FUNC ID LPAREN parameters RPAREN LBRACE statement* RETURN SEMICOLON RBRACE SEMICOLON { None }
-  | FUNC ID LPAREN parameters RPAREN golite_type LBRACE statement* RETURN ID SEMICOLON RBRACE SEMICOLON { None }
-  | FUNC error { Error.print_error $startpos "error at function declaration" }
+type_stmt:
+  | var_id=IDEN typ_id=IDEN { Type_decl(var_id, typ_id) }
+  | var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=IDEN RBRACE SEMICOLON
+      { Struct_decl(var_id, var_ids, typ_id) }
 
 identifiers:
-  | ids = separated_nonempty_list(COMMA, ID) { ids }
+  | ids=separated_nonempty_list(COMMA, IDEN) { ids }
+
+func_decl:
+  | FUNC fun_id=IDEN LPAREN params=parameters RPAREN
+      LBRACE stmts=stmt* RETURN SEMICOLON RBRACE SEMICOLON
+      { Func_decl(fun_id, params, stmts, None, None) }
+  | FUNC fun_id=IDEN LPAREN params=parameters RPAREN typ_id=IDEN
+      LBRACE stmts=stmt* RETURN var_id=IDEN SEMICOLON RBRACE SEMICOLON
+      { Func_decl(fun_id, params, stmts, Some(var_id), Some(typ_id)) }
 
 parameters:
-  | params = separated_list(COMMA, param_expr) { params }
+  | params=separated_list(COMMA, param_expr) { params }
 
 param_expr:
-  | identifiers golite_type { None }
+  | var_ids=identifiers typ_id=IDEN { (var_ids, typ_id) }
 
-golite_type:
-  | T_INT { None }
-  | T_FLOAT64 { None }
-  | T_BOOL { None }
-  | T_RUNE { None }
-  | T_STRING { None }
+stmts_block:
+  | LBRACE stmts=stmt* RBRACE { stmts }
 
-statement:
-  | ID ASSIGNMENT expression { None }
+for_stmt:
+  | FOR b=stmts_block     { For_stmt(None, b) }
+  | FOR c=expr b=stmts_block    { For_stmt(Some(c, None), b) }
+  | FOR i=assignment SEMICOLON c=expr SEMICOLON u=assignment
+        b=stmts_block     { For_stmt(Some(c, Some((i,u))), b)}
+
+if_stmt:
+  | IF expr stmts_block     { If_stmt($2, $3, None) }
+  | IF expr stmts_block ELSE stmts_block  { If_stmt($2, $3, Some($5)) }
+  | IF expr stmts_block ELSE if_stmt  { If_stmt($2, $3, Some([$5])) }
+
+stmt:
+  | assignment SEMICOLON      { Assign($1) }
+  | for_stmt SEMICOLON      { $1 }
+  | if_stmt SEMICOLON     { $1 }
+(*
+  | vd=var_decl { vd }
+  | td=type_decl { td }
   | error { Error.print_error $startpos "error at statement" }
-  | decl = var_decl { decl }
-  | decl = type_decl { decl }
-  (*| for_stmt SEMICOLON { $1 }
-  | if_stmt SEMICOLON { $1 }*)
   (* need to support empty statement *)
+*)
 
-expression:
-  | LPAREN expr = expression RPAREN { expr }
-  | expression PLUS expression { None }
-  | expression MINUS expression { None }
-  | expression TIMES expression { None }
-  | expression DIV expression { None }
-  | MINUS expression %prec NEG { None }
-  | ID { None }
-  | INT { None }
-  | FLOAT64 { None }
-  | BOOL { None }
-  | RUNE { None }
-  | STRING { None }
-  | error { Error.print_error $startpos "error at expression" }
+%inline e_binop:
+  | PLUS  { Plus }
+  | MINUS { Minus }
+  | TIMES { Times }
+  | DIV { Div }
+
+%inline e_prefix_op:
+  | PLUS  { Pos }
+  | MINUS { Neg }
+
+expr:
+  | INT     { ILit($1) }
+  | FLOAT64     { FLit($1) }
+  | BOOL     { BLit($1) }
+  | RUNE     { RLit($1) }
+  | STRING     { SLit($1) }
+  | IDEN      { Iden($1) }
+  | LPAREN expr RPAREN  { $2 }
+  | expr e_binop expr { Bexp($2, $1, $3) }
+  | e_prefix_op expr  { Uexp($1, $2) }
+
+%inline a_binop:
+  | TIMESEQ { Times }
+  | DIVEQ   { Div }
+  | PLUSEQ  { Plus }
+  | MINUSEQ { Minus }
+
+%inline a_postfix:
+  | INC { Plus }
+  | DEC { Minus }
+
+assignment:
+  | IDEN a_binop expr { [($1, Bexp($2, Iden($1), $3))] }
+  | IDEN a_postfix    { [($1, Bexp($2, Iden($1), ILit(1)))] }
+
+
 
 (*
 program:
