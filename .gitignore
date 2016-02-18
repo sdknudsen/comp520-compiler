@@ -10,3 +10,6 @@ doc/*
 
 # misc
 .DS_Store
+.paths
+.project*
+.settings/
