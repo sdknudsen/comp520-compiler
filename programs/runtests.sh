@@ -1,23 +1,23 @@
 #!/bin/sh
 
-#should we compile here?
-if [[ $1 = "v" ]] || [[ $1 = "valid" ]]; then
+#compile?
+if [[ $2 = "v" ]] || [[ $2 = "valid" ]]; then
     folder="valid"
-elif [[ $1 = "i" ]] || [[ $1 = "invalid" ]]; then
+elif [[ $2 = "i" ]] || [[ $2 = "invalid" ]]; then
     folder="invalid"
 else 
-    echo "usage: bash runtests [v|i|valid|invalid]";
+    echo "usage: bash runtests [lex|parse|pretty|typecheck|compile] [v|i|valid|invalid]";
     exit
 fi
 ls $folder > _test_progs.txt
 
-while [[ -s "testProgs.txt" ]]
+while [[ -s "_test_progs.txt" ]]
 do
 curr=$(head -n 1 _test_progs.txt)
 echo $curr
-../src/main.native $folder/$curr
+../src/main.native $1 $folder/$curr
 echo ""
 sed -i -e "1d" _test_progs.txt
 done
 rm _test_progs.txt
-rm _test_progs.txt-e
+
