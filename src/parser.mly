@@ -15,43 +15,25 @@ package:
   | PACKAGE error { Error.print_error $startpos "package identifier" }
 
 decl:
-  | vd=var_decl { vd }
+  | vd=var_decl { Var_decl(vd) }
   | td=type_decl { td }
   | fd=func_decl { fd }
 
 var_decl:
   | VAR LPAREN vss=var_stmts RPAREN SEMICOLON { vss }
   | VAR vs=var_stmt { vs }
-  | VAR error { Error.print_error $startpos "error at variable declaration" }
-  | var_id=IDEN COLONEQ e=expr SEMICOLON { Var_decl([(var_id, Some(e), None)]) }
+  | var_id=IDEN COLONEQ e=expr SEMICOLON
+      { ignore(check_balance ([var_id], [e]) $startpos); [[var_id], Some([e]), None] }
   | IDEN COLONEQ error { Error.print_error $startpos "error at variable declaration" }
 
 var_stmts:
   | vss=var_stmts vs=var_stmt { ignore(vss); vs }
   | vs=var_stmt { vs }
 
-(*
 var_stmt:
-  | identifiers typ_id=IDEN ASSIGNMENT separated_list(COMMA, expr) SEMICOLON {None}
-  | identifiers ASSIGNMENT separated_list(COMMA, expr) SEMICOLON {None}
-  | identifiers typ_id=IDEN { None }
-*)
-
-var_stmt:
-  | vrec1=var_rec1 { Var_decl(vrec1) }
-  | vrec2=var_rec2 { Var_decl(vrec2) }
-  (*
-  | var_id=IDEN LBRACKET INT RBRACKET typ_id=IDEN { None }
-  | var_id=IDEN LBRACKET RBRACKET typ_id=IDEN { None }
-  *)
-
-var_rec1:
-  | var_id=IDEN COMMA next=var_rec1 { (var_id, None, None) :: next }
-  | var_id=IDEN typ_id=IDEN { [(var_id, None, Some(typ_id))] }
-
-var_rec2:
-  | var_id=IDEN COMMA next=var_rec2 COMMA e=expr { (var_id, Some(e), None) :: next }
-  | var_id=IDEN typ_id=option(IDEN) ASSIGNMENT e=expr { [(var_id, Some(e), typ_id)] }
+  | var_ids=identifiers typ_id=option(IDEN) ASSIGNMENT exprs=expressions SEMICOLON
+      { ignore(check_balance (var_ids, exprs) $startpos); [var_ids, Some(exprs), typ_id] }
+  | var_ids=identifiers typ_id=IDEN SEMICOLON { [var_ids, None, Some(typ_id)] }
 
 type_decl:
   | TYPE LPAREN tss=type_stmts RPAREN SEMICOLON { tss }
@@ -63,12 +45,15 @@ type_stmts:
   | ts=type_stmt { ts }
 
 type_stmt:
-  | var_id=IDEN typ_id=IDEN { Type_decl(var_id, typ_id) }
-  | var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=IDEN RBRACE SEMICOLON
+  | var_id=IDEN typ_id=IDEN SEMICOLON { Type_decl(var_id, typ_id) }
+  | var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=IDEN SEMICOLON RBRACE SEMICOLON
       { Struct_decl(var_id, var_ids, typ_id) }
 
 identifiers:
   | ids=separated_nonempty_list(COMMA, IDEN) { ids }
+
+expressions:
+  | exprs=separated_nonempty_list(COMMA, expr) { exprs }
 
 func_decl:
   | FUNC fun_id=IDEN LPAREN params=parameters RPAREN
