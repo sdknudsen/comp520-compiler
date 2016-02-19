@@ -140,9 +140,6 @@ let bool_lit  = "true" | "false"
 let iden     = letter (letter | dec_digit)*
 
 rule token = parse
-  | eof           { EOF }
-  | [' ' '\t']+   { token lexbuf }
-
 (* Go keywords *)
   | "break"       { insert_semic:=true;  BREAK }
   | "case"        { insert_semic:=false; CASE }
@@ -244,8 +241,8 @@ rule token = parse
   | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING s }
 
 (* String error handling *)
-  | '"'	{ string_error lexbuf }
-  | '`'	{ raw_string_error lexbuf }
+  | '"' { string_error lexbuf }
+  | '`' { raw_string_error lexbuf }
 
 
 (* Identifiers *)
@@ -269,6 +266,14 @@ rule token = parse
       else (insert_semic:=false; token lexbuf)
     }
 
+  | eof {
+      if !insert_semic
+      then (insert_semic:=false; SEMICOLON)
+      else (insert_semic:=false; EOF)
+    }
+
+  | [' ' '\t']+ { token lexbuf }
+
 (* Unknown *)
   | _ {
       Error.print_error
@@ -277,9 +282,9 @@ rule token = parse
     }
 
 and string_error = parse
-  | clean_ascii | '`'	{ string_error lexbuf }
-  | '\\' dec_digit+ 	{ string_error lexbuf }
-  | esc_char	 	{ string_error lexbuf }
+  | clean_ascii | '`' { string_error lexbuf }
+  | '\\' dec_digit+   { string_error lexbuf }
+  | esc_char    { string_error lexbuf }
   | '\\' as c { 
       Error.print_error
         lexbuf.lex_curr_p
@@ -295,7 +300,7 @@ and string_error = parse
     }
 
 and raw_string_error = parse
-  | clean_ascii | '"' | ''' | '\\'	{ raw_string_error lexbuf }
+  | clean_ascii | '"' | ''' | '\\'  { raw_string_error lexbuf }
   | _ as c {
       Error.print_error
         lexbuf.lex_curr_p

@@ -39,16 +39,24 @@ type ('e,'s) stmtF =
   | If_stmt of 'e * 's list * 's list option 
   | For_stmt of ('e * ('e assignment * 'e assignment) option) option
                 * 's list
+  | Var_stmt of var_id list * 'e list option * typ_id option
+  | Slice_stmt of var_id list * typ_id
+  | Array_stmt of var_id list * int * typ_id
+  | Type_stmt of var_id * typ_id
+  | Struct_stmt of var_id * var_id list * typ_id
   | Empty
 and stmt = (expr, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 
 type ('e,'s) declF =
-  | Var_decl of (var_id * 'e option * typ_id option) list
+  | Var_decl of var_id list * 'e list option * typ_id option
+  | Slice_decl of var_id list * typ_id
+  | Array_decl of var_id list * int * typ_id
   | Type_decl of var_id * typ_id
   | Struct_decl of var_id * var_id list * typ_id
   | Func_decl of fun_id * (var_id list * typ_id) list * 's list
                  * var_id option * typ_id option
+  | Empty
 and decl = (expr, stmt) declF
 
 (* type declaration = Dec of id * id *)
@@ -86,3 +94,7 @@ let rev_decls ds =
   zipDecls(vs,(List.rev es),t)
 
               (* (id * expr * typ option) list *)
+
+let check_balance (vars, exprs) pos =
+  if List.length vars <> List.length exprs
+  then Error.print_error pos "unbalanced variables and expressions"
