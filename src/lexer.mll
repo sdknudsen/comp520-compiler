@@ -230,6 +230,7 @@ rule token = parse
 
 (* Comments *)
   | "//" [^'\r''\n']*                { token lexbuf }
+  (* Refer to [1] for block comment*)
   | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
 
 (* Literals *)
