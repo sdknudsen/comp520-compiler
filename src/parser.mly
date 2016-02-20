@@ -33,9 +33,10 @@ var_decl:
     { vds }
 | VAR vdl=var_decl_line
     { vdl }
-| var_id=IDEN COLONEQ e=expr SEMICOLON
-    { Var_decl([var_id], Some([e]), None) }
-| IDEN COLONEQ error
+| var_ids=identifiers COLONEQ exprs=expressions SEMICOLON
+    { ignore(check_balance (var_ids, exprs) $startpos);
+      Var_decl(var_ids, Some(exprs), None) }
+| identifiers COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 var_decls:
@@ -45,23 +46,23 @@ var_decls:
     { vdl }
 
 var_decl_line:
-| var_ids=identifiers typ_id=option(IDEN) ASSIGNMENT exprs=expressions SEMICOLON
+| var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_decl(var_ids, Some(exprs), typ_id) }
-| var_ids=identifiers typ_id=IDEN SEMICOLON
+| var_ids=identifiers typ_id=type_name SEMICOLON
     { Var_decl(var_ids, None, Some(typ_id)) }
-| var_ids=identifiers LBRACKET RBRACKET typ_id=IDEN SEMICOLON
+| var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_decl(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET i=INT RBRACKET typ_id=IDEN SEMICOLON
-    { Array_decl(var_ids, i, typ_id) }
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
+    { Array_decl(var_ids, n, typ_id) }
 
 type_decl:
 | TYPE LPAREN RPAREN SEMICOLON
     { Empty }
 | TYPE LPAREN tds=type_decls RPAREN SEMICOLON
     { tds }
-| TYPE td=type_decl
-    { td }
+| TYPE tdl=type_decl_line
+    { tdl }
 | TYPE error
     { Error.print_error $startpos "error at type declaration" }
 
@@ -72,19 +73,31 @@ type_decls:
     { tdl }
 
 type_decl_line:
-| var_id=IDEN typ_id=IDEN SEMICOLON
+| var_id=IDEN typ_id=type_name SEMICOLON
     { Type_decl(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=IDEN SEMICOLON
-  RBRACE SEMICOLON
-    { Struct_decl(var_id, var_ids, typ_id) }
+| var_id=IDEN STRUCT LBRACE tss=type_structs RBRACE SEMICOLON
+    { Struct_decl(var_id, tss) }
+
+type_structs:
+| tss=type_structs tsl=type_structs_line
+    { ignore(tss); tsl }
+| tsl=type_structs_line
+    { tsl }
+
+type_structs_line:
+| var_ids=identifiers typ_id=type_name SEMICOLON
+    { [(var_ids, typ_id)] }
 
 func_decl:
-| FUNC fun_id=IDEN LPAREN params=parameters RPAREN
-  LBRACE stmts=stmt* RETURN SEMICOLON RBRACE SEMICOLON
-    { Func_decl(fun_id, params, stmts, None, None) }
-| FUNC fun_id=IDEN LPAREN params=parameters RPAREN typ_id=IDEN
-  LBRACE stmts=stmt* RETURN var_id=IDEN SEMICOLON RBRACE SEMICOLON
-    { Func_decl(fun_id, params, stmts, Some(var_id), Some(typ_id)) }
+| FUNC fun_id=IDEN LPAREN params=parameters RPAREN typ_id=type_name?
+  b=stmts_block SEMICOLON
+    { Func_decl(fun_id, params, typ_id, b) }
+
+type_name:
+| LPAREN typ_name=type_name RPAREN
+    { typ_name }
+| typ_id=IDEN
+    { typ_id }
 
 identifiers:
 | ids=separated_nonempty_list(COMMA, IDEN)
@@ -99,13 +112,31 @@ parameters:
     { params }
 
 param_expr:
-| var_ids=identifiers typ_id=IDEN
+| var_ids=identifiers typ_id=type_name
     { (var_ids, typ_id) }
 
 stmts_block:
 | LBRACE stmts=stmt* RBRACE
     { stmts }
+(*
+init_stmt:
+| a=assignment SEMICOLON
+    { a }
+| sd=short_decl SEMICOLON
+    { sd }
 
+if_stmt:
+| IF is=init_stmt? e=expr b=stmts_block
+    { If_stmt(is, e, b, None) }
+| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=stmts_block
+    { If_stmt(is, e, b1, Some(b2)) }
+| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=if_stmt
+    { If_stmt(is, e, b1, Some([b2])) }
+
+switch_stmt:
+| SWITCH is=init_stmt? e=expr? LBRACE sc=switch_clause* RBRACE
+    { Switch_stmt(is, e, sc) }
+*)
 if_stmt:
 | IF e=expr b=stmts_block
     { If_stmt(e, b, None) }
@@ -114,19 +145,41 @@ if_stmt:
 | IF e=expr b1=stmts_block ELSE b2=if_stmt
     { If_stmt(e, b1, Some([b2])) }
 
-(*
 switch_stmt:
-| 
-*)
+| SWITCH e=expr? LBRACE sc=switch_clause* RBRACE
+    { Switch_stmt(e, sc) }
+
+switch_clause:
+| sc=switch_case COLON stmts=stmt*
+    { Switch_clause(sc, stmts) }
+
+switch_case:
+| CASE exprs=expressions
+    { Some(exprs) }
+| DEFAULT
+    { None }
 
 for_stmt:
 | FOR b=stmts_block
     { For_stmt(None, b) }
 | FOR e=expr b=stmts_block
     { For_stmt(Some(e, None), b) }
-| FOR i=assignment SEMICOLON e=expr SEMICOLON u=assignment
+| FOR sd=short_decl SEMICOLON e=expr SEMICOLON pa=postfix_assign
       b=stmts_block
-    { For_stmt(Some(e, Some((i,u))), b)}
+    { For_stmt(Some(e, Some((sd,pa))), b)}
+
+print_stmt:
+| PRINT LPAREN exprs=expressions RPAREN
+    { Print(exprs) }
+| PRINTLN LPAREN exprs=expressions RPAREN
+    { Println(exprs) }
+
+short_decl:
+| var_ids=identifiers COLONEQ exprs=expressions
+    { ignore(check_balance (var_ids, exprs) $startpos);
+      Var_stmt(var_ids, Some(exprs), None) }
+| identifiers COLONEQ error
+    { Error.print_error $startpos "error at variable declaration" }
 
 var_stmt:
 | VAR LPAREN RPAREN SEMICOLON
@@ -135,10 +188,6 @@ var_stmt:
     { vss }
 | VAR vsl=var_stmt_line
     { vsl }
-| var_id=IDEN COLONEQ e=expr SEMICOLON
-    { Var_stmt([var_id], Some([e]), None) }
-| IDEN COLONEQ error
-    { Error.print_error $startpos "error at variable declaration" }
 
 var_stmts:
 | vss=var_stmts vsl=var_stmt_line
@@ -147,15 +196,15 @@ var_stmts:
     { vsl }
 
 var_stmt_line:
-| var_ids=identifiers typ_id=option(IDEN) ASSIGNMENT exprs=expressions SEMICOLON
+| var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_stmt(var_ids, Some(exprs), typ_id) }
-| var_ids=identifiers typ_id=IDEN SEMICOLON
+| var_ids=identifiers typ_id=type_name SEMICOLON
     { Var_stmt(var_ids, None, Some(typ_id)) }
-| var_ids=identifiers LBRACKET RBRACKET typ_id=IDEN SEMICOLON
+| var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_stmt(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET i=INT RBRACKET typ_id=IDEN SEMICOLON
-    { Array_stmt(var_ids, i, typ_id) }
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
+    { Array_stmt(var_ids, n, typ_id) }
 
 type_stmt:
 | TYPE LPAREN RPAREN SEMICOLON
@@ -174,21 +223,31 @@ type_stmts:
     { tsl }
 
 type_stmt_line:
-| var_id=IDEN typ_id=IDEN SEMICOLON
+| var_id=IDEN typ_id=type_name SEMICOLON
     { Type_stmt(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=IDEN SEMICOLON
+| var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=type_name SEMICOLON
   RBRACE SEMICOLON
     { Struct_stmt(var_id, var_ids, typ_id) }
 
 stmt:
 | a=assignment SEMICOLON
-    { Assign(a) }
+    { a }
+| sd=short_decl SEMICOLON
+    { sd }
+| ps=print_stmt SEMICOLON
+    { ps }
 | is=if_stmt SEMICOLON
     { is }
-(*| ss=switch_stmt SEMICOLON
-    { ss }*)
+| ss=switch_stmt SEMICOLON
+    { ss }
 | fs=for_stmt SEMICOLON
     { fs }
+| RETURN e=expr? SEMICOLON
+    { Return(e) }
+| BREAK SEMICOLON
+    { Break }
+| CONTINUE SEMICOLON
+    { Continue }
 | vs=var_stmt
     { vs }
 | ts=type_stmt
@@ -197,16 +256,45 @@ stmt:
     { Error.print_error $startpos "error at statement" }
 
 %inline e_binop:
-| PLUS  { Plus }
-| MINUS { Minus }
-| TIMES { Times }
-| DIV   { Div }
+(* binary_op *)
+| BOOL_OR    { Bool_or }
+| BOOL_AND   { Bool_and }
+(* rel_op *)
+| EQUALS     { Equals }
+| NOTEQUALS  { Notequals }
+| LCHEVRON   { Lchevron }
+| LTEQ       { Lteq }
+| RCHEVRON   { Rchevron }
+| GTEQ       { Gteq }
+(* add_op *)
+| PLUS       { Plus }
+| MINUS      { Minus }
+| BITOR      { Bitor }
+| CIRCUMFLEX { Circumflex }
+(* mul_op *)
+| TIMES      { Times }
+| DIV        { Div }
+| PERCENT    { Percent }
+| LSHIFT     { Lshift }
+| RSHIFT     { Rshift }
+| BITAND     { Bitand }
+| BITNAND    { Bitnand }
 
 %inline e_prefix_op:
-| PLUS  { Pos }
-| MINUS { Neg }
+| PLUS       { UPlus }
+| MINUS      { UMinus }
+(*| BANG       { UBang }*)
+| CIRCUMFLEX { UCircumflex }
 
 expr:
+| LPAREN e=expr RPAREN
+    { e }
+| var_id=IDEN
+    { Iden(var_id) }
+| array_id=IDEN LBRACKET n=INT RBRACKET
+    { AIden(array_id, n) }
+| var_id=IDEN DOT structs_id=IDEN
+    { SIden(var_id, structs_id) }
 | n=INT
     { ILit(n) }
 | f=FLOAT64
@@ -217,155 +305,77 @@ expr:
     { RLit(c) }
 | s=STRING
     { SLit(s) }
-| id=IDEN
-    { Iden(id) }
-| LPAREN e=expr RPAREN
-    { e }
-| e1=expr binop=e_binop e2=expr
-    { Bexp(binop, e1, e2) }
 | unop=e_prefix_op e=expr
     { Uexp(unop, e) }
+| e1=expr binop=e_binop e2=expr
+    { Bexp(binop, e1, e2) }
+| fun_id=IDEN LPAREN ids=identifiers RPAREN
+    { Func(fun_id, ids) }
+| APPEND LPAREN var_id=IDEN COMMA e=expr RPAREN
+    { Append(var_id, e) }
 
 %inline a_binop:
-| TIMESEQ { Times }
-| DIVEQ   { Div }
-| PLUSEQ  { Plus }
-| MINUSEQ { Minus }
+(* add_op *)
+| PLUSEQ    { Plus }
+| MINUSEQ   { Minus }
+| BITOREQ   { Bitor }
+| BITNOTEQ  { Circumflex }
+(* mul_op *)
+| TIMESEQ   { Times }
+| DIVEQ     { Div }
+| PERCENTEQ { Percent }
+| LSHIFTEQ  { Lshift }
+| RSHIFTEQ  { Rshift }
+| AMPEQ     { Bitand }
+| BITNANDEQ { Bitnand }
 
 %inline a_postfix:
-| INC { Plus }
-| DEC { Minus }
+| INC       { Plus }
+| DEC       { Minus }
 
 assignment:
-| id=IDEN binop=a_binop e=expr
-    { [(id, Bexp(binop, Iden(id), e))] }
-| id=IDEN postfix=a_postfix
-    { [(id, Bexp(postfix, Iden(id), ILit(1)))] }
+| sa=simple_assign
+    { sa }
+| ba=binop_assign
+    { ba }
+| pa=postfix_assign
+    { pa }
 
-(*
-multiple_assign:
+simple_assign:
 | ids=identifiers ASSIGNMENT exprs=expressions
     { ignore(check_balance (ids, exprs) $startpos);
       Assign(ids, exprs) }
 
-inferred_assign:
-| var_id=IDEN COLONEQ e=expr SEMICOLON
-    { Inferred_assign([var_id], Some([e]), None) }
-| IDEN COLONEQ error
-    { Error.print_error $startpos "error at variable declaration" }
-*)
+binop_assign:
+| id=IDEN binop=a_binop e=expr
+    { Assign([id], [Bexp(binop, Iden(id), e)]) }
 
+postfix_assign:
+| id=IDEN postfix=a_postfix
+    { Assign([id], [Bexp(postfix, Iden(id), ILit(1))]) }
 (*
-program:
-  stmt* EOF { Prog($1) }
-;
+simple_assign:
+| lvs=lvalues ASSIGNMENT exprs=expressions
+    { ignore(check_balance (lvs, exprs) $startpos);
+      Assign(lvs, exprs) }
 
-stmts_block:
-  LBRACE stmt* RBRACE { $2 }
-;
+binop_assign:
+| lv=lvalue binop=a_binop e=expr
+    { Assign([lv], [Bexp(binop, lv, e)]) }
 
-(*
-decl:
-  VAR decl_line
-| VAR LPAREN decl_line* RPAREN
-| FUNC ID LPARENS RPARENS
-;
+postfix_assign:
+| lv=lvalue postfix=a_postfix
+    { Assign([lv], [Bexp(postfix, lv, ILit(1))]) }
 
-decl_line:
-  ID ID* ID
-| ID EQUAL expr
-| ID ID EQUAL expr
-;
+lvalues:
+| lvs=separated_nonempty_list(COMMA, lvalue)
+    { lvs }
 
-*)
-
-for_stmt:
-  FOR b=stmts_block     { For_stmt(None, b) }
-| FOR c=expr b=stmts_block    { For_stmt(Some(c, None), b) }
-| FOR i=assignment SEMICOLON c=expr SEMICOLON u=assignment
-    b=stmts_block     { For_stmt(Some(c, Some((i,u))), b)}
-;
-
-
-(*
-  TODO: maybe we should revisit how the ast implements If-stmt. I find it weird
-  that we must enclose the if statement in a list. Maybe use a `either` type?
-*)
-if_stmt:
-  IF expr stmts_block     { If_stmt($2, $3, None) }
-| IF expr stmts_block ELSE stmts_block  { If_stmt($2, $3, Some($5)) }
-| IF expr stmts_block ELSE if_stmt  { If_stmt($2, $3, Some([$5])) }
-;
-
-
-(*
-  TODO: Decide if print is a statement or if we handle it as a function call.
-  Note that if we implement it as a function call, we nee to handle multiple
-  parameters.
-*)
-stmt:
-  assignment SEMICOLON      { Assign($1) }
-(* | PRINT LPAREN expr* RPAREN SEMICOLON  { Print($2) } *)
-| for_stmt SEMICOLON      { $1 }
-| if_stmt SEMICOLON     { $1 }
-| SEMICOLON       { Empty }
-
-(*| error { raise (ParseError($startpos,"statement")) }*)
-;
-
-%inline e_binop:
-  PLUS  { Plus }
-| MINUS { Minus }
-| TIMES { Times }
-| DIV { Div }
-;
-
-%inline e_prefix_op:
-| PLUS  { Pos }
-| MINUS { Neg }
-;
-
-expr:
-  INT     { ILit($1) }
-| FLOAT64     { FLit($1) }
-| BOOL     { BLit($1) }
-| RUNE     { RLit($1) }
-| STRING     { SLit($1) }
-| ID      { Iden($1) }
-| LPAREN expr RPAREN  { $2 }
-| expr e_binop expr { Bexp($2, $1, $3) }
-| e_prefix_op expr  { Uexp($1, $2) }
-
-(*| error { raise (ParseError($startpos,"expression")) }*)
-;
-
-
-%inline a_binop:
-  TIMESEQ { Times }
-| DIVEQ   { Div }
-| PLUSEQ  { Plus }
-| MINUSEQ { Minus }
-;
-
-%inline a_postfix:
-  INC { Plus }
-| DEC { Minus }
-;
-
-(*
-assignment_rec:
-  ID COMMA assignment_rec COMMA expr    { ($1::(fst $2), $3::(snd $2)) } 
-| ID ASSIGNMENT expr        { ([$1], [$2]) }
-;
-*)
-
-(*
-  TODO: Handle multiple assignements
-*)
-assignment:
-(*  assignment_rec  { (fst $1, rev (snd $1)) }
-| *)
-  ID a_binop expr { [($1, Bexp($2, Iden($1), $3))] }
-| ID a_postfix    { [($1, Bexp($2, Iden($1), ILit(1)))] }
-;
+lvalue:
+| var_id=IDEN
+    { Iden(var_id) }
+| array_id=IDEN LBRACKET n=INT RBRACKET
+    { AIden(array_id, n) }
+| var_id=IDEN DOT structs_id=IDEN
+    { SIden(var_id, structs_id) }
 *)

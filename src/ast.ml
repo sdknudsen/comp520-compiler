@@ -8,21 +8,28 @@ type typ_id = id
 type fun_id = id
 type pkg_id = id
 
-type binop = Plus | Minus | Times | Div
-type unop = Neg | Pos
+type binop = Bool_or | Bool_and |
+             Equals | Notequals | Lchevron | Lteq | Rchevron | Gteq |
+             Plus | Minus | Bitor | Circumflex |
+             Times | Div | Percent | Lshift | Rshift | Bitand | Bitnand
+type unop = UPlus | UMinus | UBang | UCircumflex
 
 (* type info =  *)
 
-type 'a exprF =
+type 'e exprF =
+  | Iden of id
+  | AIden of id * int
+  | SIden of id * id
+  (* | TIden of tp_id *)
   | ILit of int
   | FLit of float
   | BLit of bool
   | RLit of char
   | SLit of string
-  | Iden of id
-  (* | TIden of tp_id *)
-  | Bexp of binop * 'a * 'a
-  | Uexp of unop * 'a
+  | Uexp of unop * 'e
+  | Bexp of binop * 'e * 'e
+  | Func of fun_id * id list
+  | Append of id * 'e
 and expr = expr exprF
 
 (* reverse t_rec and t_expr so that t_stmt doesn't need a type field? *)
@@ -30,20 +37,28 @@ type t_expr = t_rec exprF
 and t_rec = { exp : t_expr; typ : id; }
 (*type t_expr = (t_expr * id) exprF*)
 
-
-type 'e assignment = (id * 'e) list
+(*type 'e assignment = 'e list * 'e list*)
+type 'e assignment = id list * 'e list
 
 type ('e,'s) stmtF =
   | Assign of 'e assignment
-  | Print of 'e
-  | If_stmt of 'e * 's list * 's list option 
-  | For_stmt of ('e * ('e assignment * 'e assignment) option) option
+  | Print of 'e list
+  | Println of 'e list
+  (*| If_stmt of 's option * 'e * 's list * 's list option*)
+  | If_stmt of 'e * 's list * 's list option
+  (*| Switch_stmt of 's option * 'e option * 's list*)
+  | Switch_stmt of 'e option * 's list
+  | Switch_clause of 'e list option * 's list
+  | For_stmt of ('e * ('s * 's) option) option
                 * 's list
   | Var_stmt of var_id list * 'e list option * typ_id option
   | Slice_stmt of var_id list * typ_id
   | Array_stmt of var_id list * int * typ_id
   | Type_stmt of var_id * typ_id
   | Struct_stmt of var_id * var_id list * typ_id
+  | Return of 'e option
+  | Break
+  | Continue
   | Empty
 and stmt = (expr, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
@@ -53,9 +68,8 @@ type ('e,'s) declF =
   | Slice_decl of var_id list * typ_id
   | Array_decl of var_id list * int * typ_id
   | Type_decl of var_id * typ_id
-  | Struct_decl of var_id * var_id list * typ_id
-  | Func_decl of fun_id * (var_id list * typ_id) list * 's list
-                 * var_id option * typ_id option
+  | Struct_decl of var_id * (var_id list * typ_id) list
+  | Func_decl of fun_id * (var_id list * typ_id) list * typ_id option * 's list
   | Empty
 and decl = (expr, stmt) declF
 
