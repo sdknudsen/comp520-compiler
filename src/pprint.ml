@@ -87,16 +87,16 @@ let ppTree (TProg(pkg,stmts)) outc =
   and printDecl = function
     | Var_decl(xs, eso, typo) ->
        ppStr "var "; pcsl xs; 
-       may (fun typ -> ppStr (typ_to_string typ)) typo; 
+       may (fun typ -> ppStr (string_of_typ typ)) typo; 
        may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";"
 
     | Slice_decl(xs, typ) ->
        ppStr "var "; pcsl xs; 
-       ppStr ("[]"^(typ_to_string typ)); ppStr ";"
+       ppStr ("[]"^(string_of_typ typ)); ppStr ";"
 
     | Array_decl(xs, d, typ) ->
        ppStr "var "; pcsl xs; 
-       ppStr (" [" ^ string_of_int d ^ "]"^(typ_to_string typ) ^ ";")
+       ppStr (" [" ^ string_of_int d ^ "]"^(string_of_typ typ) ^ ";")
 
     | Type_decl(x, typ) ->
        ppStr "type "; ppStr x; ppStr " "; ppStr typ; ppStr ";"
@@ -111,12 +111,12 @@ let ppTree (TProg(pkg,stmts)) outc =
        (match xstLs with
         | [] -> ()
         | (xs,t)::tl ->
-           pcsl xs; ppStr (typ_to_string t);
+           pcsl xs; ppStr (string_of_typ t);
            List.iter (fun (xs,t) ->
-               ppStr ", "; pcsl xs; ppStr (" "^(typ_to_string t))) tl);
+               ppStr ", "; pcsl xs; ppStr (" "^(string_of_typ t))) tl);
        ppStr ") ";
        may (fun y -> ppStr (y ^ " ")) yo; 
-       may (fun typ -> ppStr (typ_to_string typ) ^ " ") typo; 
+       may (fun typ -> ppStr (string_of_typ typ) ^ " ") typo; 
        ppStr "{\n";
        ppStmts ss;
        ppStr "return";
@@ -126,53 +126,55 @@ let ppTree (TProg(pkg,stmts)) outc =
     | Empty -> ()
 
   and ppStmt = function
-    | Assign(x) -> ()
+    | Assign(x) -> tab(); ppStr (x ^ " = "); ppExpr e; ppStr ";\n"
       (* of 'e assignment *)
-    | Print(x) -> ()
+    | Print(x) -> tab(); ppStr "print "; ppExpr e; ppStr ";\n" (* add println ! *)
       (* of 'e *)
-    | If_stmt(x) -> ()
-      (* of 'e * 's list * 's list option  *)
-    | For_stmt(x) -> ()
-      (* of ('e * ('e assignment * 'e assignment) option) option * 's list *)
-    | Var_stmt(x) -> ()
-      (* of var_id list * 'e list option * typ_id option *)
-    | Slice_stmt(x) -> ()
+    | If_stmt(e,xs,yso) -> 
+       Printf.fprintf outc "%tif %t {\n%t}\n%t"
+                      (fun c -> tab())
+                      (fun c ->  ppExpr e)
+                      (fun c -> incr tabCount; List.iter ppStmt xs; may (fun ys -> tabWith(!tabCount-1); ppStr "else\n"; List.iter ppStmt ys) yso) 
+                      (fun c -> decr tabCount)
+
+    | For_stmt(eo,ss) ->
+       Printf.fprintf outc "%tfor %t {\n%t}\n%t"
+                      (fun c -> tab())
+                      (fun c -> may (fun e -> ppExpr e) eo)
+                      (fun c -> incr tabCount; List.iter ppStmt ss) 
+                      (fun c -> decr tabCount)
+
+    | Var_stmt(xs,eso,typo) ->  ()
+       Printf.fprintf outc "%tvar %t;\n"
+                      (fun c -> tab())
+                      (fun c -> pcsl xs;
+                                may (fun typ -> ppStr (" "^string_of_typ typ)) eso;
+                                may (fun es -> ppStr " = "; pcsl es) eso)
+
+    | Slice_stmt(xs,typ) ->  ()
       (* of var_id list * typ_id *)
-    | Array_stmt(x) -> ()
+      (* should be of var_id * int * expr? *)
+
+    | Array_stmt(xs,d,typ) ->  ()
       (* of var_id list * int * typ_id *)
-    | Type_stmt(x) -> ()
+
+    | Type_stmt(x) ->  ()
       (* of var_id * typ_id *)
-    | Struct_stmt(x) -> ()
+
+    | Struct_stmt(x) ->  ()
       (* of var_id * var_id list * typ_id *)
-  | Empty -> ()
+    | Empty -> ()
 
-    | Assign(id,e) -> tab(); ppStr (id ^ " = "); ppExpr e; ppStr ";\n" (* *)
-    | Print(e) -> tab(); ppStr "print "; ppExpr e; ppStr ";\n"
-    | Read(id) -> tab(); ppStr "read "; ppStr id; ppStr ";\n"
-
-    | Ifte(e,xs,ys) ->
-       tab(); ppStr "if "; ppExpr e; ppStr " then\n"; incr tabCount;
-       List.iter ppStmt xs; tabWith(!tabCount-1); ppStr "else\n";
-       List.iter ppStmt ys; decr tabCount;
-       tab(); ppStr "endif\n"
-
-    | Ift(e,xs) ->
-       tab(); ppStr "if "; ppExpr e; ppStr " then\n"; incr tabCount;
-       List.iter ppStmt xs; decr tabCount; tab(); ppStr "endif\n"
-
-    | While(e,xs) ->
-       tab(); ppStr "while "; ppExpr e; ppStr " do\n"; incr tabCount;
-       List.iter ppStmt xs; decr tabCount; tab(); ppStr "done\n"
   in
   List.iter printDecl decls; println(); List.iter ppStmt stmts
 
        (* let rec pfdecls = function *)
        (*   | [] -> () *)
-       (*   | [(xs,t)] -> pcsl xs; ppStr (" "^(typ_to_string t)) *)
-       (*   | (xs,t)::tl -> pcsl xs; ppStr (" "^(typ_to_string t)^", "); pfdecls tl *)
+       (*   | [(xs,t)] -> pcsl xs; ppStr (" "^(string_of_typ t)) *)
+       (*   | (xs,t)::tl -> pcsl xs; ppStr (" "^(string_of_typ t)^", "); pfdecls tl *)
        (* in *)
 
-       (* List.iter (fun (xs,t) -> pcsl xs; ppStr (" "^(typ_to_string t)^", ")) xstLs; *)
+       (* List.iter (fun (xs,t) -> pcsl xs; ppStr (" "^(string_of_typ t)^", ")) xstLs; *)
 
   (* let pcsl ls =  *)
   (*   List.iteri (fun i x -> if i > 0 then ppStr (" ," ^ x) else ppStr x) ls;; *)
