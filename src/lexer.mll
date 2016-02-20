@@ -105,10 +105,10 @@
 | T_BOOL -> "T_BOOL"
 | T_RUNE -> "T_RUNE"
 | T_STRING -> "T_STRING"
+*)
 | PRINT -> "PRINT"
 | PRINTLN -> "PRINTLN"
 | APPEND -> "APPEND"
-*)
 
 }
 
@@ -174,10 +174,10 @@ rule token = parse
   | "bool"        { insert_semic:=false; T_BOOL }
   | "rune"        { insert_semic:=false; T_RUNE }
   | "string"      { insert_semic:=false; T_STRING }
+*)
   | "print"       { insert_semic:=false; PRINT }
   | "println"     { insert_semic:=false; PRINTLN }
   | "append"      { insert_semic:=false; APPEND }
-*)
 
 (* Operators *)
   | '-'           { insert_semic:=false; MINUS }
@@ -230,7 +230,7 @@ rule token = parse
 
 (* Comments *)
   | "//" [^'\r''\n']*                { token lexbuf }
-  (* Refer to [1] for block comment*)
+  (* block comment: reference [1] *)
   | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
 
 (* Literals *)
@@ -244,7 +244,6 @@ rule token = parse
 (* String error handling *)
   | '"' { string_error lexbuf }
   | '`' { raw_string_error lexbuf }
-
 
 (* Identifiers *)
   | iden as x { insert_semic:=true; IDEN x }
