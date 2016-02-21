@@ -151,19 +151,27 @@ let ppTree (TProg(pkg,stmts)) outc =
                                 may (fun typ -> ppStr (" "^string_of_typ typ)) eso;
                                 may (fun es -> ppStr " = "; pcsl es) eso)
 
-    | Slice_stmt(xs,typ) ->  ()
-      (* of var_id list * typ_id *)
-      (* should be of var_id * int * expr? *)
+ (* I'm not sure about the ast nodes for the following but I have this so we can debug *)
+    | Slice_stmt(xs,v) ->  
+       Printf.fprintf outc "%t = append(%t,%t);\n" (* should we assign here or just append?? *)
+                      (fun c -> tab(); pcsl xs)
+                      (fun c -> ppStr pcsl xs)
+                      (fun c -> ppStr v)
 
-    | Array_stmt(xs,d,typ) ->  ()
-      (* of var_id list * int * typ_id *)
+    | Array_stmt(xs,d,typ) -> 
+       Printf.fprintf outc "%t[%t] = %t;\n" 
+                      (fun c -> tab(); ppStr xs)
+                      (fun c -> ppStr d)
+                      (fun c -> ppStr v)
 
-    | Type_stmt(x) ->  ()
-      (* of var_id * typ_id *)
+    | Type_stmt(x,typ) -> 
 
-    | Struct_stmt(x) ->  ()
-      (* of var_id * var_id list * typ_id *)
+    | Struct_stmt(x,ys,typ) -> 
+       Printf.fprintf outc "not implemented"
+
     | Empty -> ()
+
+                 (* missing incr and decr? *)
 
   in
   List.iter printDecl decls; println(); List.iter ppStmt stmts
