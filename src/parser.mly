@@ -26,7 +26,7 @@ program:
 | IMPORT
 | LARROW
 | MAP
-| RANGE	{ Error.print_error $startpos "syntax error" }
+| RANGE	{ Error.print_error $startpos "Use of reserved keyword" }
 
 
 package:
@@ -323,7 +323,7 @@ expr:
     { RLit(c) }
 | s=STRING
     { SLit(s) }
-| unop=e_prefix_op e=expr
+| unop=e_prefix_op e=expr %prec UOP
     { Uexp(unop, e) }
 | e1=expr binop=e_binop e2=expr
     { Bexp(binop, e1, e2) }
