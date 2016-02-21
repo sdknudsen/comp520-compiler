@@ -12,12 +12,28 @@ program:
 | error
     { Error.print_error $startpos "syntax error" }
 
+(* so that the compiler doesn't complain about unused tokens *)
+(* check that we don't use any of these !! *)
+| INTERFACE	
+| SELECT
+| CHAN
+| CONST
+| DEFER
+| ELLIPSIS
+| FALLTHROUGH
+| GO
+| GOTO
+| IMPORT
+| LARROW
+| MAP
+| RANGE	{ Error.print_error $startpos "syntax error" }
+
+
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { Pkg(pkg_id) }
 | PACKAGE error 
     { Error.print_error $startpos "package identifier" }
-
 decl:
 | vd=var_decl
     { vd }
@@ -53,8 +69,8 @@ var_decl_line:
     { Var_decl(var_ids, None, Some(typ_id)) }
 | var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_decl(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
-    { Array_decl(var_ids, n, typ_id) }
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON 
+    { Array_decl(var_ids, n, typ_id) } (* are we missing = here?? *)
 
 type_decl:
 | TYPE LPAREN RPAREN SEMICOLON
@@ -118,7 +134,7 @@ param_expr:
 stmts_block:
 | LBRACE stmts=stmt* RBRACE
     { stmts }
-(*
+
 init_stmt:
 | a=assignment SEMICOLON
     { a }
@@ -126,17 +142,18 @@ init_stmt:
     { sd }
 
 if_stmt:
-| IF is=init_stmt? e=expr b=stmts_block
+| IF is=init_stmt? SEMICOLON e=expr b=stmts_block
     { If_stmt(is, e, b, None) }
-| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=stmts_block
+| IF is=init_stmt? SEMICOLON e=expr b1=stmts_block ELSE b2=stmts_block
     { If_stmt(is, e, b1, Some(b2)) }
-| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=if_stmt
+| IF is=init_stmt? SEMICOLON e=expr b1=stmts_block ELSE b2=if_stmt
     { If_stmt(is, e, b1, Some([b2])) }
 
 switch_stmt:
-| SWITCH is=init_stmt? e=expr? LBRACE sc=switch_clause* RBRACE
+| SWITCH is=init_stmt? SEMICOLON e=expr? LBRACE sc=switch_clause* RBRACE
     { Switch_stmt(is, e, sc) }
-*)
+
+(*
 if_stmt:
 | IF e=expr b=stmts_block
     { If_stmt(e, b, None) }
@@ -148,6 +165,7 @@ if_stmt:
 switch_stmt:
 | SWITCH e=expr? LBRACE sc=switch_clause* RBRACE
     { Switch_stmt(e, sc) }
+*)
 
 switch_clause:
 | sc=switch_case COLON stmts=stmt*
@@ -283,7 +301,7 @@ stmt:
 %inline e_prefix_op:
 | PLUS       { UPlus }
 | MINUS      { UMinus }
-(*| BANG       { UBang }*)
+| BANG       { UBang }
 | CIRCUMFLEX { UCircumflex }
 
 expr:
@@ -378,4 +396,23 @@ lvalue:
     { AIden(array_id, n) }
 | var_id=IDEN DOT structs_id=IDEN
     { SIden(var_id, structs_id) }
+*)
+
+(*goType : typeLit
+
+typeLit :
+(*| arrayType	{}	
+| structType	{}
+| pointerType	{}
+| functionType	{}
+| interfaceType	{}
+| sliceType*)	{}
+| mapType	{}
+| channelType	{}
+
+mapType : MAP LBRACKET goType RBRACKET goType (* use keyType and elementType? *)
+sliceType = LBRACKET RBRACKET goType
+arrayType = LBRACKET n=INT RBRACKET t=goType	{ Array_stmt (
+
+should we simplify the grammar for declarations?
 *)

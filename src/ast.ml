@@ -44,10 +44,10 @@ type ('e,'s) stmtF =
   | Assign of 'e assignment
   | Print of 'e list
   | Println of 'e list
-  (*| If_stmt of 's option * 'e * 's list * 's list option*)
-  | If_stmt of 'e * 's list * 's list option
-  (*| Switch_stmt of 's option * 'e option * 's list*)
-  | Switch_stmt of 'e option * 's list
+  | If_stmt of 's option * 'e * 's list * 's list option
+  (* | If_stmt of 'e * 's list * 's list option *)
+  | Switch_stmt of 's option * 'e option * 's list
+  (* | Switch_stmt of 'e option * 's list *)
   | Switch_clause of 'e list option * 's list
   | For_stmt of ('e * ('s * 's) option) option
                 * 's list
