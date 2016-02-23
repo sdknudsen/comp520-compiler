@@ -26,18 +26,18 @@ for f in $files; do
 
   if [ $1 = "pretty" ]
   then
-      ../src/main.native pretty < $f > "$fname.pretty"
-      ../src/main.native pretty "$fname.pretty" |  diff $fname.pretty - > /dev/null 2>&1
+      $GOC pretty < $f > "$fname.pretty"
+      $GOC pretty "$fname.pretty" |  diff $fname.pretty - > /dev/null 2>&1
   else
     if [ -f "$fname.expected" ]
     then
-      ../src/main.native $1 < $f | diff $fname.expected - > /dev/null 2>&1
+      $GOC $1 < $f | diff $fname.expected - > /dev/null 2>&1
     else
       if [ $ext = "invalid" ]
       then
         expected=1
       fi
-      ../src/main.native $1 < $f > /dev/null 2>&1
+      $GOC $1 < $f > /dev/null 2>&1
     fi
   fi
 
