@@ -7,7 +7,7 @@
 %%
 
 program:
-| pkg=package decls=decl+ EOF
+| pkg=package decls=decl* EOF
     { Prog(pkg, decls) }
 | error
     { Error.print_error $startpos "syntax error" }
