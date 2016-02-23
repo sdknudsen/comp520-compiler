@@ -1,6 +1,6 @@
 #!/bin/sh
 
-pad=$(printf '%0.1s' " "{1..40})
+pad=$(printf '%0.1s' "."{1..80})
 GOC=../src/main.native
 
 echo "== Testing $1 ================================"
@@ -17,8 +17,8 @@ files=$(ls $1/*.go)
 esac
 
 for f in $files; do
-  printf ' %s' $f
-  printf '%*.*s' 0 $((40 - ${#f})) "$pad"
+  printf '%s ' $f
+  printf '%*.*s' 0 $((80 - ${#f} - 10)) "$pad"
   fname=$(echo $f | cut -f 1 -d '.')
   ext="${f##*.}" 
 
@@ -44,10 +44,10 @@ for f in $files; do
   result=$?
   if [ $result -eq $expected ] # 0 or 1
   then
-    echo -e "[\e[32mpassed\e[39m]"
+    echo -e " [\e[32mpassed\e[39m]"
   elif [ $result -eq $((1 - $expected)) ] # 0 or 1
   then
-    echo -e "[\e[31mfailed\e[39m]"
+    echo -e " [\e[31mfailed\e[39m]"
   else
     echo "There was something wrong with the diff command"
   fi

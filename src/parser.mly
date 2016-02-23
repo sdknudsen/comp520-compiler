@@ -9,7 +9,6 @@
 program:
 | pkg=package decls=decl+ EOF
     { Prog(pkg, decls) }
-| EOF {} (* Hack to accept empty program... *)
 | error
     { Error.print_error $startpos "syntax error" }
 
