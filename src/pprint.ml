@@ -1,4 +1,6 @@
 open Ast
+open Parser
+open Tokens
 
 (* let ppTable gamma outc =
   let str_of_typ = function
@@ -7,72 +9,48 @@ open Ast
     | TString -> "string" in
   Ctx.iter (fun k v -> Printf.fprintf outc "%s" (k ^ " : " ^ str_of_typ v ^ "\n")) gamma *)
 let uop_to_str = function
-  | BANG -> "!"           
-  | MINUS -> "-"           
+    Positive -> "+"           
+  | Negative -> "-"
+  | Boolnot -> "!"
+  | Bitnot -> "^"
 
 let bop_to_str = function
-  | PLUS -> "+"           
-  | MINUS -> "-"           
-  | TIMES -> "*"           
-  | DIV -> "/"           
-  | PERCENT -> "%"           
-  | BITAND -> "&"           
-  | BITOR -> "|"           
-  | CIRCUMFLEX -> "^"           
-  | LCHEVRON -> "<"           
-  | RCHEVRON -> ">"           
-  | ASSIGNMENT -> "="           
-  | LPAREN -> "("           
-  | RPAREN -> ")"           
-  | LBRACKET -> "["           
-  | RBRACKET -> "]"           
-  | LBRACE -> "{"           
-  | RBRACE -> "}"           
-  | COMMA -> ","           
-  | DOT -> "."           
-  | SEMICOLON -> ";"           
-  | COLON -> ":"           
-  | LSHIFT -> "<<"          
-  | RSHIFT -> ">>"          
-  | BITNAND -> "&^"          
-  | PLUSEQ -> "+="          
-  | MINUSEQ -> "-="          
-  | TIMESEQ -> "*="          
-  | DIVEQ -> "/="          
-  | PERCENTEQ -> "%="          
-  | AMPEQ -> "&="          
-  | BITOREQ -> "|="          
-  | BITNOTEQ -> "^="          
-  | LSHIFTEQ -> "<<="         
-  | RSHIFTEQ -> ">>="         
-  | BITNANDEQ -> "&^="         
-  | BOOL_AND -> "&&"          
-  | BOOL_OR -> "||"          
-  | LARROW -> "<-"          
-  | INC -> "++"          
-  | DEC -> "--"          
-  | EQUALS -> "=="          
-  | NOTEQUALS -> "!="          
-  | LTEQ -> "<="          
-  | GTEQ -> ">="          
-  | COLONEQ -> ":="          
-  | ELLIPSIS -> "..."         
+    Boolor -> "||"
+  | Booland -> "&&"
+  | Equals -> "=="
+  | Notequals -> "!="
+  | Lt -> "<"
+  | Lteq -> "<="
+  | Gt -> ">"
+  | Gteq -> ">="
+  | Plus -> "+"
+  | Minus -> "-"
+  | Bitor -> "|"
+  | Bitand -> "&"
+  | Bitnand -> "&^"
+  | Bitxor -> "^"
+  | Times -> "*"
+  | Div -> "/"
+  | Modulo -> "%"
+  | Lshift -> "<<"
+  | Rshift -> ">>"
 
 let may f = function
   | Some typ -> f typ
   | None -> ()
               
-let ppTree (TProg(pkg,stmts)) outc =
+let ppTree (Prog(pkg,stmts)) outc =
   let tabCount = ref 0 in
   let println() = Printf.fprintf outc "\n" in
   let ppStr s = Printf.fprintf outc "%s" s in
   let rec tabWith n = if n <= 0 then () else (ppStr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabCount in
   let pcsl = function
-    | [] -> ()
+      [] -> ()
     | x::xs -> ppStr x; List.iter (fun y -> ppStr y) xs
+  in
   let rec ppExpr = function
-    | ILit(d) -> Printf.fprintf outc "%d" d
+      ILit(d) -> Printf.fprintf outc "%d" d
     (* | ILit(d) -> Printf.fprintf outc "%o" d (\* octal *\) *)
     (* | ILit(d) -> Printf.fprintf outc "%x" d (\* hex *\) *)
     (* | ILit(d) -> Printf.fprintf outc "%X" d (\* Hex *\) *)
@@ -81,11 +59,11 @@ let ppTree (TProg(pkg,stmts)) outc =
     | RLit(c) -> Printf.fprintf outc "'%c'" c
     | SLit(s) -> Printf.fprintf outc "\"%s\"" s
     | Iden(x) -> Printf.fprintf outc "%s" x
-    | Bexp(op,e1,e2) -> ppStr "("; ppExpr e1; ppStr (op_to_str op); ppExpr e2; ppStr ")"
-    | Uexp(op,e) -> ppStr "("; ppExpr e1; ppStr op; ppExpr e2; ppStr ")"
+    | Bexp(op,e1,e2) -> ppStr "("; ppExpr e1; ppStr (bop_to_str op); ppExpr e2; ppStr ")"
+    | Uexp(op,e) -> ppStr "("; ppStr (uop_to_str op); ppExpr e; ppStr ")"
 
   and printDecl = function
-    | Var_decl(xs, eso, typo) ->
+      Var_decl(xs, eso, typo) ->
        ppStr "var "; pcsl xs; 
        may (fun typ -> ppStr (string_of_typ typ)) typo; 
        may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";"
@@ -126,7 +104,7 @@ let ppTree (TProg(pkg,stmts)) outc =
     | Empty -> ()
 
   and ppStmt = function
-    | Assign(x) -> tab(); ppStr (x ^ " = "); ppExpr e; ppStr ";\n"
+      Assign(x) -> tab(); ppStr (x ^ " = "); ppExpr e; ppStr ";\n"
       (* of 'e assignment *)
     | Print(x) -> tab(); ppStr "print "; ppExpr e; ppStr ";\n" (* add println ! *)
       (* of 'e *)
@@ -144,7 +122,7 @@ let ppTree (TProg(pkg,stmts)) outc =
                       (fun c -> incr tabCount; List.iter ppStmt ss) 
                       (fun c -> decr tabCount)
 
-    | Var_stmt(xs,eso,typo) ->  ()
+    | Var_stmt(xs,eso,typo) ->
        Printf.fprintf outc "%tvar %t;\n"
                       (fun c -> tab())
                       (fun c -> pcsl xs;
@@ -165,6 +143,7 @@ let ppTree (TProg(pkg,stmts)) outc =
                       (fun c -> ppStr v)
 
     | Type_stmt(x,typ) -> 
+       Printf.fprintf outc "not implemented"
 
     | Struct_stmt(x,ys,typ) -> 
        Printf.fprintf outc "not implemented"

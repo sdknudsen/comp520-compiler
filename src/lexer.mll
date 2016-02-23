@@ -56,7 +56,7 @@
 | PERCENTEQ -> "PERCENTEQ"
 | AMPEQ -> "AMPEQ"
 | BITOREQ -> "BITOREQ"
-| BITNOTEQ -> "BITNOTEQ"
+| BITXOREQ -> "BITXOREQ"
 | LSHIFTEQ -> "LSHIFTEQ"
 | RSHIFTEQ -> "RSHIFTEQ"
 | BITNANDEQ -> "BITNANDEQ"
@@ -211,7 +211,7 @@ rule token = parse
   | "%="          { insert_semic:=false; PERCENTEQ }
   | "&="          { insert_semic:=false; AMPEQ }
   | "|="          { insert_semic:=false; BITOREQ }
-  | "^="          { insert_semic:=false; BITNOTEQ }
+  | "^="          { insert_semic:=false; BITXOREQ }
   | "<<="         { insert_semic:=false; LSHIFTEQ }
   | ">>="         { insert_semic:=false; RSHIFTEQ }
   | "&^="         { insert_semic:=false; BITNANDEQ }

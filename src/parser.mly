@@ -9,6 +9,7 @@
 program:
 | pkg=package decls=decl+ EOF
     { Prog(pkg, decls) }
+| EOF {} (* Hack to accept empty program... *)
 | error
     { Error.print_error $startpos "syntax error" }
 
@@ -293,34 +294,34 @@ stmt:
 
 %inline e_binop:
 (* binary_op *)
-| BOOL_OR    { Bool_or }
-| BOOL_AND   { Bool_and }
+| BOOL_OR    { Boolor }
+| BOOL_AND   { Booland }
 (* rel_op *)
 | EQUALS     { Equals }
 | NOTEQUALS  { Notequals }
-| LCHEVRON   { Lchevron }
+| LCHEVRON   { Lt }
 | LTEQ       { Lteq }
-| RCHEVRON   { Rchevron }
+| RCHEVRON   { Gt }
 | GTEQ       { Gteq }
 (* add_op *)
 | PLUS       { Plus }
 | MINUS      { Minus }
 | BITOR      { Bitor }
-| CIRCUMFLEX { Circumflex }
+| CIRCUMFLEX { Bitxor }
+| BITAND     { Bitand }
+| BITNAND    { Bitnand }
 (* mul_op *)
 | TIMES      { Times }
 | DIV        { Div }
-| PERCENT    { Percent }
+| PERCENT    { Modulo }
 | LSHIFT     { Lshift }
 | RSHIFT     { Rshift }
-| BITAND     { Bitand }
-| BITNAND    { Bitnand }
 
 %inline e_prefix_op:
-| PLUS       { UPlus }
-| MINUS      { UMinus }
-| BANG       { UBang }
-| CIRCUMFLEX { UCircumflex }
+| PLUS       { Positive }
+| MINUS      { Negative }
+| BANG       { Boolnot }
+| CIRCUMFLEX { Bitnot }
 
 expr:
 | LPAREN e=expr RPAREN
@@ -355,11 +356,11 @@ expr:
 | PLUSEQ    { Plus }
 | MINUSEQ   { Minus }
 | BITOREQ   { Bitor }
-| BITNOTEQ  { Circumflex }
+| BITXOREQ  { Bitxor }
 (* mul_op *)
 | TIMESEQ   { Times }
 | DIVEQ     { Div }
-| PERCENTEQ { Percent }
+| PERCENTEQ { Modulo }
 | LSHIFTEQ  { Lshift }
 | RSHIFTEQ  { Rshift }
 | AMPEQ     { Bitand }

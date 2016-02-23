@@ -8,11 +8,11 @@ type typ_id = id
 type fun_id = id
 type pkg_id = id
 
-type binop = Bool_or | Bool_and |
-             Equals | Notequals | Lchevron | Lteq | Rchevron | Gteq |
-             Plus | Minus | Bitor | Circumflex |
-             Times | Div | Percent | Lshift | Rshift | Bitand | Bitnand
-type unop = UPlus | UMinus | UBang | UCircumflex
+type binop = Boolor | Booland |
+             Equals | Notequals | Lt | Lteq | Gt | Gteq |
+             Plus | Minus | Bitor | Bitxor |
+             Times | Div | Modulo | Lshift | Rshift | Bitand | Bitnand
+type unop = Positive | Negative | Boolnot | Bitnot
 
 (* type info =  *)
 
