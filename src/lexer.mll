@@ -124,7 +124,7 @@ let letter    = (['A'-'Z' 'a'-'z'] | '_')
 let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
-let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'')
+let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
 let esc_seq =
     esc_char
   | ('\\' oct_digit oct_digit oct_digit )
