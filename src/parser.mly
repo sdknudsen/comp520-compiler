@@ -123,6 +123,19 @@ identifiers:
 | ids=separated_nonempty_list(COMMA, IDEN)
     { ids }
 
+(*identifiers:
+(* this allows for something like l[4], y x.y = 2, 4, 6. should it? *)
+| ids=separated_nonempty_list(COMMA, identifier)
+    { ids }
+
+identifier:
+| id=IDEN {id}
+| array_id=IDEN LBRACKET n=INT RBRACKET
+    { AIden(array_id, n) }
+| var_id=IDEN DOT structs_id=IDEN
+    { SIden(var_id, structs_id) }
+*)
+
 expressions:
 | exprs=separated_nonempty_list(COMMA, expr)
     { exprs }
