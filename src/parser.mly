@@ -217,6 +217,7 @@ var_stmts:
 | vsl=var_stmt_line
     { vsl }
 
+
 var_stmt_line:
 | var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
@@ -225,13 +226,8 @@ var_stmt_line:
     { Var_stmt(var_ids, None, Some(typ_id)) }
 | var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_stmt(var_ids, typ_id) }
-(*| var_ids=identifiers LBRACKET n=INT RBRACKET SEMICOLON *)
-    (*{ Array_stmt(var_ids, n) }*)
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON 
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
     { Array_stmt(var_ids, n, typ_id) }
-
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name ASSIGNMENT exprs=expressions SEMICOLON 
-    { Array_decl(var_ids, n, typ_id) }
 
 type_stmt:
 | TYPE LPAREN RPAREN SEMICOLON
