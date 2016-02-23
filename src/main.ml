@@ -11,7 +11,9 @@ let lex in_channel =
                    consume lb)
     in consume lexbuf
   with
-    | Error.CompileError message -> print_endline ("Invalid" ^ message)
+    | Error.CompileError message ->
+        print_endline ("Invalid" ^ message);
+        exit 1
 
 
 let parse in_channel =
@@ -23,9 +25,13 @@ let parse in_channel =
      ignore (untypedTree);
      print_endline "Valid"
   with
-    | Error.CompileError message -> print_endline ("Invalid" ^ message)
-    | Parser.Error -> print_endline
-      ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"))
+    | Error.CompileError message ->
+        print_endline ("Invalid" ^ message);
+        exit 1
+    | Parser.Error ->
+        print_endline
+          ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"));
+        exit 1
 
 
 let pretty    in_channel = print_endline "I'm pretty"
