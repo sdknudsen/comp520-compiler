@@ -125,14 +125,19 @@ let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'')
+let esc_seq =
+    esc_char
+  | ('\\' oct_digit oct_digit oct_digit )
+  | ('\\' hex_digit hex_digit)
+
 
 let dec_lit   = ['1'-'9'] dec_digit*
 let oct_lit   = '0' oct_digit*
 let hex_lit   = '0' ('x' | 'X') hex_digit+
 
 let raw_str_char = (clean_ascii | ['"' '\'' '\\'])
-let str_char  = (clean_ascii | ''' | '`' | esc_char )
-let rune_char = (clean_ascii | esc_char)
+let str_char  = (clean_ascii | ''' | '`' | esc_seq )
+let rune_char = (clean_ascii | esc_seq)
 
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
