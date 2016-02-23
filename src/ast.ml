@@ -38,10 +38,11 @@ and t_rec = { exp : t_expr; typ : id; }
 (*type t_expr = (t_expr * id) exprF*)
 
 (*type 'e assignment = 'e list * 'e list*)
-type 'e assignment = id list * 'e list
+(* type 'e assignment = id list * 'e list *)
+(* | Assign of 'e assignment *)
 
 type ('e,'s) stmtF =
-  | Assign of 'e assignment
+  | Assign of id list * 'e list
   | Print of 'e list
   | Println of 'e list
   | If_stmt of 's option * 'e * 's list * 's list option

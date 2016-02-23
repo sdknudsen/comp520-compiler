@@ -70,9 +70,13 @@ var_decl_line:
 | var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_decl(var_ids, typ_id) }
 | var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON 
-    { Array_decl(var_ids, n, typ_id) } (* are we missing = here?? *)
+    { Array_decl(var_ids, n, typ_id) }
 
 type_decl:
+(* from https://golang.org/ref/spec#Type_declarations *)
+(* | TYPE typ_id typ *)
+(* | TYPE LPAREN  SEMICOLON RPAREN *)
+
 | TYPE LPAREN RPAREN SEMICOLON
     { Empty }
 | TYPE LPAREN tds=type_decls RPAREN SEMICOLON
@@ -84,7 +88,7 @@ type_decl:
 
 type_decls:
 | tds=type_decls tdl=type_decl_line
-    { ignore(tds); tdl }
+    { ignore(tds); tdl }	(* what does ignore do? *)
 | tdl=type_decl_line
     { tdl }
 
@@ -135,6 +139,7 @@ stmts_block:
 | LBRACE stmts=stmt* RBRACE
     { stmts }
 
+(*
 init_stmt:
 | a=assignment SEMICOLON
     { a }
@@ -142,30 +147,29 @@ init_stmt:
     { sd }
 
 if_stmt:
-| IF is=init_stmt? SEMICOLON e=expr b=stmts_block
+| IF is=init_stmt? e=expr b=stmts_block
     { If_stmt(is, e, b, None) }
-| IF is=init_stmt? SEMICOLON e=expr b1=stmts_block ELSE b2=stmts_block
+| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=stmts_block
     { If_stmt(is, e, b1, Some(b2)) }
-| IF is=init_stmt? SEMICOLON e=expr b1=stmts_block ELSE b2=if_stmt
+| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=if_stmt
     { If_stmt(is, e, b1, Some([b2])) }
 
 switch_stmt:
-| SWITCH is=init_stmt? SEMICOLON e=expr? LBRACE sc=switch_clause* RBRACE
+| SWITCH is=init_stmt? e=expr? LBRACE sc=switch_clause* RBRACE
     { Switch_stmt(is, e, sc) }
+*)
 
-(*
 if_stmt:
 | IF e=expr b=stmts_block
-    { If_stmt(e, b, None) }
+    { If_stmt(None, e, b, None) }
 | IF e=expr b1=stmts_block ELSE b2=stmts_block
-    { If_stmt(e, b1, Some(b2)) }
+    { If_stmt(None, e, b1, Some(b2)) }
 | IF e=expr b1=stmts_block ELSE b2=if_stmt
-    { If_stmt(e, b1, Some([b2])) }
+    { If_stmt(None, e, b1, Some([b2])) }
 
 switch_stmt:
 | SWITCH e=expr? LBRACE sc=switch_clause* RBRACE
-    { Switch_stmt(e, sc) }
-*)
+    { Switch_stmt(None, e, sc) }
 
 switch_clause:
 | sc=switch_case COLON stmts=stmt*
@@ -221,8 +225,13 @@ var_stmt_line:
     { Var_stmt(var_ids, None, Some(typ_id)) }
 | var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
     { Slice_stmt(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
+(*| var_ids=identifiers LBRACKET n=INT RBRACKET SEMICOLON *)
+    (*{ Array_stmt(var_ids, n) }*)
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON 
     { Array_stmt(var_ids, n, typ_id) }
+
+| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name ASSIGNMENT exprs=expressions SEMICOLON 
+    { Array_decl(var_ids, n, typ_id) }
 
 type_stmt:
 | TYPE LPAREN RPAREN SEMICOLON
@@ -323,10 +332,10 @@ expr:
     { RLit(c) }
 | s=STRING
     { SLit(s) }
-| unop=e_prefix_op e=expr %prec UOP
-    { Uexp(unop, e) }
 | e1=expr binop=e_binop e2=expr
     { Bexp(binop, e1, e2) }
+| unop=e_prefix_op e=expr %prec UOP
+    { Uexp(unop, e) }
 | fun_id=IDEN LPAREN ids=identifiers RPAREN
     { Func(fun_id, ids) }
 | APPEND LPAREN var_id=IDEN COMMA e=expr RPAREN
@@ -396,23 +405,4 @@ lvalue:
     { AIden(array_id, n) }
 | var_id=IDEN DOT structs_id=IDEN
     { SIden(var_id, structs_id) }
-*)
-
-(*goType : typeLit
-
-typeLit :
-(*| arrayType	{}	
-| structType	{}
-| pointerType	{}
-| functionType	{}
-| interfaceType	{}
-| sliceType*)	{}
-| mapType	{}
-| channelType	{}
-
-mapType : MAP LBRACKET goType RBRACKET goType (* use keyType and elementType? *)
-sliceType = LBRACKET RBRACKET goType
-arrayType = LBRACKET n=INT RBRACKET t=goType	{ Array_stmt (
-
-should we simplify the grammar for declarations?
 *)
