@@ -8,6 +8,7 @@ open Tokens
     | TFloat -> "float"
     | TString -> "string" in
   Ctx.iter (fun k v -> Printf.fprintf outc "%s" (k ^ " : " ^ str_of_typ v ^ "\n")) gamma *)
+
 let uop_to_str = function
     Positive -> "+"           
   | Negative -> "-"
@@ -45,7 +46,7 @@ let ppTree (Prog(pkg,stmts)) outc =
   let ppStr s = Printf.fprintf outc "%s" s in
   let rec tabWith n = if n <= 0 then () else (ppStr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabCount in
-  let pcsl = function
+  let pcsl = function (* print comma separated list *)
       [] -> ()
     | x::xs -> ppStr x; List.iter (fun y -> ppStr y) xs
   in
@@ -79,12 +80,13 @@ let ppTree (Prog(pkg,stmts)) outc =
     | Type_decl(x, typ) ->
        ppStr "type "; ppStr x; ppStr " "; ppStr typ; ppStr ";"
 
-    (* | Struct_decl(x, ys, typ) -> *)
-    (*    ppStr "type "; ppStr x; ppStr " struct {\n"; *)
-    (*    ppStr "var "; ppStr x; ppStr " "; ppStr typ; ppStr ";" *)
-    (*    of var_id * var_id list * typ_id *)
-
-    | Func_decl(f, xstLs, ss, yo, typo) ->
+    | Struct_decl(x, ss) ->
+       Printf.fprintf outc "%ttype %t struct {\n%t\n" 
+                      (fun c -> tab())
+                      (fun c -> ppStr x; incr tabCount)
+                      (fun c -> List.iter (fun (vars,typ) -> tab(); ppStr "var "; pcsl vars; ppStr typ; ppStr ";") ss; decr tabCount)
+    
+    | Func_decl(f, xstLs, ss, yo, typo) -> (* ends with 0 *)
        ppStr "func "^f^"(";
        (match xstLs with
         | [] -> ()
@@ -129,24 +131,26 @@ let ppTree (Prog(pkg,stmts)) outc =
                                 may (fun typ -> ppStr (" "^string_of_typ typ)) eso;
                                 may (fun es -> ppStr " = "; pcsl es) eso)
 
- (* I'm not sure about the ast nodes for the following but I have this so we can debug *)
-    | Slice_stmt(xs,v) ->  
-       Printf.fprintf outc "%t = append(%t,%t);\n" (* should we assign here or just append?? *)
+    | Slice_stmt(xs,d,typ) -> 
+       Printf.fprintf outc "var %t[]%t\n" 
                       (fun c -> tab(); pcsl xs)
-                      (fun c -> ppStr pcsl xs)
-                      (fun c -> ppStr v)
-
+                      (fun c -> ppStr (string_of_typ typ))
+     
     | Array_stmt(xs,d,typ) -> 
-       Printf.fprintf outc "%t[%t] = %t;\n" 
+       Printf.fprintf outc "%t[%t] %t\n" 
                       (fun c -> tab(); ppStr xs)
-                      (fun c -> ppStr d)
+                      (fun c -> ppStr (string_of_int d))
                       (fun c -> ppStr v)
 
-    | Type_stmt(x,typ) -> 
-       Printf.fprintf outc "not implemented"
+    | Type_stmt(x, typ) ->
+       ppStr "type "; ppStr x; ppStr " "; ppStr typ; ppStr ";"
 
-    | Struct_stmt(x,ys,typ) -> 
-       Printf.fprintf outc "not implemented"
+    | Struct_stmt(x, ss) ->
+       Printf.fprintf outc "%ttype %t struct {\n%t\n" 
+                      (fun c -> tab())
+                      (fun c -> ppStr x; incr tabCount)
+                      (fun c -> List.iter (fun (vars,typ) -> tab(); ppStr "var "; pcsl vars; ppStr typ; ppStr ";") ss; decr tabCount)
+    
 
     | Empty -> ()
 
