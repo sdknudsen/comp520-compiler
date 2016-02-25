@@ -28,7 +28,6 @@ program:
 | MAP
 | RANGE	{ Error.print_error $startpos "Use of reserved keyword" }
 
-
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { Pkg(pkg_id) }
@@ -49,10 +48,10 @@ var_decl:
     { vds }
 | VAR vdl=var_decl_line
     { vdl }
-| var_ids=identifiers COLONEQ exprs=expressions SEMICOLON
+| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_decl(var_ids, Some(exprs), None) }
-| identifiers COLONEQ error
+| lvalues COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 var_decls:
@@ -116,21 +115,12 @@ type_name:
     { typ_id }
 
 identifiers:
-| ids=separated_nonempty_list(COMMA, IDEN)
-    { ids }
-
-(*identifiers:
-(* this allows for something like l[4], y x.y = 2, 4, 6. should it? *)
 | ids=separated_nonempty_list(COMMA, identifier)
     { ids }
 
 identifier:
-| id=IDEN {id}
-| array_id=IDEN LBRACKET n=INT RBRACKET
-    { AIden(array_id, n) }
-| var_id=IDEN DOT structs_id=IDEN
-    { SIden(var_id, structs_id) }
-*)
+| var_id=IDEN
+    { Iden(var_id) }
 
 expressions:
 | exprs=separated_nonempty_list(COMMA, expr)
@@ -206,10 +196,10 @@ print_stmt:
     { Println(exprs) }
 
 short_decl:
-| var_ids=identifiers COLONEQ exprs=expressions
+| var_ids=lvalues COLONEQ exprs=expressions
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_stmt(var_ids, Some(exprs), None) }
-| identifiers COLONEQ error
+| lvalues COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 var_stmt:
@@ -373,19 +363,6 @@ assignment:
     { pa }
 
 simple_assign:
-| ids=identifiers ASSIGNMENT exprs=expressions
-    { ignore(check_balance (ids, exprs) $startpos);
-      Assign(ids, exprs) }
-
-binop_assign:
-| id=IDEN binop=a_binop e=expr
-    { Assign([id], [Bexp(binop, Iden(id), e)]) }
-
-postfix_assign:
-| id=IDEN postfix=a_postfix
-    { Assign([id], [Bexp(postfix, Iden(id), ILit(1))]) }
-(*
-simple_assign:
 | lvs=lvalues ASSIGNMENT exprs=expressions
     { ignore(check_balance (lvs, exprs) $startpos);
       Assign(lvs, exprs) }
@@ -403,10 +380,9 @@ lvalues:
     { lvs }
 
 lvalue:
-| var_id=IDEN
-    { Iden(var_id) }
+| id=identifier
+    { id }
 | array_id=IDEN LBRACKET n=INT RBRACKET
     { AIden(array_id, n) }
 | var_id=IDEN DOT structs_id=IDEN
     { SIden(var_id, structs_id) }
-*)
