@@ -28,7 +28,6 @@ program:
 | MAP
 | RANGE	{ Error.print_error $startpos "Use of reserved keyword" }
 
-
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { Pkg(pkg_id) }
@@ -49,10 +48,10 @@ var_decl:
     { vds }
 | VAR vdl=var_decl_line
     { vdl }
-| var_ids=identifiers COLONEQ exprs=expressions SEMICOLON
+| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_decl(var_ids, Some(exprs), None) }
-| identifiers COLONEQ error
+| lvalues COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 var_decls:
@@ -73,10 +72,6 @@ var_decl_line:
     { Array_decl(var_ids, n, typ_id) }
 
 type_decl:
-(* from https://golang.org/ref/spec#Type_declarations *)
-(* | TYPE typ_id typ *)
-(* | TYPE LPAREN  SEMICOLON RPAREN *)
-
 | TYPE LPAREN RPAREN SEMICOLON
     { Empty }
 | TYPE LPAREN tds=type_decls RPAREN SEMICOLON
@@ -88,7 +83,7 @@ type_decl:
 
 type_decls:
 | tds=type_decls tdl=type_decl_line
-    { ignore(tds); tdl }	(* what does ignore do? *)
+    { ignore(tds); tdl }
 | tdl=type_decl_line
     { tdl }
 
@@ -120,21 +115,12 @@ type_name:
     { typ_id }
 
 identifiers:
-| ids=separated_nonempty_list(COMMA, IDEN)
-    { ids }
-
-(*identifiers:
-(* this allows for something like l[4], y x.y = 2, 4, 6. should it? *)
 | ids=separated_nonempty_list(COMMA, identifier)
     { ids }
 
 identifier:
-| id=IDEN {id}
-| array_id=IDEN LBRACKET n=INT RBRACKET
-    { AIden(array_id, n) }
-| var_id=IDEN DOT structs_id=IDEN
-    { SIden(var_id, structs_id) }
-*)
+| var_id=IDEN
+    { Iden(var_id) }
 
 expressions:
 | exprs=separated_nonempty_list(COMMA, expr)
@@ -210,10 +196,10 @@ print_stmt:
     { Println(exprs) }
 
 short_decl:
-| var_ids=identifiers COLONEQ exprs=expressions
+| var_ids=lvalues COLONEQ exprs=expressions
     { ignore(check_balance (var_ids, exprs) $startpos);
       Var_stmt(var_ids, Some(exprs), None) }
-| identifiers COLONEQ error
+| lvalues COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 var_stmt:
@@ -229,7 +215,6 @@ var_stmts:
     { ignore(vss); vsl }
 | vsl=var_stmt_line
     { vsl }
-
 
 var_stmt_line:
 | var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
@@ -261,9 +246,9 @@ type_stmts:
 type_stmt_line:
 | var_id=IDEN typ_id=type_name SEMICOLON
     { Type_stmt(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=type_name SEMICOLON
+| var_id=IDEN STRUCT LBRACE tss=type_structs SEMICOLON
   RBRACE SEMICOLON
-    { Struct_stmt(var_id, var_ids, typ_id) }
+    { Struct_stmt(var_id, tss) }
 
 stmt:
 | a=assignment SEMICOLON
@@ -378,19 +363,6 @@ assignment:
     { pa }
 
 simple_assign:
-| ids=identifiers ASSIGNMENT exprs=expressions
-    { ignore(check_balance (ids, exprs) $startpos);
-      Assign(ids, exprs) }
-
-binop_assign:
-| id=IDEN binop=a_binop e=expr
-    { Assign([id], [Bexp(binop, Iden(id), e)]) }
-
-postfix_assign:
-| id=IDEN postfix=a_postfix
-    { Assign([id], [Bexp(postfix, Iden(id), ILit(1))]) }
-(*
-simple_assign:
 | lvs=lvalues ASSIGNMENT exprs=expressions
     { ignore(check_balance (lvs, exprs) $startpos);
       Assign(lvs, exprs) }
@@ -408,10 +380,9 @@ lvalues:
     { lvs }
 
 lvalue:
-| var_id=IDEN
-    { Iden(var_id) }
+| id=identifier
+    { id }
 | array_id=IDEN LBRACKET n=INT RBRACKET
     { AIden(array_id, n) }
 | var_id=IDEN DOT structs_id=IDEN
     { SIden(var_id, structs_id) }
-*)

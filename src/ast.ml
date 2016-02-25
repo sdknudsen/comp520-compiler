@@ -28,7 +28,7 @@ type 'e exprF =
   | SLit of string
   | Uexp of unop * 'e
   | Bexp of binop * 'e * 'e
-  | Func of fun_id * id list
+  | Func of fun_id * 'e list
   | Append of id * 'e
 and expr = expr exprF
 
@@ -37,12 +37,11 @@ type t_expr = t_rec exprF
 and t_rec = { exp : t_expr; typ : id; }
 (*type t_expr = (t_expr * id) exprF*)
 
-(*type 'e assignment = 'e list * 'e list*)
-(* type 'e assignment = id list * 'e list *)
+type 'e assignment = 'e list * 'e list
 (* | Assign of 'e assignment *)
 
 type ('e,'s) stmtF =
-  | Assign of id list * 'e list
+  | Assign of 'e assignment
   | Print of 'e list
   | Println of 'e list
   | If_stmt of 's option * 'e * 's list * 's list option
@@ -52,11 +51,11 @@ type ('e,'s) stmtF =
   | Switch_clause of 'e list option * 's list
   | For_stmt of ('e * ('s * 's) option) option
                 * 's list
-  | Var_stmt of var_id list * 'e list option * typ_id option
-  | Slice_stmt of var_id list * typ_id
-  | Array_stmt of var_id list * int * typ_id
+  | Var_stmt of 'e list * 'e list option * typ_id option
+  | Slice_stmt of 'e list * typ_id
+  | Array_stmt of 'e list * int * typ_id
   | Type_stmt of var_id * typ_id
-  | Struct_stmt of var_id * (var_id list * typ_id) list
+  | Struct_stmt of var_id * ('e list * typ_id) list
   | Return of 'e option
   | Break
   | Continue
@@ -65,12 +64,12 @@ and stmt = (expr, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 
 type ('e,'s) declF =
-  | Var_decl of var_id list * 'e list option * typ_id option
-  | Slice_decl of var_id list * typ_id
-  | Array_decl of var_id list * int * typ_id
+  | Var_decl of 'e list * 'e list option * typ_id option
+  | Slice_decl of 'e list * typ_id
+  | Array_decl of 'e list * int * typ_id
   | Type_decl of var_id * typ_id
-  | Struct_decl of var_id * (var_id list * typ_id) list
-  | Func_decl of fun_id * (var_id list * typ_id) list * typ_id option * 's list
+  | Struct_decl of var_id * ('e list * typ_id) list
+  | Func_decl of fun_id * ('e list * typ_id) list * typ_id option * 's list
   | Empty
 and decl = (expr, stmt) declF
 
