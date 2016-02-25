@@ -56,7 +56,7 @@ type ('e,'s) stmtF =
   | Slice_stmt of var_id list * typ_id
   | Array_stmt of var_id list * int * typ_id
   | Type_stmt of var_id * typ_id
-  | Struct_stmt of var_id * var_id list * typ_id
+  | Struct_stmt of var_id * (var_id list * typ_id) list
   | Return of 'e option
   | Break
   | Continue

@@ -73,10 +73,6 @@ var_decl_line:
     { Array_decl(var_ids, n, typ_id) }
 
 type_decl:
-(* from https://golang.org/ref/spec#Type_declarations *)
-(* | TYPE typ_id typ *)
-(* | TYPE LPAREN  SEMICOLON RPAREN *)
-
 | TYPE LPAREN RPAREN SEMICOLON
     { Empty }
 | TYPE LPAREN tds=type_decls RPAREN SEMICOLON
@@ -88,7 +84,7 @@ type_decl:
 
 type_decls:
 | tds=type_decls tdl=type_decl_line
-    { ignore(tds); tdl }	(* what does ignore do? *)
+    { ignore(tds); tdl }
 | tdl=type_decl_line
     { tdl }
 
@@ -230,7 +226,6 @@ var_stmts:
 | vsl=var_stmt_line
     { vsl }
 
-
 var_stmt_line:
 | var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
     { ignore(check_balance (var_ids, exprs) $startpos);
@@ -261,9 +256,9 @@ type_stmts:
 type_stmt_line:
 | var_id=IDEN typ_id=type_name SEMICOLON
     { Type_stmt(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE var_ids=identifiers typ_id=type_name SEMICOLON
+| var_id=IDEN STRUCT LBRACE tss=type_structs SEMICOLON
   RBRACE SEMICOLON
-    { Struct_stmt(var_id, var_ids, typ_id) }
+    { Struct_stmt(var_id, tss) }
 
 stmt:
 | a=assignment SEMICOLON
