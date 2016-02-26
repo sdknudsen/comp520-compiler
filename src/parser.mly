@@ -183,9 +183,9 @@ stmt:
     { Var_stmt(vs) }
 | ts=type_decl
     { Type_stmt(ts) }
-| es=expr_stmt
+| es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
-| SEMICOLON {}
+| SEMICOLON
 | error
     { Error.print_error $startpos "error at statement" }
 

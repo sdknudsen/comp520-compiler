@@ -1,28 +1,7 @@
 package x
 
 func main() {
- for
-y
-,
- x
- =
- 1
-,
- 2
- 
-;
-;
- x
-,
- y
- =
- y
-,
- x
-*
-2
-
- {
+ for y, x = 1 , 2;; x , y = y, x*2 {
   print("allo")
  }
 }
