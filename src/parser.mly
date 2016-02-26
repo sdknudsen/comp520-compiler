@@ -46,7 +46,7 @@ expressions:
  *)
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
-    { Pkg(pkg_id) }
+    { pkg_id }
 | PACKAGE error 
     { Error.print_error $startpos "package identifier" }
 
