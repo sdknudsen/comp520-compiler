@@ -9,6 +9,6 @@ dispatch begin function
  (* Add our rules after the standard ones. *)
   | After_rules ->
     flag ["only_token"] (S [A "--base";A "tokens"; A "--only-tokens"]);
-    flag_and_dep ["external_token"] (S [A "--base";A "parser"; A "--external-tokens"; A "Tokens"; P "tokens.mly"]);
+    flag_and_dep ["external_token"] (S [A "--base";A "parser";A "--explain"; A "--external-tokens"; A "Tokens"; P "tokens.mly"]);
   | _ -> ()
 end;;
