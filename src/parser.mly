@@ -14,7 +14,7 @@ program:
 
 (* so that the compiler doesn't complain about unused tokens *)
 (* check that we don't use any of these !! *)
-| INTERFACE	
+| INTERFACE 
 | SELECT
 | CHAN
 | CONST
@@ -26,7 +26,7 @@ program:
 | IMPORT
 | LARROW
 | MAP
-| RANGE	{ Error.print_error $startpos "Use of reserved keyword" }
+| RANGE { Error.print_error $startpos "Use of reserved keyword" }
 
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
@@ -138,7 +138,6 @@ stmts_block:
 | LBRACE stmts=stmt* RBRACE
     { stmts }
 
-(*
 init_stmt:
 | a=assignment SEMICOLON
     { a }
@@ -146,29 +145,16 @@ init_stmt:
     { sd }
 
 if_stmt:
-| IF is=init_stmt? e=expr b=stmts_block
+| IF is=ioption(init_stmt) e=expr b=stmts_block
     { If_stmt(is, e, b, None) }
-| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=stmts_block
+| IF is=ioption(init_stmt) e=expr b1=stmts_block ELSE b2=stmts_block
     { If_stmt(is, e, b1, Some(b2)) }
-| IF is=init_stmt? e=expr b1=stmts_block ELSE b2=if_stmt
+| IF is=ioption(init_stmt) e=expr b1=stmts_block ELSE b2=if_stmt
     { If_stmt(is, e, b1, Some([b2])) }
 
 switch_stmt:
-| SWITCH is=init_stmt? e=expr? LBRACE sc=switch_clause* RBRACE
+| SWITCH is=ioption(init_stmt) e=expr? LBRACE sc=switch_clause* RBRACE
     { Switch_stmt(is, e, sc) }
-*)
-
-if_stmt:
-| IF e=expr b=stmts_block
-    { If_stmt(None, e, b, None) }
-| IF e=expr b1=stmts_block ELSE b2=stmts_block
-    { If_stmt(None, e, b1, Some(b2)) }
-| IF e=expr b1=stmts_block ELSE b2=if_stmt
-    { If_stmt(None, e, b1, Some([b2])) }
-
-switch_stmt:
-| SWITCH e=expr? LBRACE sc=switch_clause* RBRACE
-    { Switch_stmt(None, e, sc) }
 
 switch_clause:
 | sc=switch_case COLON stmts=stmt*
