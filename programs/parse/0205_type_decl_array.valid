@@ -1,14 +1,13 @@
 package x
 
 type t1 [1]int
-type t2 [1+2]int
-type t3 [1]*int
-type t4 [2*N]*int
+type t3 [1]int
 
 type t5 [1][1]int
 type t6 [1][1][1]int
 
-type t5 [1][N+1]*int
-type t6 [11-10][1][1]int
+type tn [23][]string
 
-type t7 []struct{int,int}
+type t7 [1]struct{x int;y int;}
+type t8 [1]struct{}
+

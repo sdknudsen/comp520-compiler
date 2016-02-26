@@ -1,4 +1,4 @@
-package
+package x
 
 func main() {
 for a();c();b() {
