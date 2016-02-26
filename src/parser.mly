@@ -232,8 +232,7 @@ type_stmts:
 type_stmt_line:
 | var_id=IDEN typ_id=type_name SEMICOLON
     { Type_stmt(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE tss=type_structs SEMICOLON
-  RBRACE SEMICOLON
+| var_id=IDEN STRUCT LBRACE tss=type_structs RBRACE SEMICOLON
     { Struct_stmt(var_id, tss) }
 
 stmt:
