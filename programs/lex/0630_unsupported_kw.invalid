@@ -1,0 +1,12 @@
+select
+range
+map
+interface
+import
+goto
+go
+fallthrough
+defer
+const
+chan
+
