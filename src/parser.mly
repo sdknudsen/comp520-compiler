@@ -295,7 +295,11 @@ postfix_assign:
 | lv=lvalue postfix=a_postfix
     { Assign([lv], [Bexp(postfix, Lvalue(lv), ILit(1))]) }
 
-
+callable_lvalue:
+| id=IDEN
+    { Iden(id) }
+| lvl=lvalue DOT structs_id=IDEN
+    { SValue(lvl, structs_id) }
 
 lvalues:
 | lvls=lvalues COMMA lvl=lvalue
@@ -366,8 +370,8 @@ expr:
     { Bexp(binop, e1, e2) }
 | unop=e_prefix_op e=expr %prec UOP
     { Uexp(unop, e) }
-(*| fun_id=IDEN LPAREN ids=identifiers RPAREN
-    { Func(fun_id, ids) }*)
+| lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
+    { Fn_call(lvl, el) }
 | APPEND LPAREN lvl=lvalue COMMA e=expr RPAREN
     { Append(lvl, e) }
 

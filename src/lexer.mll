@@ -127,9 +127,10 @@ let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
 let esc_seq =
     esc_char
+(* 
   | ('\\' oct_digit oct_digit oct_digit )
   | ('\\' hex_digit hex_digit)
-
+*)
 
 let dec_lit   = ['1'-'9'] dec_digit*
 let oct_lit   = '0' oct_digit*
@@ -172,7 +173,7 @@ rule token = parse
   | "type"        { insert_semic:=false; TYPE }
   | "var"         { insert_semic:=false; VAR }
 
-(* GoLite keywords *)
+(* GoLite keywords: Weeding phase! *)
 (*
   | "int"         { insert_semic:=false; T_INT }
   | "float64"     { insert_semic:=false; T_FLOAT64 }
@@ -239,6 +240,13 @@ rule token = parse
   | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
 
 (* Literals *)
+  | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
+  | oct_lit as n  {
+      insert_semic:=true;
+      let s = String.sub n 1 (String.lenght n) in
+      let t = "0o" ^ s in
+      INT (int_of_string t)
+    }
   | int_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
