@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 pad=$(printf '%0.1s' "."{1..80})
 GOC=../src/main.native
