@@ -1,5 +1,7 @@
 package
 
+func main() {
 for y, x int = 1, 2;;x, y = y, x*2 {
  print("allo")
+}
 }

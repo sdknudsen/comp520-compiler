@@ -1,5 +1,7 @@
 package
 
-for ;x<10; {
- print("allo")
+func main () {
+ for ;x<10; {
+  print("allo")
+ }
 }
