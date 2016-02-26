@@ -39,7 +39,146 @@ let bop_to_str = function
 let may f = function
   | Some typ -> f typ
   | None -> ()
-              
+
+(* remove unused ()s !! *)
+let pTree (Prog(pkg,decls)) outc =
+  let tabc = ref 0 in (* tab count *)
+  let pln() = Printf.fprintf outc "\n" in (* print line *)
+  let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
+  let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
+  let tab() = tabWith !tabc in
+  let pcsl f = function (* print comma separated list *)
+    | [] -> ()
+    | x::xs -> f x; List.iter (fun y -> pstr ", "; f y) xs
+  in
+  let rec pTyp = function
+  (* | Struct_type((typ_id, typ)s) ->  *)
+  | Simple_type(typ_id) -> pstr typ_id
+  | Struct_type(xtyps) -> ()
+  | Array_type(typ,d) -> ()
+  | Slice_type(typ) -> ()
+  | Void -> ()
+  in
+  let rec pExpr = function
+    (* | LValue(x) -> Printf.fprintf outc "%s" x *)
+    | Lvalue(l) -> ()
+    | ILit(d) -> Printf.fprintf outc "%d" d
+    | FLit(f) -> Printf.fprintf outc "%f" f
+    | BLit(b) -> Printf.fprintf outc "%b" b
+    | RLit(c) -> Printf.fprintf outc "'%c'" c
+    | SLit(s) -> Printf.fprintf outc "\"%s\"" s
+    | Bexp(op,e1,e2) -> Printf.fprintf outc "(%t %s %t)"
+                                       (fun c -> pExpr e1)
+                                       (bop_to_str op)
+                                       (fun c -> pExpr e2)
+    | Uexp(op,e) -> Printf.fprintf outc "(%s %t)"
+                                   (uop_to_str op)
+                                   (fun c -> pExpr e)
+    | Fn_call(fun_id, es) -> ()
+    | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
+                                     (fun c -> pLVal x)
+                                     (fun c -> pExpr e)
+
+  and pLVal = function
+  | Iden(id) -> pstr id
+  | AValue(x, e) -> pLVal x; pExpr e (* fix this! *)
+     (* Printf.fprintf outc "%t[%d]" *)
+  | SValue(x, id) -> pLVal x; pstr id (* fix this! *)
+
+  in
+  (* and pStmt = pBareStmt; pstr ";\n" *)
+  let rec pStmt = function
+    | Assign(xs, es) ->
+       Printf.fprintf outc "%t = %t;"
+                      (fun c -> pcsl pstr xs)
+                      (fun c -> pcsl pExpr es)
+    | Print(es) -> Printf.fprintf outc "print %t;" (fun c -> pcsl pExpr es)
+    | Println(es) -> Printf.fprintf outc "println %t;" (fun c -> pcsl pExpr es)
+    | If_stmt(po,e,ps,pso) -> tab();
+       Printf.fprintf outc "if %t%t {\n%t}\n%t"
+                      (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
+                      (fun c -> pExpr e)
+                      (fun c -> List.iter pStmt ps)
+                      (fun c -> may (fun ps -> pcsl pStmt ps) pso; decr tabc)
+    | Switch_stmt(po, eo, ps) -> tab();
+       Printf.fprintf outc "switch %t%t{\n%t"
+                      (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
+                      (fun c -> may (fun e -> pExpr e; pstr " ") eo)
+                      (fun c -> List.iter pStmt ps; decr tabc; pstr "}\n") (*default??*)
+    | Switch_clause(eso, ps) -> tab();
+       Printf.fprintf outc "case %t: %t\n"
+                      (fun c -> match eso with
+                                | None -> pstr "default"
+                                | Some es -> pcsl pExpr es)
+                      (fun c -> pcsl pStmt ps)
+    | For_stmt(po1, eo, po2, ps) ->
+       tab();
+       Printf.fprintf outc "for %t; %t; %t {\n%t}\n"
+                      (fun c -> may pStmt po1)
+                      (fun c -> may pExpr eo)
+                      (fun c -> may pStmt po2)
+                      (fun c -> List.iter pStmt ps)
+
+    | Var_stmt(ids_eso_typo_ls) -> pstr "var(\n";
+       List.iter (fun (ids,eso,typo) ->
+           Printf.fprintf outc "%t %t%t;\n"
+                          (* (fun c -> tab()) *)
+                          (fun c -> pcsl pstr ids)
+                          (fun c -> may pTyp typo)
+                          (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
+         ) ids_eso_typo_ls; pstr ")\n"
+
+    | SDecl_stmt(ids, eso) -> 
+       Printf.fprintf outc "%t%t\n"
+                          (fun c -> pcsl pstr ids)
+                          (fun c -> may (fun es -> pstr " := "; pcsl pExpr es) eso)
+
+    | Type_stmt(id_typ_ls) -> 
+       List.iter (fun (id,typ) ->
+           Printf.fprintf outc "type %t %t\n"
+                          (fun c -> pstr id)
+                          (fun c -> pTyp typ)
+         ) id_typ_ls
+
+    | Return(eo) -> Printf.fprintf outc "return%t"
+                                   (fun c -> may (fun e -> pstr " "; pExpr e) eo)
+    | Break -> Printf.fprintf outc "break"
+    | Continue -> Printf.fprintf outc "continue"
+    | Empty -> ()
+
+  (* | Var_stmt((ids, eso, typo)s)   *)
+  (* | SDecl_stmt((ids, eso))   *)
+  (* | Type_stmt((id, typ)s)   *)
+  in
+  let rec pDecl = tab(); function
+    | Var_decl(ids_eso_typo_ls) -> pstr "var(\n";
+       List.iter (fun (ids,eso,typo) ->
+           Printf.fprintf outc "%t %t%t;\n"
+                          (* (fun c -> tab()) *)
+                          (fun c -> pcsl pstr ids)
+                          (fun c -> may pTyp typo)
+                          (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
+         ) ids_eso_typo_ls; pstr ")\n"
+
+    (* may (fun typ -> ppStr (string_of_typ typ)) typo; *)
+    (* may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";" *)
+    | Type_decl(typId_typ_ls) -> ()
+    | Func_decl(fId, id_typ_ls, typ, ps) -> ()
+                                              (* | Func_decl(fId (id, typ)s, typ, ps) -> () *)
+
+                                              (*   and printDecl = function *)
+                                              (*       Var_decl(xs, eso, typo) -> *)
+  in
+  pstr ("package "^pkg); pln(); List.iter pDecl decls
+
+
+
+
+
+
+
+
+
 (* let ppTree (Prog(pkg,stmts)) outc = *)
 (*   let tabCount = ref 0 in *)
 (*   let println() = Printf.fprintf outc "\n" in *)
@@ -176,112 +315,3 @@ let may f = function
 (* type declaration = Dec of id * id *)
 
               
-(* remove unused ()s !! *)
-let pTree (Prog(pkg,decls)) outc =
-  let tabc = ref 0 in (* tab count *)
-  let pln() = Printf.fprintf outc "\n" in (* print line *)
-  let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
-  let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
-  let tab() = tabWith !tabc in
-  let pcsl f = function (* print comma separated list *)
-    | [] -> ()
-    | x::xs -> f x; List.iter (fun y -> pstr ", "; f y) xs
-  in
-  let rec pTyp = function
-  (* | Struct_type((typ_id, typ)s) ->  *)
-  | Simple_type(typ_id) -> pstr typ_id
-  | Struct_type(xtyps) -> ()
-  | Array_type(typ) -> ()
-  | Slice_type(typ) -> ()
-  | Void -> ()
-  in
-  let rec pExpr = function
-    (* | AValue(x,y)  *)
-    (* | SValue(x,y) -> () *)
-    (* | LValue(x) -> Printf.fprintf outc "%s" x *)
-    | Lvalue(l) -> ()
-    | ILit(d) -> Printf.fprintf outc "%d" d
-    | FLit(f) -> Printf.fprintf outc "%f" f
-    | BLit(b) -> Printf.fprintf outc "%b" b
-    | RLit(c) -> Printf.fprintf outc "'%c'" c
-    | SLit(s) -> Printf.fprintf outc "\"%s\"" s
-    | Bexp(op,e1,e2) -> Printf.fprintf outc "(%t %s %t)"
-                                       (fun c -> pExpr e1)
-                                       (bop_to_str op)
-                                       (fun c -> pExpr e2)
-    | Uexp(op,e) -> Printf.fprintf outc "(%s %t)"
-                                   (uop_to_str op)
-                                   (fun c -> pExpr e)
-    | Fn_call(fun_id, es) -> ()
-    | Append(x, e) -> ()
-
-  and pLVal = function
-  | Iden(id) -> ()
-  | AValue(x, e) -> ()
-  | SValue(x, id) -> ()
-
-  in
-  let rec pStmt =
-    (* tab(); *)
-    function
-    | Assign(xs, es) ->
-       Printf.fprintf outc "%t = %t;"
-                      (fun c -> pcsl pstr xs)
-                      (fun c -> pcsl pExpr es)
-    | Print(es) -> Printf.fprintf outc "print %t;" (fun c -> pcsl pExpr es)
-    | Println(es) -> Printf.fprintf outc "println %t;" (fun c -> pcsl pExpr es)
-    | If_stmt(po,e,ps,pso) -> tab();
-       Printf.fprintf outc "if %t%t {\n%t}\n%t"
-                      (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
-                      (fun c -> pExpr e)
-                      (fun c -> List.iter pStmt ps)
-                      (fun c -> may (fun ps -> pcsl pStmt ps) pso; decr tabc)
-    | Switch_stmt(po, eo, ps) -> tab();
-       Printf.fprintf outc "switch %t%t{\n%t"
-                      (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
-                      (fun c -> may (fun e -> pExpr e; pstr " ") eo)
-                      (fun c -> List.iter pStmt ps; decr tabc; pstr "}\n") (*default??*)
-
-    | Switch_clause(eso, ps) -> tab();
-       Printf.fprintf outc "case %t: %t\n"
-                      (fun c -> match eso with
-                                | None -> pstr "default"
-                                | Some es -> pcsl pExpr es)
-                      (fun c -> pcsl pStmt ps)
-
-    | For_stmt(p1o, eo, p2o, ps) -> tab()
-
-    | Var_stmt(ids_eso_typo_ls) -> ()
-    | SDecl_stmt(ids, eso) -> ()
-    | Type_stmt(id_typ_ls) -> ()
-    | Return(eo) -> Printf.fprintf outc "return%t;"
-                                   (fun c -> may (fun e -> pstr " "; pExpr e) eo)
-    | Break -> Printf.fprintf outc "break;"
-    | Continue -> Printf.fprintf outc "continue;"
-    | Empty -> ()
-
-  (* | Var_stmt((ids, eso, typo)s)   *)
-  (* | SDecl_stmt((ids, eso))   *)
-  (* | Type_stmt((id, typ)s)   *)
-
-  in
-  let rec pDecl = tab(); function
-    | Var_decl(ids_eso_typo_ls) -> pstr "var(\n";
-       List.iter (fun (ids,eso,typo) ->
-           Printf.fprintf outc "%t %t %t;\n"
-                          (* (fun c -> tab()) *)
-                          (fun c -> pcsl pstr ids)
-                          (fun c -> may pTyp typo)
-                          (fun c -> may (fun es -> pstr "= "; pcsl pExpr es) eso)
-         ) ids_eso_typo_ls; pstr ")\n"
-
-    (* may (fun typ -> ppStr (string_of_typ typ)) typo; *)
-    (* may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";" *)
-    | Type_decl(typId_typ_ls) -> ()
-    | Func_decl(fId, id_typ_ls, typ, ps) -> ()
-                                              (* | Func_decl(fId (id, typ)s, typ, ps) -> () *)
-
-                                              (*   and printDecl = function *)
-                                              (*       Var_decl(xs, eso, typo) -> *)
-  in
-  pstr ("package "^pkg); pln(); List.iter pDecl decls
