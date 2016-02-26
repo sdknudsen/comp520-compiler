@@ -240,7 +240,7 @@ rule token = parse
   | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | oct_lit as n  {
       insert_semic:=true;
-      let s = String.sub n 1 (String.length n) in
+      let s = String.sub n 1 ((String.length n) - 1) in
       let t = "0o" ^ s in
       INT (int_of_string t)
     }
