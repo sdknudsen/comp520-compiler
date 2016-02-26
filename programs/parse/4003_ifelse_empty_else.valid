@@ -1,0 +1,9 @@
+package x
+
+func main() {
+ if x {
+   x++
+ } else { 
+   x++
+ }
+}
