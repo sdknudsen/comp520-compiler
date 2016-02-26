@@ -225,13 +225,11 @@ switch_case:
     { None }
 
 for_stmt:
-| FOR b=stmts_block
-    { For_stmt(None, None, None, b) }
-| FOR e=expr b=stmts_block
-    { For_stmt(None, Some(e), None, b) }
-| FOR i=ioption(init_stmt) SEMICOLON e=expr? SEMICOLON p=ioption(init_stmt)
+| FOR e=expr? b=stmts_block
+    { For_stmt(None, e, None, b) }
+| FOR sd=short_decl? SEMICOLON e=expr? SEMICOLON pa=postfix_assign?
       b=stmts_block
-    { For_stmt(i, e, p, b) }
+    { For_stmt(sd, e, pa, b) }
 
 
 print_stmt:
