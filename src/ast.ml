@@ -14,12 +14,19 @@ type binop = Boolor | Booland |
              Times | Div | Modulo | Lshift | Rshift | Bitand | Bitnand
 type unop = Positive | Negative | Boolnot | Bitnot
 
-(* type info =  *)
+(* Type declarations *)
+type typ =
+  | Simple_type of typ_id
+  | Struct_type of (typ_id * typ) list
+  | Array_type  of typ
+  | Slice_type  of typ
+  | Void
 
-type 'e exprF =
-  | Iden of id
-  | AIden of id * int
-  | SIden of id * id
+
+(*type ('e, 'l) lvalueF =*)
+(* EXpressions *)
+type ('e, 'l) exprF =
+  | Lvalue of 'l
   (* | TIden of tp_id *)
   | ILit of int
   | FLit of float
@@ -29,48 +36,55 @@ type 'e exprF =
   | Uexp of unop * 'e
   | Bexp of binop * 'e * 'e
   | Func of fun_id * 'e list
-  | Append of id * 'e
-and expr = expr exprF
+  | Append of 'l * 'e
+
+(* Lvalues *)
+type ('e, 'l) lvalueF = 
+  | Iden of id
+  | AValue of 'l * 'e
+  | SValue of 'l * id
+
+type expr  = (expr, lvalue) exprF
+and lvalue = (expr, lvalue) lvalueF
 
 (* reverse t_rec and t_expr so that t_stmt doesn't need a type field? *)
+(*
 type t_expr = t_rec exprF
 and t_rec = { exp : t_expr; typ : id; }
+*)
 (*type t_expr = (t_expr * id) exprF*)
 
-type 'e assignment = 'e list * 'e list
+
+
+type ('l, 'e) assignment = 'l list * 'e list
 (* | Assign of 'e assignment *)
 
-type ('e,'s) stmtF =
-  | Assign of 'e assignment
-  | Print of 'e list
+(* Statements *)
+type ('e, 'l, 's) stmtF =
+  | Assign  of ('l, 'e) assignment
+  | Print   of 'e list
   | Println of 'e list
   | If_stmt of 's option * 'e * 's list * 's list option
   (* | If_stmt of 'e * 's list * 's list option *)
   | Switch_stmt of 's option * 'e option * 's list
   (* | Switch_stmt of 'e option * 's list *)
   | Switch_clause of 'e list option * 's list
-  | For_stmt of ('e * ('s * 's) option) option
-                * 's list
-  | Var_stmt of 'e list * 'e list option * typ_id option
-  | Slice_stmt of 'e list * typ_id
-  | Array_stmt of 'e list * int * typ_id
-  | Type_stmt of var_id * typ_id
-  | Struct_stmt of var_id * ('e list * typ_id) list
-  | Return of 'e option
+  | For_stmt    of 's option * 'e option * 's option * 's list
+  | Var_stmt    of (id list * 'e list option * typ option) list
+  | SDecl_stmt  of (id list * 'e list option)
+  | Type_stmt   of (id * typ) list
+  | Return      of 'e option
   | Break
   | Continue
   | Empty
-and stmt = (expr, stmt) stmtF
+and stmt = (expr, lvalue, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 
+(* Top-level declarations *)
 type ('e,'s) declF =
-  | Var_decl of 'e list * 'e list option * typ_id option
-  | Slice_decl of 'e list * typ_id
-  | Array_decl of 'e list * int * typ_id
-  | Type_decl of var_id * typ_id
-  | Struct_decl of var_id * ('e list * typ_id) list
-  | Func_decl of fun_id * ('e list * typ_id) list * typ_id option * 's list
-  | Empty
+  | Var_decl  of (id list * 'e list option * typ option) list
+  | Type_decl of (typ_id * typ) list
+  | Func_decl of fun_id * (id * typ) list * typ * 's list
 and decl = (expr, stmt) declF
 
 (* type declaration = Dec of id * id *)

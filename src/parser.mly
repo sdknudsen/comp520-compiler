@@ -28,111 +28,166 @@ program:
 | MAP
 | RANGE { Error.print_error $startpos "Use of reserved keyword" }
 
-package:
-| PACKAGE pkg_id=IDEN SEMICOLON
-    { Pkg(pkg_id) }
-| PACKAGE error 
-    { Error.print_error $startpos "package identifier" }
-decl:
-| vd=var_decl
-    { vd }
-| td=type_decl
-    { td }
-| fd=func_decl
-    { fd }
 
-var_decl:
-| VAR LPAREN RPAREN SEMICOLON
-    { Empty }
-| VAR LPAREN vds=var_decls RPAREN SEMICOLON
-    { vds }
-| VAR vdl=var_decl_line
-    { vdl }
-| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_decl(var_ids, Some(exprs), None) }
-| lvalues COLONEQ error
-    { Error.print_error $startpos "error at variable declaration" }
-
-var_decls:
-| vds=var_decls vdl=var_decl_line
-    { ignore(vds); vdl }
-| vdl=var_decl_line
-    { vdl }
-
-var_decl_line:
-| var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_decl(var_ids, Some(exprs), typ_id) }
-| var_ids=identifiers typ_id=type_name SEMICOLON
-    { Var_decl(var_ids, None, Some(typ_id)) }
-| var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
-    { Slice_decl(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON 
-    { Array_decl(var_ids, n, typ_id) }
-
-type_decl:
-| TYPE LPAREN RPAREN SEMICOLON
-    { Empty }
-| TYPE LPAREN tds=type_decls RPAREN SEMICOLON
-    { tds }
-| TYPE tdl=type_decl_line
-    { tdl }
-| TYPE error
-    { Error.print_error $startpos "error at type declaration" }
-
-type_decls:
-| tds=type_decls tdl=type_decl_line
-    { ignore(tds); tdl }
-| tdl=type_decl_line
-    { tdl }
-
-type_decl_line:
-| var_id=IDEN typ_id=type_name SEMICOLON
-    { Type_decl(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE tss=type_structs RBRACE SEMICOLON
-    { Struct_decl(var_id, tss) }
-
-type_structs:
-| tss=type_structs tsl=type_structs_line
-    { ignore(tss); tsl }
-| tsl=type_structs_line
-    { tsl }
-
-type_structs_line:
-| var_ids=identifiers typ_id=type_name SEMICOLON
-    { [(var_ids, typ_id)] }
-
-func_decl:
-| FUNC fun_id=IDEN LPAREN params=parameters RPAREN typ_id=type_name?
-  b=stmts_block SEMICOLON
-    { Func_decl(fun_id, params, typ_id, b) }
-
-type_name:
-| LPAREN typ_name=type_name RPAREN
-    { typ_name }
-| typ_id=IDEN
-    { typ_id }
-
+(*
+ * Useful rules
+ *)
 identifiers:
-| ids=separated_nonempty_list(COMMA, identifier)
+| ids=separated_nonempty_list(COMMA, IDEN)
     { ids }
-
-identifier:
-| var_id=IDEN
-    { Iden(var_id) }
 
 expressions:
 | exprs=separated_nonempty_list(COMMA, expr)
     { exprs }
 
+
+(*
+ * Top level
+ *)
+package:
+| PACKAGE pkg_id=IDEN SEMICOLON
+    { Pkg(pkg_id) }
+| PACKAGE error 
+    { Error.print_error $startpos "package identifier" }
+
+decl:
+| vd=var_decl
+    { Var_decl(vd) }
+| td=type_decl SEMICOLON
+    { Type_decl(td) }
+| fd=func_decl
+    { fd }
+
+
+
+(*
+ * Type declaration
+ *)
+struct_inner_decls:
+| ids=separated_nonempty_list(COMMA, IDEN) t=typ SEMICOLON
+  { List.map (function (id) -> (id, t)) ids }
+
+struct_inner_decls_list:
+| sid=struct_inner_decls
+  { sid }
+| sidl=struct_inner_decls_list sid=struct_inner_decls
+  {List.append sidl sid}
+
+typ:
+| t=IDEN
+  { Simple_type(t) }
+(*| LPAREN t=typ RPAREN
+  { t }*)
+| STRUCT LBRACE RBRACE
+  { Struct_type([]) }
+| STRUCT LBRACE sidl=struct_inner_decls_list RBRACE
+  { Struct_type(sidl) }
+| LBRACKET e=expr RBRACKET t=typ
+  { Array_type(t) }
+| LBRACKET RBRACKET t=typ
+  { Slice_type(t) }
+
+id_type_pair:
+| i=IDEN t=typ SEMICOLON
+    { (i,t) }
+
+type_decl:
+| TYPE LPAREN tidl=list(id_type_pair) RPAREN
+    { tidl }
+| TYPE id=IDEN t=typ
+    { [(id,t)] }
+| TYPE error
+    { Error.print_error $startpos "error at type declaration" }
+
+
+
+(*
+ * Var declaration
+ *)
+var_decl:
+| VAR LPAREN RPAREN SEMICOLON
+    { [] }
+| VAR LPAREN vds=var_decls RPAREN SEMICOLON
+    { List.rev vds }
+| VAR vdl=var_decl_line
+    { [vdl] }
+
+(* Short decls are not top level... *)
+(*
+| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
+    { ignore(check_balance (var_ids, exprs) $startpos);
+      Var_decl(var_ids, Some(exprs), None) }
+| lvalues COLONEQ error
+    { Error.print_error $startpos "error at variable declaration" }
+*)
+
+var_decls:
+| vds=var_decls vdl=var_decl_line
+    { vdl :: vds }
+| vdl=var_decl_line
+    { [vdl] }
+
+var_decl_line:
+| var_ids=identifiers t=typ? ASSIGNMENT exprs=expressions SEMICOLON
+    { ignore(check_balance (var_ids, exprs) $startpos);
+      (var_ids, Some(exprs), t) }
+| var_ids=identifiers t=typ SEMICOLON
+    { (var_ids, None, Some(t)) }
+
+
+(*
+ * Function declaration
+ *)
+param_expr:
+| var_ids=separated_nonempty_list(COMMA, IDEN) t=typ
+    { List.map (function (id) -> (id,t)) var_ids }
+
+func_decl:
+| FUNC fun_id=IDEN LPAREN params=parameters RPAREN t=typ?
+  b=stmts_block SEMICOLON
+    {
+      match t with
+      | Some(t) -> Func_decl(fun_id, params, t, b)
+      | None    -> Func_decl(fun_id, params, Void, b)
+    }
+
 parameters:
 | params=separated_list(COMMA, param_expr)
-    { params }
+    { List.concat params }
 
-param_expr:
-| var_ids=identifiers typ_id=type_name
-    { (var_ids, typ_id) }
+
+
+(*
+ * Statements
+ *)
+stmt:
+| a=assignment SEMICOLON
+    { a }
+(*
+| sd=short_decl SEMICOLON
+    { sd }
+*)
+| ss=switch_stmt SEMICOLON
+    { ss }
+| fs=for_stmt SEMICOLON
+    { fs }
+| ps=print_stmt SEMICOLON
+    { ps }
+| is=if_stmt SEMICOLON
+    { is }
+| RETURN e=expr? SEMICOLON
+    { Return(e) }
+| BREAK SEMICOLON
+    { Break }
+| CONTINUE SEMICOLON
+    { Continue }
+| vs=var_decl
+    { Var_stmt(vs) }
+| ts=type_decl
+    { Type_stmt(ts) }
+| SEMICOLON
+| error
+    { Error.print_error $startpos "error at statement" }
 
 stmts_block:
 | LBRACE stmts=stmt* RBRACE
@@ -141,8 +196,10 @@ stmts_block:
 init_stmt:
 | a=assignment SEMICOLON
     { a }
+(*
 | sd=short_decl SEMICOLON
     { sd }
+*)
 
 if_stmt:
 | IF is=ioption(init_stmt) e=expr b=stmts_block
@@ -151,6 +208,7 @@ if_stmt:
     { If_stmt(is, e, b1, Some(b2)) }
 | IF is=ioption(init_stmt) e=expr b1=stmts_block ELSE b2=if_stmt
     { If_stmt(is, e, b1, Some([b2])) }
+
 
 switch_stmt:
 | SWITCH is=ioption(init_stmt) e=expr? LBRACE sc=switch_clause* RBRACE
@@ -168,12 +226,13 @@ switch_case:
 
 for_stmt:
 | FOR b=stmts_block
-    { For_stmt(None, b) }
+    { For_stmt(None, None, None, b) }
 | FOR e=expr b=stmts_block
-    { For_stmt(Some(e, None), b) }
-| FOR sd=short_decl SEMICOLON e=expr SEMICOLON pa=postfix_assign
+    { For_stmt(None, Some(e), None, b) }
+| FOR i=ioption(init_stmt) SEMICOLON e=expr? SEMICOLON p=ioption(init_stmt)
       b=stmts_block
-    { For_stmt(Some(e, Some((sd,pa))), b)}
+    { For_stmt(i, e, p, b) }
+
 
 print_stmt:
 | PRINT LPAREN exprs=expressions RPAREN
@@ -182,86 +241,75 @@ print_stmt:
     { Println(exprs) }
 
 short_decl:
-| var_ids=lvalues COLONEQ exprs=expressions
+| var_ids=identifiers COLONEQ exprs=expressions
     { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_stmt(var_ids, Some(exprs), None) }
-| lvalues COLONEQ error
+      SDecl_stmt(var_ids, Some(exprs)) }
+| identifiers COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
-var_stmt:
-| VAR LPAREN RPAREN SEMICOLON
-    { Empty }
-| VAR LPAREN vss=var_stmts RPAREN SEMICOLON
-    { vss }
-| VAR vsl=var_stmt_line
-    { vsl }
 
-var_stmts:
-| vss=var_stmts vsl=var_stmt_line
-    { ignore(vss); vsl }
-| vsl=var_stmt_line
-    { vsl }
 
-var_stmt_line:
-| var_ids=identifiers typ_id=type_name? ASSIGNMENT exprs=expressions SEMICOLON
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_stmt(var_ids, Some(exprs), typ_id) }
-| var_ids=identifiers typ_id=type_name SEMICOLON
-    { Var_stmt(var_ids, None, Some(typ_id)) }
-| var_ids=identifiers LBRACKET RBRACKET typ_id=type_name SEMICOLON
-    { Slice_stmt(var_ids, typ_id) }
-| var_ids=identifiers LBRACKET n=INT RBRACKET typ_id=type_name SEMICOLON
-    { Array_stmt(var_ids, n, typ_id) }
+%inline a_binop:
+(* add_op *)
+| PLUSEQ    { Plus }
+| MINUSEQ   { Minus }
+| BITOREQ   { Bitor }
+| BITXOREQ  { Bitxor }
+(* mul_op *)
+| TIMESEQ   { Times }
+| DIVEQ     { Div }
+| PERCENTEQ { Modulo }
+| LSHIFTEQ  { Lshift }
+| RSHIFTEQ  { Rshift }
+| AMPEQ     { Bitand }
+| BITNANDEQ { Bitnand }
 
-type_stmt:
-| TYPE LPAREN RPAREN SEMICOLON
-    { Empty }
-| TYPE LPAREN tss=type_stmts RPAREN SEMICOLON
-    { tss }
-| TYPE tsl=type_stmt_line
-    { tsl }
-| TYPE error
-    { Error.print_error $startpos "error at type declaration" }
+%inline a_postfix:
+| INC       { Plus }
+| DEC       { Minus }
 
-type_stmts:
-| tss=type_stmts tsl=type_stmt_line
-    { ignore(tss); tsl }
-| tsl=type_stmt_line
-    { tsl }
 
-type_stmt_line:
-| var_id=IDEN typ_id=type_name SEMICOLON
-    { Type_stmt(var_id, typ_id) }
-| var_id=IDEN STRUCT LBRACE tss=type_structs RBRACE SEMICOLON
-    { Struct_stmt(var_id, tss) }
+assignment:
+| sa=simple_assign
+    { sa }
+| ba=binop_assign
+    { ba }
+| pa=postfix_assign
+    { pa }
 
-stmt:
-| a=assignment SEMICOLON
-    { a }
-| sd=short_decl SEMICOLON
-    { sd }
-| ps=print_stmt SEMICOLON
-    { ps }
-| is=if_stmt SEMICOLON
-    { is }
-| ss=switch_stmt SEMICOLON
-    { ss }
-| fs=for_stmt SEMICOLON
-    { fs }
-| RETURN e=expr? SEMICOLON
-    { Return(e) }
-| BREAK SEMICOLON
-    { Break }
-| CONTINUE SEMICOLON
-    { Continue }
-| vs=var_stmt
-    { vs }
-| ts=type_stmt
-    { ts }
-| SEMICOLON
-| error
-    { Error.print_error $startpos "error at statement" }
+simple_assign:
+| lvs=lvalues ASSIGNMENT exprs=expressions
+    { ignore(check_balance (lvs, exprs) $startpos); 
+      Assign(lvs, exprs) }
+binop_assign:
+| lv=lvalue binop=a_binop e=expr
+    { Assign([lv], [Bexp(binop, Lvalue(lv), e)]) }
 
+postfix_assign:
+| lv=lvalue postfix=a_postfix
+    { Assign([lv], [Bexp(postfix, Lvalue(lv), ILit(1))]) }
+
+
+
+lvalues:
+| lvls=lvalues COMMA lvl=lvalue
+    { lvl :: lvls }
+| lvl=lvalue
+    { [lvl] }
+
+lvalue:
+| id=IDEN
+    { Iden(id) }
+| lvl=lvalue LBRACKET e=expr RBRACKET
+    { AValue(lvl, e) }
+| lvl=lvalue DOT structs_id=IDEN
+    { SValue(lvl, structs_id) }
+
+
+
+(*
+ * Expressions
+ *)
 %inline e_binop:
 (* binary_op *)
 | BOOL_OR    { Boolor }
@@ -296,12 +344,8 @@ stmt:
 expr:
 | LPAREN e=expr RPAREN
     { e }
-| var_id=IDEN
-    { Iden(var_id) }
-| array_id=IDEN LBRACKET n=INT RBRACKET
-    { AIden(array_id, n) }
-| var_id=IDEN DOT structs_id=IDEN
-    { SIden(var_id, structs_id) }
+| lvl=lvalue
+    { Lvalue(lvl) }
 | n=INT
     { ILit(n) }
 | f=FLOAT64
@@ -316,59 +360,8 @@ expr:
     { Bexp(binop, e1, e2) }
 | unop=e_prefix_op e=expr %prec UOP
     { Uexp(unop, e) }
-| fun_id=IDEN LPAREN ids=identifiers RPAREN
-    { Func(fun_id, ids) }
-| APPEND LPAREN var_id=IDEN COMMA e=expr RPAREN
-    { Append(var_id, e) }
+(*| fun_id=IDEN LPAREN ids=identifiers RPAREN
+    { Func(fun_id, ids) }*)
+| APPEND LPAREN lvl=lvalue COMMA e=expr RPAREN
+    { Append(lvl, e) }
 
-%inline a_binop:
-(* add_op *)
-| PLUSEQ    { Plus }
-| MINUSEQ   { Minus }
-| BITOREQ   { Bitor }
-| BITXOREQ  { Bitxor }
-(* mul_op *)
-| TIMESEQ   { Times }
-| DIVEQ     { Div }
-| PERCENTEQ { Modulo }
-| LSHIFTEQ  { Lshift }
-| RSHIFTEQ  { Rshift }
-| AMPEQ     { Bitand }
-| BITNANDEQ { Bitnand }
-
-%inline a_postfix:
-| INC       { Plus }
-| DEC       { Minus }
-
-assignment:
-| sa=simple_assign
-    { sa }
-| ba=binop_assign
-    { ba }
-| pa=postfix_assign
-    { pa }
-
-simple_assign:
-| lvs=lvalues ASSIGNMENT exprs=expressions
-    { ignore(check_balance (lvs, exprs) $startpos);
-      Assign(lvs, exprs) }
-
-binop_assign:
-| lv=lvalue binop=a_binop e=expr
-    { Assign([lv], [Bexp(binop, lv, e)]) }
-
-postfix_assign:
-| lv=lvalue postfix=a_postfix
-    { Assign([lv], [Bexp(postfix, lv, ILit(1))]) }
-
-lvalues:
-| lvs=separated_nonempty_list(COMMA, lvalue)
-    { lvs }
-
-lvalue:
-| id=identifier
-    { id }
-| array_id=IDEN LBRACKET n=INT RBRACKET
-    { AIden(array_id, n) }
-| var_id=IDEN DOT structs_id=IDEN
-    { SIden(var_id, structs_id) }

@@ -17,7 +17,7 @@
 | BOOL(b)    -> "BOOL(" ^ (string_of_bool b) ^ ")"
 | RUNE(r)    -> "RUNE(" ^ (String.make 1 r) ^ ")"
 | STRING(s)  -> "STRING(" ^ s ^ ")"
-| IDEN(i)    -> "ID(" ^ i ^ ")"
+| IDEN(i)    -> "IDEN(" ^ i ^ ")"
 
 | EOF   -> "EOF"
 
