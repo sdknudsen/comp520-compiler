@@ -76,14 +76,12 @@ struct_inner_decls_list:
 typ:
 | t=IDEN
   { Simple_type(t) }
-(*| LPAREN t=typ RPAREN
-  { t }*)
 | STRUCT LBRACE RBRACE
   { Struct_type([]) }
 | STRUCT LBRACE sidl=struct_inner_decls_list RBRACE
   { Struct_type(sidl) }
-| LBRACKET e=expr RBRACKET t=typ
-  { Array_type(t) }
+| LBRACKET n=INT RBRACKET t=typ
+  { Array_type(t, n) }
 | LBRACKET RBRACKET t=typ
   { Slice_type(t) }
 
@@ -92,9 +90,9 @@ id_type_pair:
     { (i,t) }
 
 type_decl:
-| TYPE LPAREN tidl=list(id_type_pair) RPAREN
+| TYPE LPAREN tidl=id_type_pair* RPAREN
     { tidl }
-| TYPE id=IDEN t=typ
+| TYPE id=IDEN t=typ SEMICOLON
     { [(id,t)] }
 | TYPE error
     { Error.print_error $startpos "error at type declaration" }
@@ -227,9 +225,17 @@ switch_case:
 for_stmt:
 | FOR e=expr? b=stmts_block
     { For_stmt(None, e, None, b) }
-| FOR sd=short_decl? SEMICOLON e=expr? SEMICOLON pa=postfix_assign?
+| FOR is=for_init_stmt? SEMICOLON e=expr? SEMICOLON a=assignment?
       b=stmts_block
-    { For_stmt(sd, e, pa, b) }
+    { For_stmt(is, e, a, b) }
+
+for_init_stmt:
+| a=assignment
+    { a }
+(*
+| sd=short_decl
+    { sd }
+*)
 
 
 print_stmt:

@@ -1,3 +1,5 @@
 package x
 
-for x < 10 {}
+func main() {
+  for x < 10 {}
+}

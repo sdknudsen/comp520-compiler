@@ -1,0 +1,4 @@
+package x
+
+func x() { return 1; }
+func main() { x(); }

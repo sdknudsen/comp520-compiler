@@ -1,5 +1,28 @@
-package
+package x
 
-for y, x int = 1, 2;;x, y = y, x*2 {
- print("allo")
+func main() {
+ for
+y
+,
+ x
+ =
+ 1
+,
+ 2
+ 
+;
+;
+ x
+,
+ y
+ =
+ y
+,
+ x
+*
+2
+
+ {
+  print("allo")
+ }
 }

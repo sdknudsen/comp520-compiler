@@ -1,9 +1,9 @@
 package x
 
 type t1 struct{}
-type t2 struct{x, y int}
-type t2 struct{x, y, z int}
-type t2 struct{x int; y int}
+type t2 struct{x, y int;}
+type t2 struct{x, y, z int;}
+type t2 struct{x int; y int;}
 
 // Semicolon insertion
 type t2 struct{
@@ -11,7 +11,7 @@ type t2 struct{
   y int
 }
 
-type t3 struct{x, y int; a, b bool; z int}
+type t3 struct{x, y int; a, b bool; z int; }
 type t3 struct{
   x, y int
   a, b bool

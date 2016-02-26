@@ -1,5 +1,5 @@
 package x
 
 func main() {
- for ;; {}
+  if (x) {} else {}
 }

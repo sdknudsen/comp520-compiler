@@ -1,5 +1,8 @@
-package
+package x
 
-for x:=1;; {
- print("allo")
+
+func main () {
+ for x:=1;; {
+  print("allo")
+ }
 }

@@ -1,5 +1,7 @@
-package
+package x
 
-for ;; x++ {
- print("allo")
+func main () {
+ for ;; x++ {
+  print("allo")
+ }
 }

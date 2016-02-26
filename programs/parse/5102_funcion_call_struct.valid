@@ -1,5 +1,6 @@
 package x
 
 func main() {
- for ;; {}
+  x.y();
+  x[1].y();
 }
