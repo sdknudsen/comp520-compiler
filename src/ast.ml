@@ -18,7 +18,7 @@ type unop = Positive | Negative | Boolnot | Bitnot
 type typ =
   | Simple_type of typ_id
   | Struct_type of (typ_id * typ) list
-  | Array_type  of typ
+  | Array_type  of typ * int
   | Slice_type  of typ
   | Void
 
