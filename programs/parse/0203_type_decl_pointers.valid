@@ -1,0 +1,17 @@
+package
+
+type t1 *int
+type t2 **int
+
+type t3 *float64
+type t4 **float64
+
+type t5 *string
+type t6 **string
+
+type t7 *rune
+type t8 **rune
+
+type t9 *boolean
+type t10 **boolean
+
