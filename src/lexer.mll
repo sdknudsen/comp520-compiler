@@ -127,9 +127,10 @@ let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
 let esc_seq =
     esc_char
+(* 
   | ('\\' oct_digit oct_digit oct_digit )
   | ('\\' hex_digit hex_digit)
-
+*)
 
 let dec_lit   = ['1'-'9'] dec_digit*
 let oct_lit   = '0' oct_digit*
@@ -137,7 +138,7 @@ let hex_lit   = '0' ('x' | 'X') hex_digit+
 
 let raw_str_char = (clean_ascii | ['"' '\'' '\\'])
 let str_char  = (clean_ascii | ''' | '`' | esc_seq )
-let rune_char = (clean_ascii | esc_seq)
+let rune_char = (clean_ascii | esc_seq | ['"' '`'])
 
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
@@ -146,33 +147,30 @@ let iden     = letter (letter | dec_digit)*
 
 rule token = parse
 (* Go keywords *)
+  | ("chan" | "const" | "defer" | "fallthrough" | "go" | "goto"
+    | "import"| "interface" | "map" | "range" | "select") as s {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf
+          "Unsupported keyword `%s`" s)
+    }
+
   | "break"       { insert_semic:=true;  BREAK }
   | "case"        { insert_semic:=false; CASE }
-  | "chan"        { insert_semic:=false; CHAN }
-  | "const"       { insert_semic:=false; CONST }
   | "continue"    { insert_semic:=true;  CONTINUE }
   | "default"     { insert_semic:=false; DEFAULT }
-  | "defer"       { insert_semic:=false; DEFER }
   | "else"        { insert_semic:=false; ELSE }
-  | "fallthrough" { insert_semic:=true;  FALLTHROUGH }
   | "for"         { insert_semic:=false; FOR }
   | "func"        { insert_semic:=false; FUNC }
-  | "go"          { insert_semic:=false; GO }
-  | "goto"        { insert_semic:=false; GOTO }
   | "if"          { insert_semic:=false; IF }
-  | "import"      { insert_semic:=false; IMPORT }
-  | "interface"   { insert_semic:=false; INTERFACE}
-  | "map"         { insert_semic:=false; MAP }
   | "package"     { insert_semic:=false; PACKAGE }
-  | "range"       { insert_semic:=false; RANGE }
   | "return"      { insert_semic:=true;  RETURN }
-  | "select"      { insert_semic:=false; SELECT }
   | "struct"      { insert_semic:=false; STRUCT }
   | "switch"      { insert_semic:=false; SWITCH }
   | "type"        { insert_semic:=false; TYPE }
   | "var"         { insert_semic:=false; VAR }
 
-(* GoLite keywords *)
+(* GoLite keywords: Weeding phase! *)
 (*
   | "int"         { insert_semic:=false; T_INT }
   | "float64"     { insert_semic:=false; T_FLOAT64 }
@@ -239,6 +237,13 @@ rule token = parse
   | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
 
 (* Literals *)
+  | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
+  | oct_lit as n  {
+      insert_semic:=true;
+      let s = String.sub n 1 (String.length n) in
+      let t = "0o" ^ s in
+      INT (int_of_string t)
+    }
   | int_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }

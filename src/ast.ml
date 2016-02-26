@@ -35,7 +35,7 @@ type ('e, 'l) exprF =
   | SLit of string
   | Uexp of unop * 'e
   | Bexp of binop * 'e * 'e
-  | Fn_call of fun_id * 'e list
+  | Fn_call of 'l * 'e list
   | Append of 'l * 'e
 
 (* Lvalues *)
