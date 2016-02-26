@@ -1,0 +1,5 @@
+package
+
+for x<10 {
+ print("allo")
+}

@@ -1,0 +1,3 @@
+package x
+
+for x < 10 {}

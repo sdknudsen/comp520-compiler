@@ -1,0 +1,5 @@
+package
+
+for x:=1;; {
+ print("allo")
+}

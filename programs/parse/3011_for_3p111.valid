@@ -1,0 +1,5 @@
+package
+
+for a();c();b() {
+ print("allo")
+}
