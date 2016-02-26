@@ -41,7 +41,7 @@ type ('e, 'l) exprF =
 (* Lvalues *)
 type ('e, 'l) lvalueF = 
   | Iden of id
-  | AValue of 'l * 'e
+  | AValue of 'l * int
   | SValue of 'l * id
 
 type expr  = (expr, lvalue) exprF
