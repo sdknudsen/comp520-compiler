@@ -1,0 +1,6 @@
+package x
+
+func main() {
+  x.y();
+  x[1].y();
+}
