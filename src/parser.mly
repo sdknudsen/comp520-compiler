@@ -258,6 +258,7 @@ stmt:
     { vs }
 | ts=type_stmt
     { ts }
+| SEMICOLON
 | error
     { Error.print_error $startpos "error at statement" }
 
