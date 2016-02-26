@@ -92,7 +92,7 @@ id_type_pair:
 type_decl:
 | TYPE LPAREN tidl=id_type_pair* RPAREN
     { tidl }
-| TYPE id=IDEN t=typ SEMICOLON
+| TYPE id=IDEN t=typ
     { [(id,t)] }
 | TYPE error
     { Error.print_error $startpos "error at type declaration" }
@@ -183,9 +183,15 @@ stmt:
     { Var_stmt(vs) }
 | ts=type_decl
     { Type_stmt(ts) }
-| SEMICOLON
+| es=expr_stmt
+    { Expr_stmt(es) }
+| SEMICOLON {}
 | error
     { Error.print_error $startpos "error at statement" }
+
+expr_stmt:
+| lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
+    { Fn_call(lvl, el) }
 
 stmts_block:
 | LBRACE stmts=stmt* RBRACE

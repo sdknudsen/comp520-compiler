@@ -1,6 +1,6 @@
 package x
 
-type a int
+type a int;
 type b float64
 type c string
 type d rune

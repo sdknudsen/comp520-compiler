@@ -54,14 +54,15 @@ let pTree (Prog(pkg,decls)) outc =
   let rec pTyp = function
   (* | Struct_type((typ_id, typ)s) ->  *)
   | Simple_type(typ_id) -> pstr typ_id
-  | Struct_type(xtyps) -> ()
-  | Array_type(typ,d) -> ()
-  | Slice_type(typ) -> ()
+  | Struct_type(x_typ_ls) -> Printf.fprintf outc "struct {\n%t}"
+                          (fun c -> pcsl (fun (x,typ) -> pstr (x^" "); pTyp typ) x_typ_ls)
+  | Array_type(typ,d) -> Printf.fprintf outc "[%d]%t" d (fun c -> pTyp typ)
+  | Slice_type(typ) -> Printf.fprintf outc "[]%t" (fun c -> pTyp typ)
   | Void -> ()
   in
   let rec pExpr = function
     (* | LValue(x) -> Printf.fprintf outc "%s" x *)
-    | Lvalue(l) -> ()
+    | Lvalue(l) -> pLVal l
     | ILit(d) -> Printf.fprintf outc "%d" d
     | FLit(f) -> Printf.fprintf outc "%f" f
     | BLit(b) -> Printf.fprintf outc "%b" b
@@ -74,16 +75,15 @@ let pTree (Prog(pkg,decls)) outc =
     | Uexp(op,e) -> Printf.fprintf outc "(%s %t)"
                                    (uop_to_str op)
                                    (fun c -> pExpr e)
-    | Fn_call(fun_id, es) -> ()
+    | Fn_call(fun_id, es) -> Printf.fprintf outc "fun(%t)" (fun c -> pcsl pExpr es)
     | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
                                      (fun c -> pLVal x)
                                      (fun c -> pExpr e)
 
   and pLVal = function
   | Iden(id) -> pstr id
-  | AValue(x, e) -> pLVal x; pExpr e (* fix this! *)
-     (* Printf.fprintf outc "%t[%d]" *)
-  | SValue(x, id) -> pLVal x; pstr id (* fix this! *)
+  | AValue(r,d) -> Printf.fprintf outc "%t[%t]" (fun c -> pLVal r) (fun c -> pExpr d)
+  | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pLVal r) (fun c -> pstr id)
 
   in
   (* and pStmt = pBareStmt; pstr ";\n" *)
@@ -162,12 +162,21 @@ let pTree (Prog(pkg,decls)) outc =
 
     (* may (fun typ -> ppStr (string_of_typ typ)) typo; *)
     (* may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";" *)
-    | Type_decl(typId_typ_ls) -> ()
-    | Func_decl(fId, id_typ_ls, typ, ps) -> ()
-                                              (* | Func_decl(fId (id, typ)s, typ, ps) -> () *)
+    | Type_decl(typId_typ_ls) -> 
+       List.iter (fun (id,typ) ->
+           Printf.fprintf outc "type %t %t\n"
+                          (fun c -> pstr id)
+                          (fun c -> pTyp typ)
+         ) typId_typ_ls
 
-                                              (*   and printDecl = function *)
-                                              (*       Var_decl(xs, eso, typo) -> *)
+    | Func_decl(fId, id_typ_ls, typ, ps) -> 
+           Printf.fprintf outc "func %t(%t) %t {\n%t}\n"
+                          (fun c -> pstr fId)
+                          (fun c -> pcsl (fun (id,typ) -> pstr (id^" "); pTyp typ) id_typ_ls)
+                          (fun c -> pTyp typ)
+                          (fun c -> List.iter (fun x -> ()) ps)
+                          (* change this !! *)
+                          (* (fun c -> List.iter (fun p -> pStmt p) ps) *)
   in
   pstr ("package "^pkg); pln(); List.iter pDecl decls
 

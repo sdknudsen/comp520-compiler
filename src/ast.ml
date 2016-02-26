@@ -73,6 +73,7 @@ type ('e, 'l, 's) stmtF =
   | Var_stmt    of (id list * 'e list option * typ option) list
   | SDecl_stmt  of (id list * 'e list option)
   | Type_stmt   of (id * typ) list
+  | Expr_stmt   of 'e
   | Return      of 'e option
   | Break
   | Continue
