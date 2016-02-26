@@ -18,13 +18,13 @@ type unop = Positive | Negative | Boolnot | Bitnot
 type typ =
   | Simple_type of typ_id
   | Struct_type of (typ_id * typ) list
-  | Array_type  of typ
+  | Array_type  of typ * int
   | Slice_type  of typ
   | Void
 
 
 (*type ('e, 'l) lvalueF =*)
-(* EXpressions *)
+(* Expressions *)
 type ('e, 'l) exprF =
   | Lvalue of 'l
   (* | TIden of tp_id *)
@@ -35,7 +35,7 @@ type ('e, 'l) exprF =
   | SLit of string
   | Uexp of unop * 'e
   | Bexp of binop * 'e * 'e
-  | Func of fun_id * 'e list
+  | Fn_call of fun_id * 'e list
   | Append of 'l * 'e
 
 (* Lvalues *)
@@ -88,9 +88,8 @@ type ('e,'s) declF =
 and decl = (expr, stmt) declF
 
 (* type declaration = Dec of id * id *)
-type package = Pkg of pkg_id
 
-type ast = Prog of package * decl list
+type ast = Prog of pkg_id * decl list
 (* type t_ast = TProg of t_stmt list *)
 
 (* 

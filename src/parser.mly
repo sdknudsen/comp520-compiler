@@ -76,14 +76,12 @@ struct_inner_decls_list:
 typ:
 | t=IDEN
   { Simple_type(t) }
-(*| LPAREN t=typ RPAREN
-  { t }*)
 | STRUCT LBRACE RBRACE
   { Struct_type([]) }
 | STRUCT LBRACE sidl=struct_inner_decls_list RBRACE
   { Struct_type(sidl) }
-| LBRACKET e=expr RBRACKET t=typ
-  { Array_type(t) }
+| LBRACKET n=INT RBRACKET t=typ
+  { Array_type(t, n) }
 | LBRACKET RBRACKET t=typ
   { Slice_type(t) }
 

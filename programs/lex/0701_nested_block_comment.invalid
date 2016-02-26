@@ -1,2 +1,2 @@
-/* This is a nested /* block comment */. It should fails */
+/* This is a nested /* block comment */. It ç should fails */
 
