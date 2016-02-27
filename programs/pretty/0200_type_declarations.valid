@@ -1,0 +1,14 @@
+package x
+
+type num int
+
+type point struct {
+  x, y float64
+}
+
+type (
+	num int
+	point struct {
+		x, y float64
+	}
+)

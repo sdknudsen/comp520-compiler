@@ -1,0 +1,3 @@
+package x
+
+var y1, y2 = 42, 43;

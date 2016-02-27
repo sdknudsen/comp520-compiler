@@ -1,0 +1,8 @@
+package x
+
+func main() {
+switch 4 {
+  case 1, 2,3: x ++;
+  default: y++;
+}
+}

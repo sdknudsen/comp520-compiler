@@ -1,0 +1,9 @@
+package x
+
+func main() {
+  x();
+  x++;
+  x--
+
+  x[1]++
+}

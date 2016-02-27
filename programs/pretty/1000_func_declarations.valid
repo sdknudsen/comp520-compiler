@@ -1,0 +1,10 @@
+
+package x
+
+func f (a int, b int, c string, d int) {
+  return
+}
+
+//func g (a,b int, c string, g struct {x int; y int;}) {
+//  return
+//}
