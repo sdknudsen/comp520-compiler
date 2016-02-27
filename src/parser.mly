@@ -290,7 +290,7 @@ assignment:
 simple_assign:
 | lvs=lvalues ASSIGNMENT exprs=expressions
     { ignore(check_balance (lvs, exprs) $startpos); 
-      Assign(lvs, exprs) }
+      Assign(List.rev lvs, exprs) }
 binop_assign:
 | lv=lvalue binop=a_binop e=expr
     { Assign([lv], [Bexp(binop, Lvalue(lv), e)]) }
