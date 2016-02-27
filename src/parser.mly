@@ -51,7 +51,7 @@ package:
     { Error.print_error $startpos "package identifier" }
 
 decl:
-| vd=var_decl
+| vd=var_decl SEMICOLON
     { Var_decl(vd) }
 | td=type_decl SEMICOLON
     { Type_decl(td) }
@@ -103,9 +103,9 @@ type_decl:
  * Var declaration
  *)
 var_decl:
-| VAR LPAREN RPAREN SEMICOLON
+| VAR LPAREN RPAREN
     { [] }
-| VAR LPAREN vds=var_decls RPAREN SEMICOLON
+| VAR LPAREN vds=var_decls RPAREN
     { List.rev vds }
 | VAR vdl=var_decl_line
     { [vdl] }
@@ -120,16 +120,16 @@ var_decl:
 *)
 
 var_decls:
-| vds=var_decls vdl=var_decl_line
+| vds=var_decls vdl=var_decl_line SEMICOLON
     { vdl :: vds }
-| vdl=var_decl_line
+| vdl=var_decl_line SEMICOLON
     { [vdl] }
 
 var_decl_line:
-| var_ids=identifiers t=typ? ASSIGNMENT exprs=expressions SEMICOLON
+| var_ids=identifiers t=typ? ASSIGNMENT exprs=expressions
     { ignore(check_balance (var_ids, exprs) $startpos);
       (var_ids, Some(exprs), t) }
-| var_ids=identifiers t=typ SEMICOLON
+| var_ids=identifiers t=typ
     { (var_ids, None, Some(t)) }
 
 
@@ -179,7 +179,7 @@ stmt:
     { Break }
 | CONTINUE SEMICOLON
     { Continue }
-| vs=var_decl
+| vs=var_decl SEMICOLON
     { Var_stmt(vs) }
 | ts=type_decl SEMICOLON
     { Type_stmt(ts) }
