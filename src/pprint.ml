@@ -79,7 +79,7 @@ let pTree (Prog(pkg,decls)) outc =
                                    (fun c -> pExpr e)
     | Fn_call(fun_id, es) -> Printf.fprintf outc "fun(%t)" (fun c -> pcsl pExpr es)
     | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
-                                     (fun c -> pLVal x)
+                                     (fun c -> pstr x)
                                      (fun c -> pExpr e)
 
   and pLVal = function

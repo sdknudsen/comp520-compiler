@@ -36,7 +36,7 @@ type ('e, 'l) exprF =
   | Uexp of unop * 'e
   | Bexp of binop * 'e * 'e
   | Fn_call of 'l * 'e list
-  | Append of 'l * 'e
+  | Append of id * 'e
 
 (* Lvalues *)
 type ('e, 'l) lvalueF = 
