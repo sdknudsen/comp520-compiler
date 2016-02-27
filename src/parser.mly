@@ -181,7 +181,7 @@ stmt:
     { Continue }
 | vs=var_decl
     { Var_stmt(vs) }
-| ts=type_decl
+| ts=type_decl SEMICOLON
     { Type_stmt(ts) }
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
