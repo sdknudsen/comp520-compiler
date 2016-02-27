@@ -1,0 +1,7 @@
+package x
+
+func main() {
+  switch 2 {
+    default: x++; y++;
+  }
+}

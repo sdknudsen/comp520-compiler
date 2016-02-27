@@ -1,0 +1,4 @@
+package x
+
+type t1 [2]struct{x, y int;}
+type t2 [3][]int

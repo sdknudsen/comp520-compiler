@@ -1,0 +1,8 @@
+package main
+
+func main()  {
+  var x [10]int
+  x[0] = 1 // interger
+  x[03] = 1 // octal
+  x[0x5] = 1 // hexadecimal
+}

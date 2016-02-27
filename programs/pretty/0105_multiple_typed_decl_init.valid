@@ -1,0 +1,3 @@
+package x
+
+var z1, z2 int = 1, 2;

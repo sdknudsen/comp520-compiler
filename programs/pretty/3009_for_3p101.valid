@@ -1,0 +1,7 @@
+package x
+
+func main() {
+for x=1;;x*=2{
+ print("allo")
+}
+}

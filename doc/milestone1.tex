@@ -18,7 +18,10 @@ Cheuk Chuen Siow (260660584)}
 
 \raggedright
 \section*{Design Decisions}
-We chose OCaml as our implementation language for compiler design because of the recursive nature of the language that eases manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3].
+\subsection*{Language choice}
+We chose OCaml as our implementation language for compiler design because the recursive nature of the language allows for easy manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml. What's more, the lead TA had pointed out that OCaml is a good language for such a project. 
+
+We initially had trees for Sum of two expressions, Add of two expressions, etc. We changed this so that there was only one binary expression Node which included the kind of binary operation to be done, and the same thing for unary operations.
 
 \subsection*{Semicolon}
 For inserting semicolon token according to rule 1, we added a variable \verb|insert_semic| for each of the tokens that define the insertion condition. Upon reaching a newline or end of file tokens, our program checks whether the previous token that satisfy rule 1 has updated \verb|insert_semic|, and if it evaluates to \verb|true| it will trigger the insertion of the semicolon token.
@@ -29,15 +32,22 @@ We made a decision to handle types as identifiers and not include the primitive 
 \subsection*{Tokens}
 We took the token definitions from \verb|parser.mly| and placed them into a separate file \verb|tokens.mly|. Along with the flags defined in \verb|myocamlbuild.mly|, this enables the main program to display a list of tokens from the tokenizer.
 
+\subsection*{Pretty printing}
+Initially, we used semicolons to separate each kind of print statement. For better readability, we now use Printf.fprintf so that the string component of a statement/expression can be written one line with the parts to be expanded following.
+followed by the ``string'' body and functions that output each of the required output.
+
 \section*{Team Work}
 \subsection*{Scanner}
 Alexandre laid the ground work for defining the tokens. Cheuk Chuen and Alexandre defined the regular expressions for the literals.
 
 \subsection*{Parser}
-Cheuk Chuen laid the ground work for defining the grammar and AST. Alexandre made important changes to the grammar and AST. Alexandre and Cheuk Chuen performed thorough bug checks toward the end.
+Cheuk Chuen laid the ground work for defining the grammar and AST. Alexandre made important changes and thorough bug checks.
 
-\subsection*{Pretty Printer}
+\subsection*{Pretty printer}
 Stefan worked extensively on the pretty printer.
+
+\subsection*{Testing}
+Alexandre wrote shell scripts to automate testing of the existing valid and invalid programs.
 
 \section*{References}
 \begin{enumerate}
