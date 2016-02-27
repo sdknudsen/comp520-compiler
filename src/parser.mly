@@ -185,7 +185,7 @@ stmt:
     { Type_stmt(ts) }
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
-| SEMICOLON
+| SEMICOLON { Empty_stmt }
 | error
     { Error.print_error $startpos "error at statement" }
 

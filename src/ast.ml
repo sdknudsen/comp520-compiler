@@ -77,7 +77,7 @@ type ('e, 'l, 's) stmtF =
   | Return      of 'e option
   | Break
   | Continue
-  | Empty
+  | Empty_stmt
 and stmt = (expr, lvalue, stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 

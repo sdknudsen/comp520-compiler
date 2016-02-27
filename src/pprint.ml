@@ -100,25 +100,34 @@ let pTree (Prog(pkg,decls)) outc =
     | Print(es) -> Printf.fprintf outc "print(%t)" (fun c -> pcsl pExpr es)
     | Println(es) -> Printf.fprintf outc "println(%t)" (fun c -> pcsl pExpr es)
     | If_stmt(po,e,ps,pso) ->
-       tab();
        Printf.fprintf outc "if %t%t {\n%t}%t"
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> pExpr e)
-                      (fun c -> pssl ";\n" pStmt ps)
-                      (fun c -> (may (fun ps -> pssl ";\n" pStmt ps) pso); decr tabc)
+                      (fun c -> pssl ";\n" (fun p -> tab(); pStmt p) ps)
+                      (fun c -> (match pso with
+                                   Some qs ->
+                                     pstr " else {\n";
+                                     pssl ";\n" (fun q -> tab(); pStmt q) qs;
+                                     pstr "}"
+                                 | None -> ()); decr tabc)
+
     | Switch_stmt(po, eo, ps) ->
        tab();
        Printf.fprintf outc "switch %t%t{\n%t"
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> may (fun e -> pExpr e; pstr " ") eo)
-                      (fun c -> (pssl ";\n" pStmt ps; decr tabc; pstr "}"); decr tabc) (*default??*)
+                      (fun c -> List.iter pStmt ps; decr tabc; pstr "}"; decr tabc) (*default??*)
     | Switch_clause(eso, ps) ->
        tab();
-       Printf.fprintf outc "case %t: %t\n"
-                      (fun c -> match eso with
-                                | None -> pstr "default"
-                                | Some es -> pcsl pExpr es)
-                      (fun c -> pcsl pStmt ps)
+       (match eso with
+        | None ->
+            Printf.fprintf outc "default:\n%t"
+                           (fun c -> tab(); pssl ";\n" pStmt ps)
+        | Some es -> 
+            Printf.fprintf outc "case %t:\n%t"
+                           (fun c -> tab(); pcsl pExpr es)
+                           (fun c -> tab(); pssl ";\n" pStmt ps))
+
     | For_stmt(po1, eo, po2, ps) ->
        tab();
        Printf.fprintf outc "for %t; %t; %t {\n%t}"
@@ -190,5 +199,5 @@ let pTree (Prog(pkg,decls)) outc =
                       (* change this !! *)
                       (fun c -> pssl ";\n" pStmt ps)
   in
-  pstr ("package "^pkg); pln(); List.iter pDecl decls
+  pstr ("package "^pkg); pln(); pln(); List.iter pDecl decls
 

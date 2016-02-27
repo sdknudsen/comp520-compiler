@@ -17,7 +17,22 @@ Cheuk Chuen Siow (260660584)}
 \maketitle
 
 \section*{Design Decisions}
+We chose OCaml as our implementation language for compiler design because of the recursive nature of the language that eases manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3].
+
+\subsubsection*{Semicolon}
+For inserting semicolon token according to rule 1, we added a variable \verb|insert_semic| for each of the tokens that define the insertion condition. Upon reaching a newline or end of file tokens, our program checks whether the previous token that satisfy rule 1 has updated \verb|insert_semic|, and if it evaluates to \verb|true| it will trigger the insertion of the semicolon token.
+
+\subsubsection*{Type}
+We made a decision to handle types as identifiers and not include the primitive types as tokens. This way our parser will be able to accept both primitive types and type aliases when specifying types. We also decided to defer the check for invalid use of primitive types in variable identifiers to the weeding phase.
+
+\subsection*{References}
+\begin{enumerate}
+  \item http://caml.inria.fr/pub/docs/manual-ocaml-4.00/manual026.html
+  \item https://realworldocaml.org/v1/en/html/parsing-with-ocamllex-and-menhir.html
+  \item http://pauillac.inria.fr/~fpottier/menhir/manual.pdf
+\end{enumerate}
 
 \section*{Team Work}
+
 
 \end{document}

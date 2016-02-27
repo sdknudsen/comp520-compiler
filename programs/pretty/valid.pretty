@@ -1,0 +1,16 @@
+package main
+
+func f1() int {
+type t int
+if (y1 != y2) {
+	x1 = 2;
+} else {
+	if false {
+		x1 = 3;
+}
+}
+if (y1 != y2) {
+	y1 = 10;
+}
+return  z1;
+}
