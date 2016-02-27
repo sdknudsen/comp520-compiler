@@ -245,9 +245,9 @@ for_init_stmt:
 
 
 print_stmt:
-| PRINT LPAREN exprs=expressions RPAREN
+| PRINT LPAREN exprs=separated_list(COMMA, expr) RPAREN
     { Print(exprs) }
-| PRINTLN LPAREN exprs=expressions RPAREN
+| PRINTLN LPAREN exprs=separated_list(COMMA, expr) RPAREN
     { Println(exprs) }
 
 short_decl:
