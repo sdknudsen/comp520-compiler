@@ -55,7 +55,7 @@ decl:
     { Var_decl(vd) }
 | td=type_decl SEMICOLON
     { Type_decl(td) }
-| fd=func_decl
+| fd=func_decl SEMICOLON
     { fd }
 
 
@@ -142,7 +142,7 @@ param_expr:
 
 func_decl:
 | FUNC fun_id=IDEN LPAREN params=parameters RPAREN t=typ?
-  b=stmts_block SEMICOLON
+  b=stmts_block
     {
       match t with
       | Some(t) -> Func_decl(fun_id, params, t, b)
