@@ -17,13 +17,23 @@ Cheuk Chuen Siow (260660584)}
 \maketitle
 
 \section*{Design Decisions}
-We chose OCaml as our implementation language for compiler design because of the recursive nature of the language that eases manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3].
+\subsection*{Language choice}
+We chose OCaml as our implementation language for compiler design because the recursive nature of the language allows for easy manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml. What's more, the lead TA had pointed out that OCaml is a good language for such a project. 
+
+We initially had trees for Sum of two expressions, Add of two expressions, etc. We changed this so that there was only one binary expression Node which included the kind of binary operation to be done, and the same thing for unary operations.
+
+\subsection*{Pretty printing}
+Initially, we used semicolons to separate each kind of print statement. For better readability, we now use Printf.fprintf so that the string component of a statement/expression can be written one line with the parts to be expanded following.
+followed by the ``string'' body and functions that output each of the required output.
+
+\subsection*{Testing}
+Testing 
 
 \subsubsection*{Semicolon}
 For inserting semicolon token according to rule 1, we added a variable \verb|insert_semic| for each of the tokens that define the insertion condition. Upon reaching a newline or end of file tokens, our program checks whether the previous token that satisfy rule 1 has updated \verb|insert_semic|, and if it evaluates to \verb|true| it will trigger the insertion of the semicolon token.
 
 \subsubsection*{Type}
-We made a decision to handle types as identifiers and not include the primitive types as tokens. This way our parser will be able to accept both primitive types and type aliases when specifying types. We also decided to defer the check for invalid use of primitive types in variable identifiers to the weeding phase.
+We made the decision to handle types as identifiers and not include the primitive types as tokens. This way our parser will be able to accept both primitive types and type aliases when specifying types. We also decided to defer the check for invalid use of primitive types in variable identifiers to the weeding phase.
 
 \subsection*{References}
 \begin{enumerate}
@@ -33,6 +43,8 @@ We made a decision to handle types as identifiers and not include the primitive 
 \end{enumerate}
 
 \section*{Team Work}
-
+%% Alexandre: significant changes to the parser, changes to the pretty printer
+%% Stefan: majority of the pretty printer
+%% Cheu: majority of the parser
 
 \end{document}
