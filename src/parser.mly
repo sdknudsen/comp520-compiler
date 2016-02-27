@@ -376,6 +376,6 @@ expr:
     { Uexp(unop, e) }
 | lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
     { Fn_call(lvl, el) }
-| APPEND LPAREN lvl=lvalue COMMA e=expr RPAREN
-    { Append(lvl, e) }
+| APPEND LPAREN id=IDEN COMMA e=expr RPAREN
+    { Append(id, e) }
 
