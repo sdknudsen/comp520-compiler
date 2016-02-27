@@ -1,0 +1,4 @@
+package x
+
+type a int
+type b b

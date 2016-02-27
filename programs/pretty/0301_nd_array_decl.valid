@@ -1,0 +1,6 @@
+package x
+
+type t1 [1][2]int
+type t2 [2][1]int
+type t3 [3][2][1]int
+type t4 [3][2][1]int

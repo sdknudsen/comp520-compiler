@@ -1,0 +1,7 @@
+package x
+
+type t1 [1]int
+type t2 [1]string
+type t3 [1]float64
+type t4 [1]rune
+type t5 [1]bool
