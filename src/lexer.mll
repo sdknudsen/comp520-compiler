@@ -133,7 +133,7 @@ let esc_seq =
 *)
 
 let dec_lit   = ['1'-'9'] dec_digit*
-let oct_lit   = '0' oct_digit*
+let oct_lit   = '0' oct_digit+
 let hex_lit   = '0' ('x' | 'X') hex_digit+
 
 let raw_str_char = (clean_ascii | ['"' '\'' '\\'])
