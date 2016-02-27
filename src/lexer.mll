@@ -125,14 +125,9 @@ let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
-let esc_seq =
-    esc_char
-(* 
-  | ('\\' oct_digit oct_digit oct_digit )
-  | ('\\' hex_digit hex_digit)
-*)
+let esc_seq = esc_char
 
-let dec_lit   = ['1'-'9'] dec_digit*
+let dec_lit   = (['1'-'9'] dec_digit* | '0')
 let oct_lit   = '0' oct_digit+
 let hex_lit   = '0' ('x' | 'X') hex_digit+
 
@@ -141,7 +136,7 @@ let str_char  = (clean_ascii | ''' | '`' | esc_seq )
 let rune_char = (clean_ascii | esc_seq | ['"' '`'])
 
 let int_lit   = dec_lit | oct_lit | hex_lit
-let flt_lit   = (dec_digit+ '.' dec_digit*) | '.'? dec_digit+
+let flt_lit   = (dec_digit+ '.' dec_digit*) | '.' dec_digit+
 let bool_lit  = "true" | "false"
 let iden     = letter (letter | dec_digit)*
 
@@ -244,7 +239,12 @@ rule token = parse
       let t = "0o" ^ s in
       INT (int_of_string t)
     }
-  | int_lit as n  { insert_semic:=true; INT (int_of_string n) }
+  | '0' ('8' | '9') dec_digit* {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf "Ill-formed octal literal '%s'" (lexeme lexbuf))
+    }
+  | dec_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
   | ''' (rune_char as c) '''     { insert_semic:=true; RUNE c.[0] }
