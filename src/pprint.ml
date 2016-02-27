@@ -91,11 +91,11 @@ let pTree (Prog(pkg,decls)) outc =
   (* and pStmt = pBareStmt; pstr ";\n" *)
   let rec pStmt = function
     | Assign(xs, es) ->
-       Printf.fprintf outc "%t = %t;"
+       Printf.fprintf outc "%t = %t;\n"
                       (fun c -> pcsl pLVal xs)
                       (fun c -> pcsl pExpr es)
-    | Print(es) -> Printf.fprintf outc "print %t;" (fun c -> pcsl pExpr es)
-    | Println(es) -> Printf.fprintf outc "println %t;" (fun c -> pcsl pExpr es)
+    | Print(es) -> Printf.fprintf outc "print %t;\n" (fun c -> pcsl pExpr es)
+    | Println(es) -> Printf.fprintf outc "println %t;\n" (fun c -> pcsl pExpr es)
     | If_stmt(po,e,ps,pso) ->
        tab();
        Printf.fprintf outc "if %t%t {\n%t}\n%t"
