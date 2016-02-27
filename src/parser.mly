@@ -314,8 +314,8 @@ lvalues:
 lvalue:
 | id=IDEN
     { Iden(id) }
-| lvl=lvalue LBRACKET n=INT RBRACKET
-    { AValue(lvl, n) }
+| lvl=lvalue LBRACKET e=expr RBRACKET
+    { AValue(lvl, e) }
 | lvl=lvalue DOT structs_id=IDEN
     { SValue(lvl, structs_id) }
 
