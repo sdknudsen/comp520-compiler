@@ -1,0 +1,6 @@
+package main
+
+func main()  {
+  var str1 string = "hello\n" // int
+  var str2 string = `hello\n` // raw
+}

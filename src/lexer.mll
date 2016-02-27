@@ -249,7 +249,7 @@ rule token = parse
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
   | ''' (rune_char as c) '''     { insert_semic:=true; RUNE c.[0] }
   | '"' (str_char* as s) '"'     { insert_semic:=true; STRING s }
-  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING s }
+  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING (String.escaped s) }
 
 (* String error handling *)
   | '"' { string_error lexbuf }
