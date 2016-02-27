@@ -97,12 +97,17 @@ let pTree (Prog(pkg,decls)) outc =
     | Print(es) -> Printf.fprintf outc "print(%t);\n" (fun c -> pcsl pExpr es)
     | Println(es) -> Printf.fprintf outc "println(%t);\n" (fun c -> pcsl pExpr es)
     | If_stmt(po,e,ps,pso) ->
-       tab();
-       Printf.fprintf outc "if %t%t {\n%t}\n%t"
+       (* tab(); *)
+       Printf.fprintf outc "if %t%t {\n%t}%t"
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> pExpr e)
-                      (fun c -> List.iter pStmt ps)
-                      (fun c -> (may (fun ps -> pcsl pStmt ps) pso); decr tabc)
+                      (fun c -> List.iter (fun p -> tab(); pStmt p) ps)
+                      (fun c -> (may (fun qs -> tab(); pstr " else ";
+(match qs with
+| If_stmt(_)::_ -> List.iter (fun q -> tab(); pStmt q) qs
+| _ -> Printf.fprintf outc "{\n"; List.iter (fun q -> tab(); pStmt q); pstr "}"
+ )) pso); decr tabc)
+
     | Switch_stmt(po, eo, ps) ->
        tab();
        Printf.fprintf outc "switch %t%t{\n%t"
@@ -186,5 +191,5 @@ let pTree (Prog(pkg,decls)) outc =
                       (* change this !! *)
                       (fun c -> List.iter pStmt ps)
   in
-  pstr ("package "^pkg); pln(); List.iter pDecl decls
+  pstr ("package "^pkg); pln(); pln(); List.iter pDecl decls
 
