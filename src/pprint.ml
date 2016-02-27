@@ -77,7 +77,7 @@ let pTree (Prog(pkg,decls)) outc =
     | Uexp(op,e) -> Printf.fprintf outc "(%s %t)"
                                    (uop_to_str op)
                                    (fun c -> pExpr e)
-    | Fn_call(fun_id, es) -> Printf.fprintf outc "fun(%t)" (fun c -> pcsl pExpr es)
+    | Fn_call(fun_id, es) -> Printf.fprintf outc "%t(%t)" (fun c -> pLVal fun_id) (fun c -> pcsl pExpr es)
     | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
                                      (fun c -> pLVal x)
                                      (fun c -> pExpr e)
@@ -94,21 +94,21 @@ let pTree (Prog(pkg,decls)) outc =
        Printf.fprintf outc "%t = %t;\n"
                       (fun c -> pcsl pLVal xs)
                       (fun c -> pcsl pExpr es)
-    | Print(es) -> Printf.fprintf outc "print %t;\n" (fun c -> pcsl pExpr es)
-    | Println(es) -> Printf.fprintf outc "println %t;\n" (fun c -> pcsl pExpr es)
+    | Print(es) -> Printf.fprintf outc "print(%t);\n" (fun c -> pcsl pExpr es)
+    | Println(es) -> Printf.fprintf outc "println(%t);\n" (fun c -> pcsl pExpr es)
     | If_stmt(po,e,ps,pso) ->
        tab();
        Printf.fprintf outc "if %t%t {\n%t}\n%t"
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> pExpr e)
                       (fun c -> List.iter pStmt ps)
-                      (fun c -> may (fun ps -> pcsl pStmt ps) pso; decr tabc)
+                      (fun c -> (may (fun ps -> pcsl pStmt ps) pso); decr tabc)
     | Switch_stmt(po, eo, ps) ->
        tab();
        Printf.fprintf outc "switch %t%t{\n%t"
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> may (fun e -> pExpr e; pstr " ") eo)
-                      (fun c -> List.iter pStmt ps; decr tabc; pstr "}\n") (*default??*)
+                      (fun c -> (List.iter pStmt ps; decr tabc; pstr "}\n"); decr tabc) (*default??*)
     | Switch_clause(eso, ps) ->
        tab();
        Printf.fprintf outc "case %t: %t\n"
@@ -147,7 +147,7 @@ let pTree (Prog(pkg,decls)) outc =
          ) id_typ_ls
 
     | Expr_stmt e -> pExpr e (* is this right ?? *)
-    | Return(eo) -> Printf.fprintf outc "return%t"
+    | Return(eo) -> Printf.fprintf outc "return;\n%t"
                                    (fun c -> may (fun e -> pstr " "; pExpr e) eo)
     | Break -> Printf.fprintf outc "break"
     | Continue -> Printf.fprintf outc "continue"
