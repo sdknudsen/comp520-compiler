@@ -125,14 +125,14 @@ let pTree (Prog(pkg,decls)) outc =
                       (fun c -> List.iter pStmt ps)
 
     | Var_stmt(ids_eso_typo_ls) ->
-       pstr "var(\n";
+       pstr "var(\n"; incr tabc;
        List.iter (fun (ids,eso,typo) ->
            Printf.fprintf outc "%t %t%t;\n"
                           (* (fun c -> tab()) *)
                           (fun c -> pcsl pstr ids)
                           (fun c -> may pTyp typo)
                           (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
-         ) ids_eso_typo_ls; pstr ")\n"
+         ) ids_eso_typo_ls; pstr ")\n"; decr tabc
 
     | SDecl_stmt(ids, eso) -> 
        Printf.fprintf outc "%t%t\n"
@@ -147,7 +147,7 @@ let pTree (Prog(pkg,decls)) outc =
          ) id_typ_ls
 
     | Expr_stmt e -> pExpr e (* is this right ?? *)
-    | Return(eo) -> Printf.fprintf outc "return;\n%t"
+    | Return(eo) -> Printf.fprintf outc "return %t;\n"
                                    (fun c -> may (fun e -> pstr " "; pExpr e) eo)
     | Break -> Printf.fprintf outc "break"
     | Continue -> Printf.fprintf outc "continue"
@@ -160,15 +160,14 @@ let pTree (Prog(pkg,decls)) outc =
   let rec pDecl =
     tab(); function
     | Var_decl(ids_eso_typo_ls) ->
-       pstr "var(\n";
+       pstr "var(\n"; incr tabc;
        List.iter (fun (ids,eso,typo) ->
            Printf.fprintf outc "%t %t%t;\n"
                           (* (fun c -> tab()) *)
                           (fun c -> pcsl pstr ids)
                           (fun c -> may pTyp typo)
                           (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
-         ) ids_eso_typo_ls; pstr ")\n"
-
+         ) ids_eso_typo_ls; pstr ")\n"; decr tabc
     (* may (fun typ -> ppStr (string_of_typ typ)) typo; *)
     (* may (fun es -> (ppStr " = "); pcsl es) eso; ppStr ";" *)
     | Type_decl(typId_typ_ls) -> 
