@@ -1,1 +1,2 @@
+package a
 /* ITS EMPTY! */

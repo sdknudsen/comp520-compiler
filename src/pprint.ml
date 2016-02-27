@@ -102,11 +102,14 @@ let pTree (Prog(pkg,decls)) outc =
                       (fun c -> incr tabc; may (fun p -> pStmt p; pstr "; ") po)
                       (fun c -> pExpr e)
                       (fun c -> List.iter (fun p -> tab(); pStmt p) ps)
-                      (fun c -> (may (fun qs -> tab(); pstr " else ";
-(match qs with
-| If_stmt(_)::_ -> List.iter (fun q -> tab(); pStmt q) qs
-| _ -> Printf.fprintf outc "{\n"; List.iter (fun q -> tab(); pStmt q); pstr "}"
- )) pso); decr tabc)
+                      (fun c -> (match pso with
+                                   Some qs -> pstr " else {\n";
+                                                        List.iter (fun q -> tab(); pStmt q) qs; pstr "}\n"
+                                 | None -> pstr "\n"); decr tabc)
+    (* (match qs with *)
+(* | If_stmt(_)::_ ->  *)
+(* | _ -> Printf.fprintf outc "{\n"; List.iter (fun q -> tab(); pStmt q); pstr "}" *)
+(*  )) *)
 
     | Switch_stmt(po, eo, ps) ->
        tab();
