@@ -1,0 +1,9 @@
+package main
+
+func main() {
+  var x int = 3
+  print()
+  print(x % 2, x * 4)
+  println()
+  println(x % 2, x * 4)
+}
