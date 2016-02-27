@@ -197,13 +197,27 @@ stmts_block:
 | LBRACE stmts=stmt* RBRACE
     { stmts }
 
+for_init_stmt:
+| a=assignment
+    { a }
+| sd=short_decl
+    { sd }
+| es=expr_stmt
+    { Expr_stmt(es) }
+
 init_stmt:
 | a=assignment SEMICOLON
     { a }
-(*
 | sd=short_decl SEMICOLON
     { sd }
-*)
+| es=expr_stmt SEMICOLON
+    { Expr_stmt(es) }
+
+post_stmt:
+| a=assignment
+    { a }
+| es=expr_stmt
+    { Expr_stmt(es) }
 
 if_stmt:
 | IF is=ioption(init_stmt) e=expr b=stmts_block
@@ -231,18 +245,9 @@ switch_case:
 for_stmt:
 | FOR e=expr? b=stmts_block
     { For_stmt(None, e, None, b) }
-| FOR is=for_init_stmt? SEMICOLON e=expr? SEMICOLON a=assignment?
+| FOR is=for_init_stmt? SEMICOLON e=expr? SEMICOLON ps=post_stmt?
       b=stmts_block
-    { For_stmt(is, e, a, b) }
-
-for_init_stmt:
-| a=assignment
-    { a }
-(*
-| sd=short_decl
-    { sd }
-*)
-
+    { For_stmt(is, e, ps, b) }
 
 print_stmt:
 | PRINT LPAREN exprs=separated_list(COMMA, expr) RPAREN
@@ -251,10 +256,15 @@ print_stmt:
     { Println(exprs) }
 
 short_decl:
-| var_ids=identifiers COLONEQ exprs=expressions
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      SDecl_stmt(var_ids, Some(exprs)) }
-| identifiers COLONEQ error
+| lvls=lvalues COLONEQ exprs=expressions
+    { ignore(check_balance (lvls, exprs) $startpos);
+      let var_ids =
+        List.map (function
+                  | Iden(x) -> x
+                  | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
+                 lvls
+      in SDecl_stmt(var_ids, Some(exprs)) }
+| lvalues COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 
