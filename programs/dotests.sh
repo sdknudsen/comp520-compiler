@@ -11,7 +11,7 @@ files=$(ls $1/*.valid $1/*.invalid)
 
 ;;
 "pretty")
-files=$(ls $1/*.go)
+files=$(ls $1/*.go $1/*.valid)
 
 ;;
 esac
