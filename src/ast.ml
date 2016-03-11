@@ -16,12 +16,11 @@ type unop = Positive | Negative | Boolnot | Bitnot
 
 (* Type declarations *)
 type typ =
-  | Simple_type of typ_id
-  | Struct_type of (typ_id * typ) list
-  | Array_type  of typ * int
-  | Slice_type  of typ
+  | TSimp of typ_id
+  | TStruct of (typ_id * typ) list
+  | TArray  of typ * int
+  | TSlice  of typ
   | Void
-
 
 (*type ('e, 'l) lvalueF =*)
 (* Expressions *)
@@ -47,11 +46,9 @@ type ('e, 'l) lvalueF =
 type expr  = (expr, lvalue) exprF
 and lvalue = (expr, lvalue) lvalueF
 
-(* reverse t_rec and t_expr so that t_stmt doesn't need a type field? *)
-(*
-type t_expr = t_rec exprF
-and t_rec = { exp : t_expr; typ : id; }
-*)
+type t_rec = { exp : t_expr; typ : typ; }
+and t_expr = (t_rec, lvalue) exprF
+
 (*type t_expr = (t_expr * id) exprF*)
 
 
@@ -79,6 +76,7 @@ type ('e, 'l, 's) stmtF =
   | Continue
   | Empty_stmt
 and stmt = (expr, lvalue, stmt) stmtF
+type t_stmt = (t_expr, lvalue, t_stmt) stmtF
 (*type t_stmt = (t_expr * id, t_stmt) stmtF*)
 
 (* Top-level declarations *)
@@ -87,11 +85,12 @@ type ('e,'s) declF =
   | Type_decl of (typ_id * typ) list
   | Func_decl of fun_id * (id * typ) list * typ * 's list
 and decl = (expr, stmt) declF
+type t_decl = (t_expr, t_stmt) declF
 
 (* type declaration = Dec of id * id *)
 
 type ast = Prog of pkg_id * decl list
-(* type t_ast = TProg of t_stmt list *)
+type t_ast = TProg of pkg_id * t_decl list
 
 (* 
 let str_of_binop = function
@@ -106,22 +105,24 @@ let str_of_unop = function
   | _ -> failwith "string not yet declared"
  *)
 (* get a typed declaration list from the reversed declarations in the parser *)
-let rev_decls ds = 
-  let rec get_ls_tup = function
-    | [] -> ([], [], None)
-    | [(var, expr, Some t)] -> ([var], [expr], Some t)
-    | (var, expr, None)::tl -> let (vs, es, tp) = get_ls_tup tl in
-                               (var::vs, expr::es, tp)
-    | _ -> failwith "error" (* change the error *)
-  in
-  let rec zipDecls = function
-    | x::xs, y::ys, tp -> (x,y,tp)::zipDecls(xs,ys,tp)
-    | _ -> []
-  in
-  let (vs, es, t) = get_ls_tup ds in
-  zipDecls(vs,(List.rev es),t)
 
-              (* (id * expr * typ option) list *)
+(* (\* do we need this now? *\) *)
+(* let rev_decls ds =  *)
+(*   let rec get_ls_tup = function *)
+(*     | [] -> ([], [], None) *)
+(*     | [(var, expr, Some t)] -> ([var], [expr], Some t) *)
+(*     | (var, expr, None)::tl -> let (vs, es, tp) = get_ls_tup tl in *)
+(*                                (var::vs, expr::es, tp) *)
+(*     | _ -> failwith "error" (\* change the error *\) *)
+(*   in *)
+(*   let rec zipDecls = function *)
+(*     | x::xs, y::ys, tp -> (x,y,tp)::zipDecls(xs,ys,tp) *)
+(*     | _ -> [] *)
+(*   in *)
+(*   let (vs, es, t) = get_ls_tup ds in *)
+(*   zipDecls(vs,(List.rev es),t) *)
+
+(*               (\* (id * expr * typ option) list *\) *)
 
 let check_balance (vars, exprs) pos =
   if List.length vars <> List.length exprs

@@ -75,15 +75,15 @@ struct_inner_decls_list:
 
 typ:
 | t=IDEN
-  { Simple_type(t) }
+  { TSimp(t) }
 | STRUCT LBRACE RBRACE
-  { Struct_type([]) }
+  { TStruct([]) }
 | STRUCT LBRACE sidl=struct_inner_decls_list RBRACE
-  { Struct_type(sidl) }
+  { TStruct(sidl) }
 | LBRACKET n=INT RBRACKET t=typ
-  { Array_type(t, n) }
+  { TArray(t, n) }
 | LBRACKET RBRACKET t=typ
-  { Slice_type(t) }
+  { TSlice(t) }
 
 id_type_pair:
 | i=IDEN t=typ SEMICOLON
