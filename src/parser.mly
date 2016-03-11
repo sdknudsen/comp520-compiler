@@ -110,15 +110,6 @@ var_decl:
 | VAR vdl=var_decl_line
     { [vdl] }
 
-(* Short decls are not top level... *)
-(*
-| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_decl(var_ids, Some(exprs), None) }
-| lvalues COLONEQ error
-    { Error.print_error $startpos "error at variable declaration" }
-*)
-
 var_decls:
 | vds=var_decls vdl=var_decl_line SEMICOLON
     { vdl :: vds }
@@ -161,10 +152,8 @@ parameters:
 stmt:
 | a=assignment SEMICOLON
     { a }
-(*
 | sd=short_decl SEMICOLON
     { sd }
-*)
 | ss=switch_stmt SEMICOLON
     { ss }
 | fs=for_stmt SEMICOLON
