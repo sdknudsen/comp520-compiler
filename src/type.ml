@@ -77,3 +77,56 @@ let typeAST Prog(stmts) =
   and typeStmts xs = List.map typeStmt xs in
   TProg(decls, typeStmts stmts)
  *)
+
+let typAST (Prog(pkg,decls)) outc =
+  let gamma = Ctx.empty in
+  let rec tTyp gamma = function
+    | Simple_type(typ_id) ->
+    | Struct_type(x_typ_ls) -> 
+    | Array_type(typ,d) -> 
+    | Slice_type(typ) -> 
+    | Void -> ()
+  in
+  let rec tExpr gamma = function
+    | Lvalue(l) -> 
+    | ILit(d) -> 
+    | FLit(f) -> 
+    | BLit(b) -> 
+    | RLit(c) -> 
+    | SLit(s) -> 
+    | Bexp(op,e1,e2) -> 
+    | Uexp(op,e) -> 
+    | Fn_call(fun_id, es) -> 
+    | Append(x, e) -> 
+
+  and tLVal gamma = function
+    | Iden(id) -> 
+    | AValue(r,e) -> 
+    | SValue(r,id) -> 
+
+  in
+  let rec tStmt gamma = function
+    | Assign(xs, es) -> 
+    | Print(es) -> 
+    | Println(es) -> 
+    | If_stmt(po,e,ps,pso) -> 
+    | Switch_stmt(po, eo, ps) -> 
+    | Switch_clause(eso, ps) -> 
+    | For_stmt(po1, eo, po2, ps) -> 
+    | Var_stmt(ids_eso_typo_ls) -> 
+    | SDecl_stmt(ids, eso) -> 
+    | Type_stmt(id_typ_ls) -> 
+    | Expr_stmt e -> 
+    | Return(eo) -> 
+    | Break -> 
+    | Continue -> 
+    | Empty_stmt -> ()
+
+  in
+  let rec tDecl gamma = function
+    | Var_decl(ids_eso_typo_ls) -> 
+    | Type_decl(typId_typ_ls) -> 
+    | Func_decl(fId, id_typ_ls, typ, ps) -> 
+  in
+  (* do we do anything with packate? *)
+  List.map tDecl decls
