@@ -4,29 +4,40 @@ open Ast
 exception TypeError of string
 exception DeclError of string
 
+type context = string Ast.Ctx.t
+
 (* let makeContext decls =  *)
 (*   List.fold_left (fun gam (Dec(k,v)) -> if Ctx.mem k gam *)
 (*                 then raise (DeclError("Variable \""^k^"\" already declared")) *)
 (*                 else (Ctx.add) k v gam) *)
 (*      (Ctx.empty) decls *)
 (* let symTable (Prog(decls,_)) = makeContext decls *)
+let mapo f o = match o with
+  | None -> None
+  | Some x -> Some (f x)
+
+let rec list_type = function
+  | [] -> failwith "empty list"
+  | [x] -> x
+  | x::y::tl -> if x = y then list_type (y::tl)
+                else raise (TypeError ("Multiple types in single assignment"))
+
+let rec zip l1 l2 = match (l1,l2) with
+  | (x::xs, y::ys) -> (x,y)::zip xs ys
+  | _ -> []
 
 let typeAST (Prog(pkg,decls)) =
+  (* I think this is going to have to return a pair at the end *)
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
     | [] -> []
     | x::xs -> let (d,g) = f gamma x in d::thread f g xs
   in
-  let rec tTyp gamma = function
-    | TSimp(typ_id) -> failwith "not implemented"
-    | TStruct(x_typ_ls) -> failwith "not implemented"
-    | TArray(typ,d) -> failwith "not implemented"
-    | TSlice(typ) -> failwith "not implemented"
-    | Void -> failwith "not implemented"
-  in
-  let rec tExpr gamma = function
+  (* let rec tExpr gamma = function *)
+  let rec tExpr g e : t_expr = match e with
     | Lvalue(l) -> failwith "not implemented"
-       (* let tl = tLVal gamma l in *)
-       (*             { exp = Lvalue tl.exp ; typ = tl.typ } *)
+       (* let tl = tLVal g l in *)
+       (* { exp = Lvalue tl.exp ; typ = tl.typ } *)
+
     | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
     | FLit(f) -> { exp = FLit f ; typ = TSimp "float" }
     | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" }
@@ -49,25 +60,35 @@ let typeAST (Prog(pkg,decls)) =
        (* in { exp = Uexp(op,te) ; typ = t }  *)
     | Fn_call(fun_id, es) -> failwith "not implemented"
     | Append(x, e) -> failwith "not implemented"
-  and tLVal gamma = function
+  and tLVal g l : t_lvalue = match l with
     | Iden(id) -> failwith "not implemented"
     | AValue(r,e) -> failwith "not implemented"
     | SValue(r,id) -> failwith "not implemented"
 
   in
-  let rec tStmt gamma = function
+  let get_assign_typ g (id,e) = 
+    if not (Ctx.mem id g)
+    then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
+    else let tid = Ctx.find id g in
+         let te = tExpr g e in
+         if (tid = te.typ) (*|| (tid = TFloat && te.typ = TInt) add parametricity!*)
+         then tid
+         else raise (TypeError "Mismatch in assignment")
+  in
+  (* let rec tStmt gamma = function *)
+  let rec tStmt g p : t_stmt * context = match p with
     | Assign(xs, es) -> failwith "not implemented"
-       (* if not (Ctx.mem id gamma) *)
-       (* then raise (DeclError("Assignment of undeclared variable \""^id^"\"")) *)
-       (* else  *)
-       (*   let tid = Ctx.find id gamma in *)
-       (*   let te = typeExpr gamma e in *)
-       (*   if (tid = te.typ) || (tid = TFloat && te.typ = TInt) *)
-       (*   then Assign(id, te) *)
-       (*   else raise (TypeError "Mismatch in assignment") *)
-    | Print(es) -> Print(List.map (tExpr gamma) es) (* change tExpr to return a pair and use thread instead of map? *)
-    | Println(es) -> Println(List.map (tExpr gamma) es)
-    | If_stmt(po,e,ps,pso) -> failwith "not implemented"
+       (* let typs = List.map (get_assign_typ g) (zip xs es) in *)
+       (*                  { exp = Assign(id,te) ; typ = list_type typs } *)
+
+    | Print(es) -> (Print(List.map (tExpr g) es), g) (* change tExpr to return a pair and use thread instead of map? *)
+    | Println(es) -> (Println(List.map (tExpr g) es), g)
+    | If_stmt(po,e,ps,pso) ->
+       (If_stmt(mapo (fun p -> fst (tStmt g p)) po, (* does using fst solve everything here? *)
+               tExpr g e,
+               thread tStmt g ps,
+               mapo (thread tStmt g) pso), g)
+
     | Switch_stmt(po, eo, ps) -> failwith "not implemented"
     | Switch_clause(eso, ps) -> failwith "not implemented"
     | For_stmt(po1, eo, po2, ps) -> failwith "not implemented"
@@ -76,9 +97,9 @@ let typeAST (Prog(pkg,decls)) =
     | Type_stmt(id_typ_ls) -> failwith "not implemented"
     | Expr_stmt e -> failwith "not implemented"
     | Return(eo) -> failwith "not implemented"
-    | Break -> failwith "not implemented"
-    | Continue -> failwith "not implemented"
-    | Empty_stmt -> failwith "not implemented"
+    | Break -> (Break, g)
+    | Continue -> (Continue, g)
+    | Empty_stmt -> (Empty_stmt, g)
 (* and tStmts xs = List.map tStmt xs in *)
 
 (*
@@ -94,11 +115,43 @@ let typeAST (Prog(pkg,decls)) =
  *)
 
   in
-  let rec tDecl gamma = function
+  (* let rec tDecl gamma = function *)
+  let rec tDecl g d : t_decl * context = match d with
     | Var_decl(ids_eso_typo_ls) -> failwith "not implemented"
+       (* if Ctx.in_scope typ_id gamma then raise DeclError "Already declared in scope" *)
+       (* else Ctx.add typ_id gamma *)
     | Type_decl(typId_typ_ls) -> failwith "not implemented"
     | Func_decl(fId, id_typ_ls, typ, ps) -> failwith "not implemented"
   and tDecls gamma ds = thread tDecl gamma ds
-
   in
   TProg(pkg, tDecls Ctx.empty decls)
+
+(* replace Ctx.empty with a context that already has bool, int, float, ... *)
+(*
+Types:
+bool byte complex64 complex128 error float32 float64
+int int8 int16 int32 int64 rune string
+uint uint8 uint16 uint32 uint64 uintptr
+Constants:
+true false iota
+Zero value: nil
+Functions:
+append cap close complex copy delete imag len make new panic print println real recover
+*)
+
+  (* let rec tTyp gamma = function *)
+  (*   | TSimp(typ_id) -> failwith "not implemented" *)
+  (*      (\* if Ctx.mem typ_id gamma then  *\) *)
+  (*      (\* if Ctx.in_scope typ_id gamma then raise DeclError "Already declared in scope" *\) *)
+  (*      (\* else Ctx.add typ_id gamma *\) *)
+  (*   | TStruct(x_typ_ls) -> failwith "not implemented" *)
+  (*   | TArray(typ,d) -> failwith "not implemented" *)
+  (*   | TSlice(typ) -> failwith "not implemented" *)
+  (*   | Void -> failwith "not implemented" *)
+  (* in *)
+
+    (* | ILit(d) -> ILit(d) *)
+    (* | FLit(f) -> FLit(f) *)
+    (* | BLit(b) -> BLit(b) *)
+    (* | RLit(c) -> RLit(c) *)
+    (* | SLit(s) -> SLit(s) *)

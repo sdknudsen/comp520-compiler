@@ -22,6 +22,10 @@ module Ctx =
 
         let mem k g = List.exists (fun x -> Frame.mem k x) g
 
+        let in_scope k g = match g with
+          | [] -> false
+          | x::_ -> Frame.mem k x
+
         let add k v g = try Frame.add k v (List.head g)
                         with _ -> raise ContextError "Empty Context"
 
