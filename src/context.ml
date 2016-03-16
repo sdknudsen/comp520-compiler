@@ -1,3 +1,50 @@
+open Ast
+
+exception ContextError of string
+
+(* Cactus stack of hash tables *)
+type context = Root | Frame of (string, typ) Hashtbl.t * context
+
+let init () =
+  let ctx = Frame(Hashtbl.create 1337, Root) in
+  add "true" (TSimp "bool") ctx;
+  add "false" (TSimp "bool") ctx;
+  ctx
+
+let scope parent_ctx =
+  let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
+  new_ctx
+
+let unscope ctx outc dumpsymtab =
+  let print_symtab ctx =
+    Hashtbl.fold
+      (fun key value init ->
+        Printf.sprintf "%s -> %s" key value :: init)
+      ctx []
+  in
+  if dumpsymtab then
+    Printf.fprintf outc "Scope exited:\n%s\n"
+      (String.concat "\n" (print_symtab ctx))
+
+let in_scope name = function
+  | Frame(tbl, _) -> Hashtbl.mem tbl name
+  | Root -> raise (ContextError "Empty Context")
+
+let add name kind = function
+  | Frame(tbl, _) -> if Hashtbl.mem tbl name
+                     then raise (ContextError "Variable Declared")
+                     else Hashtbl.add tbl name kind
+  | Root -> raise (ContextError "Empty Context")
+
+let rec find name = function
+  | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
+                       then Hashtbl.find tbl name
+                       else find name ctx
+  | Root -> raise (ContextError "Undeclared Variable")
+
+
+
+(*
 exception ContextError of string
 (* use a map instead of a hash table? *)
 (* module Ctx = Map.Make(String) *)
@@ -21,6 +68,10 @@ module Ctx =
         let is_empty g = List.for_all (fun x -> Frame.is_empty x) g
 
         let mem k g = List.exists (fun x -> Frame.mem k x) g
+
+        let in_scope k g = match g with
+          | [] -> false
+          | x::_ -> Frame.mem k x
 
         let add k v g = try Frame.add k v (List.head g)
                         with _ -> raise ContextError "Empty Context"
@@ -50,3 +101,4 @@ sig
                                       (* val empty : 'a context *)
 end
  *)
+*)

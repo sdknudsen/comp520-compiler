@@ -22,8 +22,8 @@ let parse in_channel =
   let lexbuf = Lexing.from_channel in_channel in
   try
      let untypedTree = Parser.program Lexer.token lexbuf in
-     (* let typedTree = Ast.typeAST untypedTree in
-     let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
+     let typedTree = Type.typeAST untypedTree in
+     (* let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
      ignore (untypedTree);
      print_endline "Valid"
   with
@@ -41,8 +41,8 @@ let pretty in_channel =
   let lexbuf = Lexing.from_channel in_channel in
   try
      let untypedTree = Parser.program Lexer.token lexbuf in
-     (* let typedTree = Ast.typeAST untypedTree in
-     let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
+     let typedTree = Type.typeAST untypedTree in
+     (* let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
      Pprint.pTree untypedTree stdout;
   with
     | Error.CompileError message ->
@@ -68,6 +68,7 @@ let compile in_channel =
 
 let main =
 let usage_msg = "golite [lex|parse|pretty|typecheck|compile] [<file>]"
+(*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)
 in let action = ref compile
 in let in_channel = ref stdin
 in let anon_fn str =

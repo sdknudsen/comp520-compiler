@@ -57,12 +57,12 @@ let pTree (Prog(pkg,decls)) outc =
   (* let plns f = in *)
   let rec pTyp = function
     (* | Struct_type((typ_id, typ)s) ->  *)
-    | Simple_type(typ_id) -> pstr typ_id
-    | Struct_type(x_typ_ls) ->
+    | TSimp(typ_id) -> pstr typ_id
+    | TStruct(x_typ_ls) ->
        Printf.fprintf outc "struct {\n%t\n}"
                       (fun c -> pssl "; " (fun (x,typ) -> pstr (x^" "); pTyp typ) x_typ_ls)
-    | Array_type(typ,d) -> Printf.fprintf outc "[%d]%t" d (fun c -> pTyp typ)
-    | Slice_type(typ) -> Printf.fprintf outc "[]%t" (fun c -> pTyp typ)
+    | TArray(typ,d) -> Printf.fprintf outc "[%d]%t" d (fun c -> pTyp typ)
+    | TSlice(typ) -> Printf.fprintf outc "[]%t" (fun c -> pTyp typ)
     | Void -> ()
   in
   let rec pExpr = function

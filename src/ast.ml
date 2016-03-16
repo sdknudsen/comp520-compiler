@@ -1,3 +1,5 @@
+(* removed rectypes for better error messages *)
+
 module Ctx = Map.Make(String)
 (* make a new module that's a list of maps? *)
 
@@ -16,112 +18,105 @@ type unop = Positive | Negative | Boolnot | Bitnot
 
 (* Type declarations *)
 type typ =
-  | Simple_type of typ_id
-  | Struct_type of (typ_id * typ) list
-  | Array_type  of typ * int
-  | Slice_type  of typ
+  | TSimp of typ_id
+  | TStruct of (typ_id * typ) list
+  | TArray  of typ * int
+  | TSlice  of typ
   | Void
 
 
-(*type ('e, 'l) lvalueF =*)
-(* Expressions *)
-type ('e, 'l) exprF =
-  | Lvalue of 'l
-  (* | TIden of tp_id *)
+(* Typed *)
+type t_rec =
+  | Lvalue of t_lvalue
   | ILit of int
   | FLit of float
   | BLit of bool
   | RLit of char
   | SLit of string
-  | Uexp of unop * 'e
-  | Bexp of binop * 'e * 'e
-  | Fn_call of 'l * 'e list
-  | Append of id * 'e
+  | Uexp of unop * t_rec
+  | Bexp of binop * t_rec * t_rec
+  | Fn_call of t_lvalue * t_rec list
+  | Append of id * t_rec
+and t_expr = { exp : t_rec; typ : typ; }
 
-(* Lvalues *)
-type ('e, 'l) lvalueF = 
+and t_lvalue =
   | Iden of id
-  | AValue of 'l * 'e
-  | SValue of 'l * id
+  | AValue of t_lvalue * t_expr
+  | SValue of t_lvalue * id
+type t_assignment = t_lvalue list * t_expr list
 
-type expr  = (expr, lvalue) exprF
-and lvalue = (expr, lvalue) lvalueF
-
-(* reverse t_rec and t_expr so that t_stmt doesn't need a type field? *)
-(*
-type t_expr = t_rec exprF
-and t_rec = { exp : t_expr; typ : id; }
-*)
-(*type t_expr = (t_expr * id) exprF*)
-
-
-
-type ('l, 'e) assignment = 'l list * 'e list
-(* | Assign of 'e assignment *)
-
-(* Statements *)
-type ('e, 'l, 's) stmtF =
-  | Assign  of ('l, 'e) assignment
-  | Print   of 'e list
-  | Println of 'e list
-  | If_stmt of 's option * 'e * 's list * 's list option
-  (* | If_stmt of 'e * 's list * 's list option *)
-  | Switch_stmt of 's option * 'e option * 's list
-  (* | Switch_stmt of 'e option * 's list *)
-  | Switch_clause of 'e list option * 's list
-  | For_stmt    of 's option * 'e option * 's option * 's list
-  | Var_stmt    of (id list * 'e list option * typ option) list
-  | SDecl_stmt  of (id list * 'e list option)
+type t_stmt =
+  | Assign  of t_assignment
+  | Print   of t_expr list
+  | Println of t_expr list
+  | If_stmt of t_stmt option * t_expr * t_stmt list * t_stmt list option
+  | Switch_stmt of t_stmt option * t_expr option * t_stmt list
+  | Switch_clause of t_expr list option * t_stmt list
+  | For_stmt    of t_stmt option * t_expr option * t_stmt option * t_stmt list
+  | Var_stmt    of (id list * t_expr list option * typ option) list
+  | SDecl_stmt  of (id list * t_expr list option)
   | Type_stmt   of (id * typ) list
-  | Expr_stmt   of 'e
-  | Return      of 'e option
+  | Expr_stmt   of t_expr
+  | Return      of t_expr option
   | Break
   | Continue
   | Empty_stmt
-and stmt = (expr, lvalue, stmt) stmtF
-(*type t_stmt = (t_expr * id, t_stmt) stmtF*)
+
+type t_decl =
+  | Var_decl  of (id list * t_expr list option * typ option) list
+  | Type_decl of (typ_id * typ) list
+  | Func_decl of fun_id * (id * typ) list * typ * t_stmt list
+
+type t_ast = TProg of pkg_id * t_decl list
+
+
+(* Untyped *)
+
+(* Expressions *)
+(* Lvalues *)
+type expr =
+  | Lvalue of lvalue
+  | ILit of int
+  | FLit of float
+  | BLit of bool
+  | RLit of char
+  | SLit of string
+  | Uexp of unop * expr
+  | Bexp of binop * expr * expr
+  | Fn_call of lvalue * expr list
+  | Append of id * expr
+and lvalue = 
+  | Iden of id
+  | AValue of lvalue * expr
+  | SValue of lvalue * id
+
+type assignment = lvalue list * expr list
+
+(* Statements *)
+type stmt =
+  | Assign  of assignment
+  | Print   of expr list
+  | Println of expr list
+  | If_stmt of stmt option * expr * stmt list * stmt list option
+  | Switch_stmt of stmt option * expr option * stmt list
+  | Switch_clause of expr list option * stmt list
+  | For_stmt    of stmt option * expr option * stmt option * stmt list
+  | Var_stmt    of (id list * expr list option * typ option) list
+  | SDecl_stmt  of (id list * expr list option)
+  | Type_stmt   of (id * typ) list
+  | Expr_stmt   of expr
+  | Return      of expr option
+  | Break
+  | Continue
+  | Empty_stmt
 
 (* Top-level declarations *)
-type ('e,'s) declF =
-  | Var_decl  of (id list * 'e list option * typ option) list
+type decl =
+  | Var_decl  of (id list * expr list option * typ option) list
   | Type_decl of (typ_id * typ) list
-  | Func_decl of fun_id * (id * typ) list * typ * 's list
-and decl = (expr, stmt) declF
-
-(* type declaration = Dec of id * id *)
+  | Func_decl of fun_id * (id * typ) list * typ * stmt list
 
 type ast = Prog of pkg_id * decl list
-(* type t_ast = TProg of t_stmt list *)
-
-(* 
-let str_of_binop = function
-  | PLUS -> "+"
-  | MINUS -> "-"
-  | TIMES -> "*"
-  | DIV -> "/"
-  | _ -> failwith "string not yet declared"
-
-let str_of_unop = function
-  | NEG -> "-"
-  | _ -> failwith "string not yet declared"
- *)
-(* get a typed declaration list from the reversed declarations in the parser *)
-let rev_decls ds = 
-  let rec get_ls_tup = function
-    | [] -> ([], [], None)
-    | [(var, expr, Some t)] -> ([var], [expr], Some t)
-    | (var, expr, None)::tl -> let (vs, es, tp) = get_ls_tup tl in
-                               (var::vs, expr::es, tp)
-    | _ -> failwith "error" (* change the error *)
-  in
-  let rec zipDecls = function
-    | x::xs, y::ys, tp -> (x,y,tp)::zipDecls(xs,ys,tp)
-    | _ -> []
-  in
-  let (vs, es, t) = get_ls_tup ds in
-  zipDecls(vs,(List.rev es),t)
-
-              (* (id * expr * typ option) list *)
 
 let check_balance (vars, exprs) pos =
   if List.length vars <> List.length exprs

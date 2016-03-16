@@ -1,0 +1,55 @@
+                               ━━━━━━━━━
+                                TEAM 14
+                               ━━━━━━━━━
+
+
+Members
+═══════
+
+  • Alexandre St-Louis Fortier 260720127
+  • Stefan Knudsen 260678259
+  • Cheuk Chuen Siow 260660584
+
+
+Q1
+══
+
+  • Total: 9/10
+    • ackermann is not what I'd call "computing something useful" (-1)
+    • You should use the package name "main" in order for the file to be
+      "executable" (Go tries to run main.main)
+
+
+Q2
+══
+
+  • Total: 21.4/30
+    • Valid programs: 10.4/16
+      • Recognized as valid: 176/269
+      • Recognized as invalid: 93/269
+    • Invalid programs: 9/10
+      • Recognized as invalid: 363/403
+      • Recognized as valid: 34/403
+    • Good error messages: 2/4
+      • Gives line and column information
+      • The error messages are all the same (error at statement / syntax
+        error).
+
+
+Q3
+══
+
+  • Total: 9/10
+    • Did you have to accept a larger language in your parser
+      productions due to S/R conflicts?
+    • How did you handle errors?
+
+
+Comments
+════════
+
+  • Make sure your compiler can be run from anywhere in the file system
+  • You'll want to add some error productions to the parser to give some
+    idea of the nature of the error; do a best effort as error
+    productions can introduce parsing conflicts, in which case a generic
+    error message is fine.

@@ -75,15 +75,15 @@ struct_inner_decls_list:
 
 typ:
 | t=IDEN
-  { Simple_type(t) }
+  { TSimp(t) }
 | STRUCT LBRACE RBRACE
-  { Struct_type([]) }
+  { TStruct([]) }
 | STRUCT LBRACE sidl=struct_inner_decls_list RBRACE
-  { Struct_type(sidl) }
+  { TStruct(sidl) }
 | LBRACKET n=INT RBRACKET t=typ
-  { Array_type(t, n) }
+  { TArray(t, n) }
 | LBRACKET RBRACKET t=typ
-  { Slice_type(t) }
+  { TSlice(t) }
 
 id_type_pair:
 | i=IDEN t=typ SEMICOLON
@@ -109,15 +109,6 @@ var_decl:
     { List.rev vds }
 | VAR vdl=var_decl_line
     { [vdl] }
-
-(* Short decls are not top level... *)
-(*
-| var_ids=lvalues COLONEQ exprs=expressions SEMICOLON
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      Var_decl(var_ids, Some(exprs), None) }
-| lvalues COLONEQ error
-    { Error.print_error $startpos "error at variable declaration" }
-*)
 
 var_decls:
 | vds=var_decls vdl=var_decl_line SEMICOLON
@@ -161,10 +152,8 @@ parameters:
 stmt:
 | a=assignment SEMICOLON
     { a }
-(*
 | sd=short_decl SEMICOLON
     { sd }
-*)
 | ss=switch_stmt SEMICOLON
     { ss }
 | fs=for_stmt SEMICOLON
