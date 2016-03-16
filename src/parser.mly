@@ -13,28 +13,11 @@ program:
     { Error.print_error
         $startpos 
         "A package declaration is needed at the beginning of the program" }
-
 (* Is this case useful? *)
 (*
   | error
     { Error.print_error $startpos "syntax error" }
 *)
-
-(* so that the compiler doesn't complain about unused tokens *)
-(* check that we don't use any of these !! *)
-| INTERFACE 
-| SELECT
-| CHAN
-| CONST
-| DEFER
-| ELLIPSIS
-| FALLTHROUGH
-| GO
-| GOTO
-| IMPORT
-| LARROW
-| MAP
-| RANGE { Error.print_error $startpos "Use of reserved keyword" }
 
 
 (*
@@ -49,12 +32,14 @@ expressions:
     { exprs }
 
 
+
 (*
  * Top level
  *)
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { pkg_id }
+(* Error handling *)
 | PACKAGE error
     { Error.print_error $startpos "package identifier" }
 | IDEN SEMICOLON
@@ -67,10 +52,16 @@ decl:
     { Type_decl(td) }
 | fd=func_decl SEMICOLON
     { fd }
+| SEMICOLON
+    { Error.print_error
+        $startpos 
+        "Empty declaration" } 
 | stmt_no_decl
     { Error.print_error
         $startpos 
         "Statements can't be at the toplevel" }
+
+
 
 (*
  * Type declaration
@@ -106,6 +97,7 @@ type_decl:
     { tidl }
 | TYPE id=IDEN t=typ
     { [(id,t)] }
+(* Error handling *)
 | TYPE error
     { Error.print_error $startpos "error at type declaration" }
 
@@ -162,6 +154,12 @@ parameters:
 (*
  * Statements
  *)
+stmts:
+| sl=stmt*
+    { sl }
+
+
+
 stmt:
 | s=stmt_no_decl
     { s }
@@ -189,6 +187,8 @@ stmt:
     { Var_stmt(vs) }
 | ts=type_decl SEMICOLON
     { Type_stmt(ts) }
+| SEMICOLON 
+    { Empty_stmt }
 (*
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
@@ -202,7 +202,7 @@ expr_stmt:
     { Fn_call(lvl, el) }
 
 stmts_block:
-| LBRACE stmts=stmt* RBRACE
+| LBRACE stmts=stmts RBRACE
     { stmts }
 
 for_init_stmt:
@@ -241,7 +241,7 @@ switch_stmt:
     { Switch_stmt(is, e, sc) }
 
 switch_clause:
-| sc=switch_case COLON stmts=stmt*
+| sc=switch_case COLON stmts=stmts
     { Switch_clause(sc, stmts) }
 
 switch_case:
@@ -423,6 +423,5 @@ stmt_no_decl:
     { Continue }
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
-| SEMICOLON { Empty_stmt }
 | error
     { Error.print_error $startpos "error at statement" }
