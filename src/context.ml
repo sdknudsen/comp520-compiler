@@ -1,3 +1,57 @@
+open Ast
+
+exception ContextError of string
+
+type context = CactusStack of (string, typ) Hashtbl.t * context option
+
+let scope ctx =
+  let new_ctx = CactusStack(Hashtbl.create 1337, Some ctx) in
+  new_ctx
+
+let unscope ctx outc dumpsymtab =
+  let print_symtab ctx =
+    Hashtbl.fold
+      (fun key value init ->
+        Printf.sprintf "%s -> %s" key value :: init)
+      ctx []
+  in
+  if dumpsymtab then
+    Printf.fprintf outc "Scope exited:\n%s\n" (String.concat "\n" (print_symtab ctx))
+
+let add name kind = function
+  | CactusStack(tbl, _) -> Hashtbl.add tbl name kind
+
+let find name = function
+  | CactusStack(tbl, _) -> Hashtbl.find tbl name
+
+let mem name = function
+  | CactusStack(tbl, _) -> Hashtbl.mem tbl name
+
+let build_symtab (Prog(_,decls)) outc dumpsymtab = 
+  let ctx = CactusStack(Hashtbl.create 1337, None) in
+  add "true" (TSimp "bool") ctx;
+  add "false" (TSimp "bool") ctx;
+  
+  let walk_ast = function
+    | Var_decl(ids_eso_typo_ls) ->
+      List.iter (fun (ids,eso,typo) ->
+        ()
+        ) ids_eso_typo_ls
+    | Type_decl(typId_typ_ls) ->
+      List.iter (fun (id,typ) ->
+        ()
+        ) typId_typ_ls
+
+    | Func_decl(fId, id_typ_ls, typ, ps) ->
+      ()
+  in
+  
+  List.iter walk_ast decls;
+  ctx
+
+
+
+(*
 exception ContextError of string
 (* use a map instead of a hash table? *)
 (* module Ctx = Map.Make(String) *)
@@ -54,3 +108,4 @@ sig
                                       (* val empty : 'a context *)
 end
  *)
+*)
