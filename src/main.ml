@@ -12,13 +12,51 @@ let lex in_channel =
     in consume lexbuf
   with
     | Error.CompileError message ->
-       Printf.fprintf stderr "%s" ("Invalid" ^ message);
-        (* print_endline ("Invalid" ^ message); *)
-        exit 1
+       Printf.fprintf stderr "Invalid %s\n" message;
+       exit 1
 
 
 
 let parse in_channel =
+  let lexbuf = Lexing.from_channel in_channel in
+  try
+     let untypedTree = Parser.program Lexer.token lexbuf in
+     ignore (untypedTree);
+     print_endline "Valid"
+  with
+    | Error.CompileError message ->
+       Printf.fprintf stderr "Invalid %s\n" message;
+        exit 1
+    | Parser.Error ->
+       Printf.fprintf
+         stderr
+         "Invalid %s"
+         (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")
+       ;
+       exit 1
+
+
+
+let pretty in_channel =
+  let lexbuf = Lexing.from_channel in_channel in
+  try
+     let untypedTree = Parser.program Lexer.token lexbuf in
+     Pprint.pTree untypedTree stdout;
+  with
+    | Error.CompileError message ->
+       Printf.fprintf stderr "Invalid %s\n" message;
+       exit 1
+    | Parser.Error ->
+       Printf.fprintf
+         stderr
+         "Invalid %s"
+         (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")
+       ;
+       exit 1
+
+
+
+let typecheck in_channel =
   let lexbuf = Lexing.from_channel in_channel in
   try
      let untypedTree = Parser.program Lexer.token lexbuf in
@@ -28,35 +66,16 @@ let parse in_channel =
      print_endline "Valid"
   with
     | Error.CompileError message ->
-       Printf.fprintf stderr "%s" ("Invalid" ^ message);
-        (* print_endline ("Invalid" ^ message); *)
-        exit 1
+       Printf.fprintf stderr "Invalid %s\n" message;
+       exit 1
     | Parser.Error ->
-        (* print_endline *)
-       Printf.fprintf stderr "%s" ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"));
-          (* ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")); *)
-        exit 1
+       Printf.fprintf 
+         stderr
+         "Invalid %s"
+         (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")
+       ;
+       exit 1
 
-let pretty in_channel =
-  let lexbuf = Lexing.from_channel in_channel in
-  try
-     let untypedTree = Parser.program Lexer.token lexbuf in
-     let typedTree = Type.typeAST untypedTree in
-     (* let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
-     Pprint.pTree untypedTree stdout;
-  with
-    | Error.CompileError message ->
-       Printf.fprintf stderr "%s" ("Invalid" ^ message);
-        (* print_endline ("Invalid" ^ message); *)
-        exit 1
-    | Parser.Error ->
-       Printf.fprintf stderr "%s" ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error"));
-        (* print_endline *)
-          (* ("Invalid" ^ (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")); *)
-        exit 1
-
-(* let pretty in_channel = print_endline "I'm pretty" *)
-let typecheck in_channel = print_endline "Typical typechecker"
 let compile   in_channel = print_endline "Compiling is complicated"
 
 
@@ -78,7 +97,7 @@ in let anon_fn str =
     | "parse"     -> action := parse
     | "typecheck" -> action := typecheck
     | "compile"   -> action := compile
-    (* unknown arguments are considered as a file *)
+    (* unknown arguments are considered as files *)
     | _ as f    -> in_channel := open_in f
 in begin
   Arg.parse [] anon_fn usage_msg;

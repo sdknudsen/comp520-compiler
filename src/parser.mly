@@ -9,8 +9,16 @@
 program:
 | pkg=package decls=decl* EOF
     { Prog(pkg, decls) }
-| error
+| decls=decl* EOF
+    { Error.print_error
+        $startpos 
+        "A package declaration is needed at the beginning of the program" }
+
+(* Is this case useful? *)
+(*
+  | error
     { Error.print_error $startpos "syntax error" }
+*)
 
 (* so that the compiler doesn't complain about unused tokens *)
 (* check that we don't use any of these !! *)
@@ -47,8 +55,10 @@ expressions:
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { pkg_id }
-| PACKAGE error 
+| PACKAGE error
     { Error.print_error $startpos "package identifier" }
+| IDEN SEMICOLON
+    { Error.print_error $startpos "Missing `package` keyword"}
 
 decl:
 | vd=var_decl SEMICOLON
@@ -57,8 +67,10 @@ decl:
     { Type_decl(td) }
 | fd=func_decl SEMICOLON
     { fd }
-
-
+| stmt_no_decl
+    { Error.print_error
+        $startpos 
+        "Statements can't be at the toplevel" }
 
 (*
  * Type declaration
@@ -124,6 +136,7 @@ var_decl_line:
     { (var_ids, None, Some(t)) }
 
 
+
 (*
  * Function declaration
  *)
@@ -150,6 +163,9 @@ parameters:
  * Statements
  *)
 stmt:
+| s=stmt_no_decl
+    { s }
+(*
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
@@ -168,15 +184,18 @@ stmt:
     { Break }
 | CONTINUE SEMICOLON
     { Continue }
+*)
 | vs=var_decl SEMICOLON
     { Var_stmt(vs) }
 | ts=type_decl SEMICOLON
     { Type_stmt(ts) }
+(*
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
 | SEMICOLON { Empty_stmt }
 | error
     { Error.print_error $startpos "error at statement" }
+*)
 
 expr_stmt:
 | lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
@@ -378,3 +397,32 @@ expr:
 | APPEND LPAREN id=IDEN COMMA e=expr RPAREN
     { Append(id, e) }
 
+
+
+
+
+(* Production rules for error handling *)
+stmt_no_decl:
+| a=assignment SEMICOLON
+    { a }
+| sd=short_decl SEMICOLON
+    { sd }
+| ss=switch_stmt SEMICOLON
+    { ss }
+| fs=for_stmt SEMICOLON
+    { fs }
+| ps=print_stmt SEMICOLON
+    { ps }
+| is=if_stmt SEMICOLON
+    { is }
+| RETURN e=expr? SEMICOLON
+    { Return(e) }
+| BREAK SEMICOLON
+    { Break }
+| CONTINUE SEMICOLON
+    { Continue }
+| es=expr_stmt SEMICOLON
+    { Expr_stmt(es) }
+| SEMICOLON { Empty_stmt }
+| error
+    { Error.print_error $startpos "error at statement" }
