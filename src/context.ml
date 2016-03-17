@@ -2,52 +2,53 @@ open Ast
 
 exception ContextError of string
 
-type context = CactusStack of (string, typ) Hashtbl.t * context option
+(* Cactus stack of hash tables *)
+type context = Root | Frame of (string, typ) Hashtbl.t * context
 
-let scope ctx =
-  let new_ctx = CactusStack(Hashtbl.create 1337, Some ctx) in
-  new_ctx
-
-let unscope ctx outc dumpsymtab =
-  let print_symtab ctx =
-    Hashtbl.fold
-      (fun key value init ->
-        Printf.sprintf "%s -> %s" key value :: init)
-      ctx []
-  in
-  if dumpsymtab then
-    Printf.fprintf outc "Scope exited:\n%s\n" (String.concat "\n" (print_symtab ctx))
-
-let add name kind = function
-  | CactusStack(tbl, _) -> Hashtbl.add tbl name kind
-
-let find name = function
-  | CactusStack(tbl, _) -> Hashtbl.find tbl name
-
-let mem name = function
-  | CactusStack(tbl, _) -> Hashtbl.mem tbl name
-
-let build_symtab (Prog(_,decls)) outc dumpsymtab = 
-  let ctx = CactusStack(Hashtbl.create 1337, None) in
+let init () =
+  let ctx = Frame(Hashtbl.create 1337, Root) in
   add "true" (TSimp "bool") ctx;
   add "false" (TSimp "bool") ctx;
-  
-  let walk_ast = function
-    | Var_decl(ids_eso_typo_ls) ->
-      List.iter (fun (ids,eso,typo) ->
-        ()
-        ) ids_eso_typo_ls
-    | Type_decl(typId_typ_ls) ->
-      List.iter (fun (id,typ) ->
-        ()
-        ) typId_typ_ls
-
-    | Func_decl(fId, id_typ_ls, typ, ps) ->
-      ()
-  in
-  
-  List.iter walk_ast decls;
   ctx
+
+let scope parent_ctx =
+  let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
+  new_ctx
+
+let unscope outc dumpsymtab = function
+  | Frame(tbl, parent_ctx) ->
+      let pTyp = function
+        | TSimp(typ_id) -> typ_id
+        | _ -> ""
+      in
+      let print_symtab tbl =
+        (* print hash table contents: reference [7] *)
+        Hashtbl.fold
+          (fun key value init ->
+            Printf.sprintf "%s -> %s" key (pTyp value) :: init)
+          tbl []
+      in
+      if dumpsymtab then
+        Printf.fprintf outc "Scope exited:\n%s\n"
+          (String.concat "\n" (print_symtab tbl));
+      parent_ctx
+  | Root -> raise (ContextError "Empty Context")
+
+let in_scope name = function
+  | Frame(tbl, _) -> Hashtbl.mem tbl name
+  | Root -> raise (ContextError "Empty Context")
+
+let add name kind = function
+  | Frame(tbl, _) -> if Hashtbl.mem tbl name
+                     then raise (ContextError "Variable Declared")
+                     else Hashtbl.add tbl name kind
+  | Root -> raise (ContextError "Empty Context")
+
+let rec find name = function
+  | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
+                       then Hashtbl.find tbl name
+                       else find name ctx
+  | Root -> raise (ContextError "Undeclared Variable")
 
 
 
