@@ -1,10 +1,18 @@
 (* module Ctx = Map.Make(String) *)
 
 open Ast
+open Context
 exception TypeError of string
 exception DeclError of string
 
-type context = string Ast.Ctx.t
+let str_of_lv = function
+  | Iden(id) -> id
+  | AValue(t_lvalue, t_expr) -> failwith "not done"
+  | SValue(t_lvalue, id) -> failwith "not done"
+
+(* type context = lvalue Ast.Ctx.t *)
+
+(* type context = string Ast.Ctx.t *)
 
 (* let makeContext decls =  *)
 (*   List.fold_left (fun gam (Dec(k,v)) -> if Ctx.mem k gam *)
@@ -25,6 +33,10 @@ let rec list_type = function
 let rec zip l1 l2 = match (l1,l2) with
   | (x::xs, y::ys) -> (x,y)::zip xs ys
   | _ -> []
+
+let rec unzip l = match l with
+  | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
+  | [] -> ([],[])
 
 let typeAST (Prog(pkg,decls)) =
   (* I think this is going to have to return a pair at the end *)
@@ -66,20 +78,23 @@ let typeAST (Prog(pkg,decls)) =
     | SValue(r,id) -> failwith "not implemented"
 
   in
-  let get_assign_typ g (id,e) = 
-    if not (Ctx.mem id g)
+  let get_assign_typ g (lv,e) = 
+    let t_lv = tLVal g lv in
+    (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
+    let id = str_of_lv lv in
+    if not (mem id g)
     then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
-    else let tid = Ctx.find id g in
+    else let tid = find id g in
          let te = tExpr g e in
          if (tid = te.typ) (*|| (tid = TFloat && te.typ = TInt) add parametricity!*)
-         then tid
+         then (t_lv,te)
          else raise (TypeError "Mismatch in assignment")
   in
   (* let rec tStmt gamma = function *)
   let rec tStmt g p : t_stmt * context = match p with
-    | Assign(xs, es) -> failwith "not implemented"
-       (* let typs = List.map (get_assign_typ g) (zip xs es) in *)
-       (*                  { exp = Assign(id,te) ; typ = list_type typs } *)
+    | Assign(xs,es) -> 
+       let (txs, tes) = unzip (List.map (get_assign_typ g) (zip xs es)) in
+       (Assign(txs, tes), g)
 
     | Print(es) -> (Print(List.map (tExpr g) es), g) (* change tExpr to return a pair and use thread instead of map? *)
     | Println(es) -> (Println(List.map (tExpr g) es), g)
@@ -125,7 +140,14 @@ let typeAST (Prog(pkg,decls)) =
     | Func_decl(fId, id_typ_ls, typ, ps) -> failwith "not implemented"
   and tDecls gamma ds = thread tDecl gamma ds
   in
-  TProg(pkg, tDecls Ctx.empty decls)
+  TProg(pkg, tDecls 
+               (build_symtab decls stdout false)
+               decls)
+
+(* lvalues vs strings in the  context *)
+(* why outc? *)
+
+(* build_symtab (Prog(_,decls)) outc dumpsymtab =  *)
 
 (* replace Ctx.empty with a context that already has bool, int, float, ... *)
 (*

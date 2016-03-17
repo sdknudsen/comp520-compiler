@@ -15,16 +15,24 @@ let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
   new_ctx
 
-let unscope ctx outc dumpsymtab =
-  let print_symtab ctx =
-    Hashtbl.fold
-      (fun key value init ->
-        Printf.sprintf "%s -> %s" key value :: init)
-      ctx []
-  in
-  if dumpsymtab then
-    Printf.fprintf outc "Scope exited:\n%s\n"
-      (String.concat "\n" (print_symtab ctx))
+let unscope outc dumpsymtab = function
+  | Frame(tbl, parent_ctx) ->
+      let pTyp = function
+        | TSimp(typ_id) -> typ_id
+        | _ -> ""
+      in
+      let print_symtab tbl =
+        (* print hash table contents: reference [7] *)
+        Hashtbl.fold
+          (fun key value init ->
+            Printf.sprintf "%s -> %s" key (pTyp value) :: init)
+          tbl []
+      in
+      if dumpsymtab then
+        Printf.fprintf outc "Scope exited:\n%s\n"
+          (String.concat "\n" (print_symtab tbl));
+      parent_ctx
+  | Root -> raise (ContextError "Empty Context")
 
 let in_scope name = function
   | Frame(tbl, _) -> Hashtbl.mem tbl name
