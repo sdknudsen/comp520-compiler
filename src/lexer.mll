@@ -299,9 +299,13 @@ rule token = parse
 
 and comment_block newline=parse
   | "*/" { 
-      if newline && !insert_semic
-      then (insert_semic:=false; SEMICOLON)
-      else (insert_semic:=false; token lexbuf)
+      if newline
+      then (
+        if !insert_semic
+        then (insert_semic:=false; SEMICOLON)
+        else (insert_semic:=false; token lexbuf)
+      )
+      else token lexbuf
     }
   | eol {
       new_line lexbuf;
