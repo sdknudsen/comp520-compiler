@@ -9,24 +9,15 @@
 program:
 | pkg=package decls=decl* EOF
     { Prog(pkg, decls) }
-| error
+| decls=decl* EOF
+    { Error.print_error
+        $startpos 
+        "A package declaration is needed at the beginning of the program" }
+(* Is this case useful? *)
+(*
+  | error
     { Error.print_error $startpos "syntax error" }
-
-(* so that the compiler doesn't complain about unused tokens *)
-(* check that we don't use any of these !! *)
-| INTERFACE 
-| SELECT
-| CHAN
-| CONST
-| DEFER
-| ELLIPSIS
-| FALLTHROUGH
-| GO
-| GOTO
-| IMPORT
-| LARROW
-| MAP
-| RANGE { Error.print_error $startpos "Use of reserved keyword" }
+*)
 
 
 (*
@@ -41,14 +32,18 @@ expressions:
     { exprs }
 
 
+
 (*
  * Top level
  *)
 package:
 | PACKAGE pkg_id=IDEN SEMICOLON
     { pkg_id }
-| PACKAGE error 
+(* Error handling *)
+| PACKAGE error
     { Error.print_error $startpos "package identifier" }
+| IDEN SEMICOLON
+    { Error.print_error $startpos "Missing `package` keyword"}
 
 decl:
 | vd=var_decl SEMICOLON
@@ -57,6 +52,14 @@ decl:
     { Type_decl(td) }
 | fd=func_decl SEMICOLON
     { fd }
+| SEMICOLON
+    { Error.print_error
+        $startpos 
+        "Empty declaration" } 
+| stmt_no_decl
+    { Error.print_error
+        $startpos 
+        "Statements can't be at the toplevel" }
 
 
 
@@ -94,6 +97,7 @@ type_decl:
     { tidl }
 | TYPE id=IDEN t=typ
     { [(id,t)] }
+(* Error handling *)
 | TYPE error
     { Error.print_error $startpos "error at type declaration" }
 
@@ -124,6 +128,7 @@ var_decl_line:
     { (var_ids, None, Some(t)) }
 
 
+
 (*
  * Function declaration
  *)
@@ -149,7 +154,16 @@ parameters:
 (*
  * Statements
  *)
+stmts:
+| sl=stmt*
+    { sl }
+
+
+
 stmt:
+| s=stmt_no_decl
+    { s }
+(*
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
@@ -168,22 +182,27 @@ stmt:
     { Break }
 | CONTINUE SEMICOLON
     { Continue }
+*)
 | vs=var_decl SEMICOLON
     { Var_stmt(vs) }
 | ts=type_decl SEMICOLON
     { Type_stmt(ts) }
+| SEMICOLON 
+    { Empty_stmt }
+(*
 | es=expr_stmt SEMICOLON
     { Expr_stmt(es) }
 | SEMICOLON { Empty_stmt }
 | error
     { Error.print_error $startpos "error at statement" }
+*)
 
 expr_stmt:
 | lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
     { Fn_call(lvl, el) }
 
 stmts_block:
-| LBRACE stmts=stmt* RBRACE
+| LBRACE stmts=stmts RBRACE
     { stmts }
 
 for_init_stmt:
@@ -195,6 +214,8 @@ for_init_stmt:
     { Expr_stmt(es) }
 
 init_stmt:
+| SEMICOLON
+    { Empty_stmt}
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
@@ -222,7 +243,7 @@ switch_stmt:
     { Switch_stmt(is, e, sc) }
 
 switch_clause:
-| sc=switch_case COLON stmts=stmt*
+| sc=switch_case COLON stmts=stmts
     { Switch_clause(sc, stmts) }
 
 switch_case:
@@ -378,3 +399,33 @@ expr:
 | APPEND LPAREN id=IDEN COMMA e=expr RPAREN
     { Append(id, e) }
 
+
+
+
+
+(* Production rules for error handling *)
+stmt_no_decl:
+| b=stmts_block SEMICOLON
+    { Block(b) }
+| a=assignment SEMICOLON
+    { a }
+| sd=short_decl SEMICOLON
+    { sd }
+| ss=switch_stmt SEMICOLON
+    { Block([ss]) }
+| fs=for_stmt SEMICOLON
+    { Block([fs]) }
+| ps=print_stmt SEMICOLON
+    { ps }
+| is=if_stmt SEMICOLON
+    { Block([is]) }
+| RETURN e=expr? SEMICOLON
+    { Return(e) }
+| BREAK SEMICOLON
+    { Break }
+| CONTINUE SEMICOLON
+    { Continue }
+| es=expr_stmt SEMICOLON
+    { Expr_stmt(es) }
+| error
+    { Error.print_error $startpos "error at statement" }

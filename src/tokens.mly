@@ -23,34 +23,34 @@
 %token LSHIFTEQ RSHIFTEQ BITNANDEQ
 
 %token BOOL_AND BOOL_OR
-%token LARROW
+(* %token LARROW *)
 %token INC DEC
 %token EQUALS NOTEQUALS
 %token LTEQ GTEQ
 
 %token COLONEQ
-%token ELLIPSIS
+(* %token ELLIPSIS *)
 %token BREAK
 %token CASE
-%token CHAN
-%token CONST
+(* %token CHAN *)
+(* %token CONST *)
 %token CONTINUE
 %token DEFAULT
-%token DEFER
+(* %token DEFER *)
 %token ELSE
-%token FALLTHROUGH
+(* %token FALLTHROUGH *)
 %token FOR
 %token FUNC
-%token GO
-%token GOTO
+(* %token GO *)
+(* %token GOTO *)
 %token IF
-%token IMPORT
-%token INTERFACE
-%token MAP
+(* %token IMPORT *)
+(* %token INTERFACE *)
+(* %token MAP *)
 %token PACKAGE
-%token RANGE
+(* %token RANGE *)
 %token RETURN
-%token SELECT
+(* %token SELECT *)
 %token STRUCT
 %token SWITCH
 %token TYPE

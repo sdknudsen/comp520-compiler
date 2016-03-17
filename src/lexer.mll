@@ -62,7 +62,7 @@
 | BITNANDEQ -> "BITNANDEQ"
 | BOOL_AND -> "BOOL_AND"
 | BOOL_OR -> "BOOL_OR"
-| LARROW -> "LARROW"
+(* | LARROW -> "LARROW" *)
 | INC -> "INC"
 | DEC -> "DEC"
 | EQUALS -> "EQUALS"
@@ -70,28 +70,28 @@
 | LTEQ -> "LTEQ"
 | GTEQ -> "GTEQ"
 | COLONEQ -> "COLONEQ"
-| ELLIPSIS -> "ELLIPSIS"
+(* | ELLIPSIS -> "ELLIPSIS" *)
 | BREAK -> "BREAK"
 | CASE -> "CASE"
-| CHAN -> "CHAN"
-| CONST -> "CONST"
+(* | CHAN -> "CHAN" *)
+(* | CONST -> "CONST" *)
 | CONTINUE -> "CONTINUE"
 | DEFAULT -> "DEFAULT"
-| DEFER -> "DEFER"
+(* | DEFER -> "DEFER" *)
 | ELSE -> "ELSE"
-| FALLTHROUGH -> "FALLTHROUGH"
+(* | FALLTHROUGH -> "FALLTHROUGH" *)
 | FOR -> "FOR"
 | FUNC -> "FUNC"
-| GO -> "GO"
-| GOTO -> "GOTO"
+(* | GO -> "GO" *)
+(* | GOTO -> "GOTO" *)
 | IF -> "IF"
-| IMPORT -> "IMPORT"
-| INTERFACE -> "INTERFACE"
-| MAP -> "MAP"
+(* | IMPORT -> "IMPORT" *)
+(* | INTERFACE -> "INTERFACE" *)
+(* | MAP -> "MAP" *)
 | PACKAGE -> "PACKAGE"
-| RANGE -> "RANGE"
+(* | RANGE -> "RANGE" *)
 | RETURN -> "RETURN"
-| SELECT -> "SELECT"
+(* | SELECT -> "SELECT" *)
 | STRUCT -> "STRUCT"
 | SWITCH -> "SWITCH"
 | TYPE -> "TYPE"
@@ -148,6 +148,12 @@ rule token = parse
         lexbuf.lex_curr_p
         (Printf.sprintf
           "Unsupported keyword `%s`" s)
+    }
+  | ("..." | "<-") as s {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf
+          "Unsupported operator `%s`" s)
     }
 
   | "break"       { insert_semic:=true;  BREAK }
@@ -215,7 +221,7 @@ rule token = parse
   | "&^="         { insert_semic:=false; BITNANDEQ }
   | "&&"          { insert_semic:=false; BOOL_AND }
   | "||"          { insert_semic:=false; BOOL_OR }
-  | "<-"          { insert_semic:=false; LARROW }
+(*  | "<-"          { insert_semic:=false; LARROW } *)
   | "++"          { insert_semic:=true;  INC }
   | "--"          { insert_semic:=true;  DEC }
   | "=="          { insert_semic:=false; EQUALS }
@@ -223,13 +229,13 @@ rule token = parse
   | "<="          { insert_semic:=false; LTEQ }
   | ">="          { insert_semic:=false; GTEQ }
   | ":="          { insert_semic:=false; COLONEQ }
-  | "..."         { insert_semic:=false; ELLIPSIS }
+(*  | "..."         { insert_semic:=false; ELLIPSIS } *)
   | '+'           { insert_semic:=false; PLUS }
 
 (* Comments *)
   | "//" [^'\r''\n']*                { token lexbuf }
   (* block comment: reference [1] *)
-  | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
+  | "/*" { comment_block false lexbuf }
 
 (* Literals *)
   | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
@@ -289,6 +295,24 @@ rule token = parse
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf "unexpected token '%s'" (lexeme lexbuf))
+    }
+
+and comment_block newline=parse
+  | "*/" { 
+      if newline
+      then (
+        if !insert_semic
+        then (insert_semic:=false; SEMICOLON)
+        else (insert_semic:=false; token lexbuf)
+      )
+      else token lexbuf
+    }
+  | eol {
+      new_line lexbuf;
+      comment_block true lexbuf
+    } 
+  | _ {
+      comment_block newline lexbuf
     }
 
 and string_error = parse

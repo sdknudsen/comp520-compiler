@@ -7,7 +7,7 @@ echo "== Testing $1 ================================"
 
 case $1 in
 "lex"|"parse")
-files=$(ls $1/*.valid $1/*.invalid)
+files=$(find $1 | egrep  "\.invalid$|\.valid$" | sort)
 
 ;;
 "pretty")

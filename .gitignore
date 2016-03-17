@@ -8,6 +8,10 @@ doc/*
 !*.tex
 !*.pdf
 
+# tests temporary files
+programs/pretty/*.pretty
+
+
 # misc
 .DS_Store
 .paths
