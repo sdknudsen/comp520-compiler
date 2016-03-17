@@ -106,6 +106,7 @@ type stmt =
   | Type_stmt   of (id * typ) list
   | Expr_stmt   of expr
   | Return      of expr option
+  | Block       of stmt list
   | Break
   | Continue
   | Empty_stmt

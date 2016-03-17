@@ -214,6 +214,8 @@ for_init_stmt:
     { Expr_stmt(es) }
 
 init_stmt:
+| SEMICOLON
+    { Empty_stmt}
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
@@ -403,18 +405,20 @@ expr:
 
 (* Production rules for error handling *)
 stmt_no_decl:
+| b=stmts_block SEMICOLON
+    { Block(b) }
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
     { sd }
 | ss=switch_stmt SEMICOLON
-    { ss }
+    { Block([ss]) }
 | fs=for_stmt SEMICOLON
-    { fs }
+    { Block([fs]) }
 | ps=print_stmt SEMICOLON
     { ps }
 | is=if_stmt SEMICOLON
-    { is }
+    { Block([is]) }
 | RETURN e=expr? SEMICOLON
     { Return(e) }
 | BREAK SEMICOLON

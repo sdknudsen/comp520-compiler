@@ -98,6 +98,7 @@ let typeAST (Prog(pkg,decls)) =
     | Expr_stmt e -> failwith "not implemented"
     | Return(eo) -> failwith "not implemented"
     | Break -> (Break, g)
+    | Block(s) -> failwith "not implemented"
     | Continue -> (Continue, g)
     | Empty_stmt -> (Empty_stmt, g)
 (* and tStmts xs = List.map tStmt xs in *)

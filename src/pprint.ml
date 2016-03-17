@@ -110,6 +110,10 @@ let pTree (Prog(pkg,decls)) outc =
                                      pssl ";\n" (fun q -> tab(); pStmt q) qs;
                                      pstr "}"
                                  | None -> ()); decr tabc)
+    | Block(stmts) ->
+       Printf.fprintf outc "{\n%t"
+                      (fun c -> incr tabc; List.iter pStmt stmts; decr tabc; pstr "}") (*default??*)
+            
 
     | Switch_stmt(po, eo, ps) ->
        tab();
