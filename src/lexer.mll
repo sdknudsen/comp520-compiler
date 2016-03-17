@@ -235,7 +235,7 @@ rule token = parse
 (* Comments *)
   | "//" [^'\r''\n']*                { token lexbuf }
   (* block comment: reference [1] *)
-  | "/*" ([^'*'] | "*" [^'/'])* "*/" { token lexbuf }
+  | "/*" { comment_block false lexbuf }
 
 (* Literals *)
   | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
@@ -295,6 +295,20 @@ rule token = parse
       Error.print_error
         lexbuf.lex_curr_p
         (Printf.sprintf "unexpected token '%s'" (lexeme lexbuf))
+    }
+
+and comment_block newline=parse
+  | "*/" { 
+      if newline && !insert_semic
+      then (insert_semic:=false; SEMICOLON)
+      else (insert_semic:=false; token lexbuf)
+    }
+  | eol {
+      new_line lexbuf;
+      comment_block true lexbuf
+    } 
+  | _ {
+      comment_block newline lexbuf
     }
 
 and string_error = parse
