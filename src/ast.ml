@@ -26,7 +26,8 @@ type typ =
 
 
 (* Typed *)
-type t_rec =
+type t_expr = { exp : t_rec; typ : typ; }
+and t_rec =
   | Lvalue of t_lvalue
   | ILit of int
   | FLit of float
@@ -37,7 +38,6 @@ type t_rec =
   | Bexp of binop * t_rec * t_rec
   | Fn_call of t_lvalue * t_rec list
   | Append of id * t_rec
-and t_expr = { exp : t_rec; typ : typ; }
 
 and t_lvalue =
   | Iden of id
