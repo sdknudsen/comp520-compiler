@@ -24,7 +24,6 @@ type typ =
   | TSlice  of typ
   | Void
 
-
 (* Typed *)
 type t_expr = { exp : t_rec; typ : typ; }
 and t_rec =
@@ -34,10 +33,10 @@ and t_rec =
   | BLit of bool
   | RLit of char
   | SLit of string
-  | Uexp of unop * t_rec
-  | Bexp of binop * t_rec * t_rec
-  | Fn_call of t_lvalue * t_rec list
-  | Append of id * t_rec
+  | Uexp of unop * t_expr
+  | Bexp of binop * t_expr * t_expr
+  | Fn_call of t_lvalue * t_expr list
+  | Append of id * t_expr
 
 and t_lvalue =
   | Iden of id
