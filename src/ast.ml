@@ -58,6 +58,7 @@ type t_stmt =
   | Type_stmt   of (id * typ) list
   | Expr_stmt   of t_expr
   | Return      of t_expr option
+  | Block       of t_stmt list (* is it alright to add this in? *)
   | Break
   | Continue
   | Empty_stmt

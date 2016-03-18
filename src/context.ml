@@ -5,6 +5,12 @@ exception ContextError of string
 (* Cactus stack of hash tables *)
 type context = Root | Frame of (string, typ) Hashtbl.t * context
 
+let add name kind = function
+  | Frame(tbl, _) -> if Hashtbl.mem tbl name
+                     then raise (ContextError "Variable Declared")
+                     else Hashtbl.add tbl name kind
+  | Root -> raise (ContextError "Empty Context")
+
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
   add "true" (TSimp "bool") ctx;
@@ -36,12 +42,6 @@ let unscope outc dumpsymtab = function
 
 let in_scope name = function
   | Frame(tbl, _) -> Hashtbl.mem tbl name
-  | Root -> raise (ContextError "Empty Context")
-
-let add name kind = function
-  | Frame(tbl, _) -> if Hashtbl.mem tbl name
-                     then raise (ContextError "Variable Declared")
-                     else Hashtbl.add tbl name kind
   | Root -> raise (ContextError "Empty Context")
 
 let rec find name = function

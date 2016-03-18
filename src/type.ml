@@ -24,6 +24,10 @@ let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
 
+let typo f gam o = match o with
+  | None -> (None, gam)
+  | Some x -> let (tx,g) = f gam x in (Some(tx), g)
+
 let rec list_type = function
   | [] -> failwith "empty list"
   | [x] -> x
@@ -41,8 +45,10 @@ let rec unzip l = match l with
 let typeAST (Prog(pkg,decls)) =
   (* I think this is going to have to return a pair at the end *)
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
-    | [] -> []
-    | x::xs -> let (d,g) = f gamma x in d::thread f g xs
+    | [] -> ([],gamma)
+    | x::xs -> let (d,g) = f gamma x in
+               let (tl,gam) = thread f g xs in
+               (d::tl,gam)
   in
   (* let rec tExpr gamma = function *)
   let rec tExpr g e : t_expr = match e with
@@ -82,7 +88,8 @@ let typeAST (Prog(pkg,decls)) =
     let t_lv = tLVal g lv in
     (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
     let id = str_of_lv lv in
-    if not (mem id g)
+    (* if not (mem id g) *)
+    if not (in_scope id g)
     then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
     else let tid = find id g in
          let te = tExpr g e in
@@ -99,23 +106,59 @@ let typeAST (Prog(pkg,decls)) =
     | Print(es) -> (Print(List.map (tExpr g) es), g) (* change tExpr to return a pair and use thread instead of map? *)
     | Println(es) -> (Println(List.map (tExpr g) es), g)
     | If_stmt(po,e,ps,pso) ->
-       (If_stmt(mapo (fun p -> fst (tStmt g p)) po, (* does using fst solve everything here? *)
-               tExpr g e,
-               thread tStmt g ps,
-               mapo (thread tStmt g) pso), g)
+       let (tpo,g1) = typo tStmt g po in
+       let te = tExpr g1 e in
+       let (tps,g2) = thread tStmt g1 ps in
+       let (tpso,g3) = typo (thread tStmt) g2 pso in
+       (* (If_stmt(tpo, te, tps, mapo (thread tStmt g) pso), g) *)
+       (If_stmt(tpo, te, tps, tpso), g3)
 
-    | Switch_stmt(po, eo, ps) -> failwith "not implemented"
-    | Switch_clause(eso, ps) -> failwith "not implemented"
-    | For_stmt(po1, eo, po2, ps) -> failwith "not implemented"
-    | Var_stmt(ids_eso_typo_ls) -> failwith "not implemented"
-    | SDecl_stmt(ids, eso) -> failwith "not implemented"
-    | Type_stmt(id_typ_ls) -> failwith "not implemented"
-    | Expr_stmt e -> failwith "not implemented"
-    | Return(eo) -> failwith "not implemented"
+    | Switch_stmt(po, eo, ps) -> 
+       let (tpo,g1) = typo tStmt g po in
+       let teo = mapo (tExpr g1) eo in
+       let (tps,g2) = thread tStmt g1 ps in
+       (Switch_stmt(tpo, teo, tps), g2)
+
+    | Switch_clause(eso, ps) ->
+       let teso = mapo (List.map (tExpr g)) eso in
+       let (tps,g1) = thread tStmt g ps in
+       (Switch_clause(teso, tps), g1)
+
+    | For_stmt(po1, eo, po2, ps) ->
+       let (tpo1,g1) = typo tStmt g po1 in
+       let teo = mapo (tExpr g1) eo in
+       let (tpo2,g2) = typo tStmt g1 po2 in
+       let (tps,g3) = thread tStmt g2 ps in
+       (For_stmt(tpo1, teo, tpo2, tps), g3)
+         
+    (* | Var_stmt(ids_eso_typo_ls) -> *)
+    (*    (Var_stmt(t_ids_eso_typo_ls), g_) *)
+
+    (* | SDecl_stmt(ids, eso) -> *)
+    (*    (\* should this be lvalues instead of ids? *\) *)
+    (*    (SDecl_stmt(tids, teso), g_) *)
+
+    (* | Type_stmt(id_typ_ls) -> *)
+    (*    (Type_stmt(t_id_typ_ls), g_) *)
+
+    | Expr_stmt e ->
+       let te = tExpr g e in
+       (Expr_stmt(te), g)
+
+    | Return(eo) ->
+       let teo = mapo (tExpr g) eo in
+       (Return(teo), g)
+
     | Break -> (Break, g)
-    | Block(s) -> failwith "not implemented"
+
+    | Block(s) -> 
+       let (ts,g1) = thread tStmt g s in
+       (Block(ts), g1)
+
     | Continue -> (Continue, g)
+
     | Empty_stmt -> (Empty_stmt, g)
+
 (* and tStmts xs = List.map tStmt xs in *)
 
 (*
@@ -140,11 +183,12 @@ let typeAST (Prog(pkg,decls)) =
     | Func_decl(fId, id_typ_ls, typ, ps) -> failwith "not implemented"
   and tDecls gamma ds = thread tDecl gamma ds
   in
-  TProg(pkg, tDecls 
-               (build_symtab decls stdout false)
-               decls)
+  (* fst is the typed tree, snd is the final context *)
+  TProg(pkg, fst (tDecls (init()) decls))
 
-(* lvalues vs strings in the  context *)
+(* lvalues or strings in the  context? *)
+
+(* (build_symtab decls stdout false) *)
 (* why outc? *)
 
 (* build_symtab (Prog(_,decls)) outc dumpsymtab =  *)
