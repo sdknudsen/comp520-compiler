@@ -14,12 +14,6 @@ let str_of_lv = function
 
 (* type context = string Ast.Ctx.t *)
 
-(* let makeContext decls =  *)
-(*   List.fold_left (fun gam (Dec(k,v)) -> if Ctx.mem k gam *)
-(*                 then raise (DeclError("Variable \""^k^"\" already declared")) *)
-(*                 else (Ctx.add) k v gam) *)
-(*      (Ctx.empty) decls *)
-(* let symTable (Prog(decls,_)) = makeContext decls *)
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
@@ -36,7 +30,8 @@ let rec list_type = function
 
 let rec zip l1 l2 = match (l1,l2) with
   | (x::xs, y::ys) -> (x,y)::zip xs ys
-  | _ -> []
+  | ([],[]) -> []
+  | _ -> failwith "Mismatch on number of arguments"
 
 let rec unzip l = match l with
   | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
@@ -184,11 +179,48 @@ let typeAST (Prog(pkg,decls)) =
 
   in
   (* let rec tDecl gamma = function *)
+  (* let varDecl gamma (ids,eso,typo) = *)
+    
   let rec tDecl g d : t_decl * context = match d with
-    | Var_decl(ids_eso_typo_ls) -> failwith "not implemented"
+    | Var_decl(ids_eso_typo_ls) -> 
+       let varDecl g (ids,eso,typo) : (string list * t_expr list option * typ option) * context =
+         (* if (List.exists (id -> in_scope id g) ids) then raise DeclError "ID already declared in scope" (\* say which id? *\) *)
+         (List.iter (fun id -> if in_scope id g
+                               then raise (DeclError ("Variable \""^id^"\" already declared in scope"))
+                               else ()) ids);
+         match (eso,typo) with
+         | (None, None) -> raise (DeclError ("Variables declaration must have either type or expressions")) (*right?*)
+         (* | (None, Some typ) -> let g1 = snd (thread (fun id gam -> (id, add id typ gam)) g ids) in ((ids,eso,typo),g1) *)
+         | (None, Some typ) -> List.iter (fun id -> add id typ g) ids; ((ids,None,typo),g)
+         (* do all the es have to have the same type? *)
+         | (Some es, None) ->
+            let pairs = zip ids es in
+            let tes = List.map
+                        (fun (id,e) -> let te = tExpr g e in add id (te.typ) g; te)
+                        pairs in
+            ((ids, Some tes, typo), g)
+         | (Some es, Some typ) ->
+            let pairs = zip ids es in
+            let tes = List.map (fun (id,e) ->
+                             let te = tExpr g e in
+                             if te.typ = typ then add id typ g
+                             else raise (DeclError ("Type mismatch on \""^id^"\"'s matching expression")); te) pairs in
+            ((ids, Some tes, typo),g)
+
+            (* let tes = List.map typ es g in *)
+            (*                       if List.forall (fun te -> te.typ = typ) tes *)
+            (*                       then thread (fun id -> add te.typ = typ) g ids *)
+       in let (ls,g) = thread varDecl g ids_eso_typo_ls in
+          (Var_decl(ls),g)
        (* if Ctx.in_scope typ_id gamma then raise DeclError "Already declared in scope" *)
        (* else Ctx.add typ_id gamma *)
-    | Type_decl(typId_typ_ls) -> (Type_decl(typId_typ_ls), g)
+
+    | Type_decl(typId_typ_ls) -> 
+       (List.iter (fun (num,typ) -> if in_scope num g
+                             then raise (DeclError ("Type \""^num^"\" already declared in scope"))
+                             else ()) typId_typ_ls);
+       (List.iter (fun (num,typ) -> add num typ g) typId_typ_ls); (* should we use a different kind of add? *)
+       (Type_decl(typId_typ_ls), g)
     | Func_decl(fId, id_typ_ls, typ, ps) -> 
        let (tps,g1) = thread tStmt g ps in
        (Func_decl(fId, id_typ_ls, typ, tps), g)
