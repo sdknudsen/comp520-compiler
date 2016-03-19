@@ -16,6 +16,8 @@ type binop = Boolor | Booland |
              Times | Div | Modulo | Lshift | Rshift | Bitand | Bitnand
 type unop = Positive | Negative | Boolnot | Bitnot
 
+(* type opTyp  = Bool | Comparable | Ordered | Numeric | Integer | String *)
+
 (* Type declarations *)
 type typ =
   | TSimp of typ_id

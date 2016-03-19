@@ -3,6 +3,7 @@ open Ast
 exception ContextError of string
 
 (* Cactus stack of hash tables *)
+
 type context = Root | Frame of (string, typ) Hashtbl.t * context
 
 let add name kind = function
@@ -11,11 +12,15 @@ let add name kind = function
                      else Hashtbl.add tbl name kind
   | Root -> raise (ContextError "Empty Context")
 
+let fadd name kind = failwith "function add not implemenented"
+let tadd name kind = failwith "type add not implemenented"
+
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
   add "true" (TSimp "bool") ctx;
   add "false" (TSimp "bool") ctx;
   ctx
+
 
 let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
@@ -43,6 +48,11 @@ let unscope outc dumpsymtab = function
 let in_scope name = function
   | Frame(tbl, _) -> Hashtbl.mem tbl name
   | Root -> raise (ContextError "Empty Context")
+
+(* is there already a way to do this? or do we need it? *)
+let rec in_context name = function
+  | Frame(tbl, tl) -> Hashtbl.mem tbl name || in_context name tl
+  | Root -> false
 
 let rec find name = function
   | Frame(tbl, ctx) -> if Hashtbl.mem tbl name

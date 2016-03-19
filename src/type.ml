@@ -2,17 +2,22 @@
 
 open Ast
 open Context
+open AuxFunctions
 exception TypeError of string
 exception DeclError of string
 
-let str_of_lv = function
-  | Iden(id) -> id
-  | AValue(t_lvalue, t_expr) -> failwith "not done"
-  | SValue(t_lvalue, id) -> failwith "not done"
+let dumpsymtab = true (* for testing purposes *)
 
 (* type context = lvalue Ast.Ctx.t *)
 
 (* type context = string Ast.Ctx.t *)
+
+(* let typClass g = function *)
+(*   | TSimp "bool" -> [Bool] *)
+(*   | TSimp "int" -> [Numeric,Integer, *)
+(*   | TSimp "float64" -> [Numeric, *)
+(*   | TSimp "rune" -> [Numeric,Integer, *)
+
 
 let mapo f o = match o with
   | None -> None
@@ -37,6 +42,8 @@ let rec unzip l = match l with
   | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
   | [] -> ([],[])
 
+(* let rec str_of_typ = function *)
+
 let typeAST (Prog(pkg,decls)) =
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
     | [] -> ([],gamma)
@@ -46,47 +53,70 @@ let typeAST (Prog(pkg,decls)) =
   in
   (* let rec tExpr gamma = function *)
   let rec tExpr g e : t_expr = match e with
-    | Lvalue(l) -> failwith "not implemented"
-       (* let tl = tLVal g l in *)
-       (* { exp = Lvalue tl.exp ; typ = tl.typ } *)
+    | Lvalue(l) ->
+       (* let (tl,t) = tLVal g l in *)
+       (* { exp = Lvalue(tl) ; typ = t } *)
+       failwith "not implemented"
 
     | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
-    | FLit(f) -> { exp = FLit f ; typ = TSimp "float" }
-    | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" }
+    | FLit(f) -> { exp = FLit f ; typ = TSimp "float64" }
+    | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } (* why is bool not included in the pdf?? *)
     | RLit(c) -> { exp = RLit c ; typ = TSimp "rune" }
     | SLit(s) -> { exp = SLit s ; typ = TSimp "string" }
     | Bexp(op,e1,e2) -> 
        let te1 = tExpr g e1 in
        let te2 = tExpr g e2 in
-       let t = (match (te1.typ, te2.typ, op) with
-                (* just to start with *)
-                | TSimp "int", TSimp "int", Plus -> TSimp "int"
-                | _ -> failwith "operation not handled")
-       in { exp = Bexp(op,te1,te2) ; typ = t }
-                 
-       (* let te1 = typeExpr gamma e1 in  *)
-       (* let te2 = typeExpr gamma e2 in  *)
-       (* let t = (match (te1.typ, te2.typ, op) with *)
-       (*          | TInt, TInt, _ -> TInt *)
-       (*          | TInt, TFloat, _ -> TFloat *)
-       (*          | TFloat, TInt, _ -> TFloat *)
-       (*          | TFloat, TFloat, _ -> TFloat *)
-       (*          | TString, TString, PLUS -> TString *)
-       (*          | TString, TString, MINUS -> TString *)
-       (*          | _ -> raise (TypeError ("Mismatch with '" ^ str_of_binop op ^ "' operation"))) *)
+       (* let t = (match (typClass g te1.typ, typClass g te2.typ, op) with *)
+       let t = (match op with
+                | Boolor -> ()
+                | Booland -> ()
+                | Equals -> ()
+                | Notequals -> ()
+                | Lt -> ()
+                | Lteq -> ()
+                | Gt -> ()
+                | Gteq -> ()
+                | Plus -> ()
+                | Minus -> ()
+                | Bitor -> ()
+                | Bitxor -> ()
+                | Times -> ()
+                | Div -> ()
+                | Modulo -> ()
+                | Lshift -> ()
+                | Rshift -> ()
+                | Bitand -> ()
+                | Bitnand -> ())
+
+                (* | TSimp "int", TSimp "int", Plus -> TSimp "int" *)
+                (* | TSimp "int", TSimp "int", Plus -> TSimp "int") *)
+
        (* in { exp = Bexp(op,te1,te2) ; typ = t } *)
+       in { exp = Bexp(op,te1,te2) ; typ = failwith "type" }
+
     | Uexp(op,e) -> 
        let te = tExpr g e in
        let t = (match (te.typ, op) with
                 (* just to start with *)
-                | TSimp "int", _ -> TSimp "int"
-                | _ -> failwith "operation not handled")
+                | TSimp "int", Positive -> TSimp "int"
+                | TSimp "float64", Positive -> TSimp "float64"
+                | TSimp "rune", Positive -> TSimp "rune"
+                | TSimp "int", Negative -> TSimp "int"
+                | TSimp "float64", Negative -> TSimp "float64"
+                | TSimp "rune", Negative -> TSimp "rune"
+                | TSimp "bool", Boolnot -> TSimp "bool"
+                | TSimp "int", Bitnot -> TSimp "int"
+                | TSimp "rune", Bitnot -> TSimp "rune"
+                | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation")))
+                 (* change to allow for new types *)
        (* let te = typeExpr gamma e *)
        in { exp = Uexp(op,te) ; typ = t }
     | Fn_call(fun_id, es) -> failwith "not implemented"
     | Append(x, e) -> failwith "not implemented"
+  (* and tLVal g l : t_lvalue * typ = match l with *)
   and tLVal g l : t_lvalue = match l with
     | Iden(id) -> failwith "not implemented"
+                           (* (Iden(id),find id g) *)
     | AValue(r,e) -> failwith "not implemented"
     | SValue(r,id) -> failwith "not implemented"
 
@@ -94,7 +124,7 @@ let typeAST (Prog(pkg,decls)) =
   let get_assign_typ g (lv,e) = 
     let t_lv = tLVal g lv in
     (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
-    let id = str_of_lv lv in
+    let id = lv_to_str lv in
     (* if not (mem id g) *)
     if not (in_scope id g)
     then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
@@ -105,39 +135,46 @@ let typeAST (Prog(pkg,decls)) =
          else raise (TypeError "Mismatch in assignment")
   in
   (* let rec tStmt gamma = function *)
-  let rec tStmt g p : t_stmt * context = match p with
-      (* DOES NOT CHECK THAT TYPES HAVE THE RIGHT FORM!! *)
+  let rec tStmt frt g p : t_stmt * context = match p with (* frt is function return type *)
+    (* Should assign take lvalues?? *)
     | Assign(xs,es) -> 
        let (txs, tes) = unzip (List.map (get_assign_typ g) (zip xs es)) in
        (Assign(txs, tes), g)
+    (* are we missing op assignment?? *)
 
     | Print(es) -> (Print(List.map (tExpr g) es), g) (* change tExpr to return a pair and use thread instead of map? *)
+    (* why do the notes say that println takes an expression, not a list? *)
     | Println(es) -> (Println(List.map (tExpr g) es), g)
+    (* why do the notes say that println takes two expressions? *)
     | If_stmt(po,e,ps,pso) ->
-       let (tpo,g1) = typo tStmt g po in
+       let (tpo,g1) = typo (tStmt frt) g po in
        let te = tExpr g1 e in
-       let (tps,g2) = thread tStmt g1 ps in
-       let (tpso,g3) = typo (thread tStmt) g2 pso in
-       (* (If_stmt(tpo, te, tps, mapo (thread tStmt g) pso), g) *)
-       (If_stmt(tpo, te, tps, tpso), g3)
+       if te.typ != TSimp "bool"
+       then raise (TypeError "If statement must have typ bool")
+       else
+         let (tps,g2) = thread (tStmt frt) g1 ps in
+         let (tpso,g3) = typo (thread (tStmt frt)) g2 pso in
+         (* (If_stmt(tpo, te, tps, mapo (thread (tStmt frt) g) pso), g) *)
+         (If_stmt(tpo, te, tps, tpso), g3)
 
+    (* how do switch clause and switch statement compare to what's presented in typecheck.pdf?? *)
     | Switch_stmt(po, eo, ps) -> 
-       let (tpo,g1) = typo tStmt g po in
+       let (tpo,g1) = typo (tStmt frt) g po in
        let teo = mapo (tExpr g1) eo in
-       let (tps,g2) = thread tStmt g1 ps in
+       let (tps,g2) = thread (tStmt frt) g1 ps in
        (Switch_stmt(tpo, teo, tps), g2)
-
     | Switch_clause(eso, ps) ->
        let teso = mapo (List.map (tExpr g)) eso in
-       let (tps,g1) = thread tStmt g ps in
+       let (tps,g1) = thread (tStmt frt) g ps in
        (Switch_clause(teso, tps), g1)
 
-    | For_stmt(po1, eo, po2, ps) ->
-       let (tpo1,g1) = typo tStmt g po1 in
+    | For_stmt(po1, eo, po2, ps) -> 
+       (* should I remove threading?? replace the hash table with a map? *)
+       let (tpo1,g1) = typo (tStmt frt) g po1 in
        let teo = mapo (tExpr g1) eo in
-       let (tpo2,g2) = typo tStmt g1 po2 in
-       let (tps,g3) = thread tStmt g2 ps in
-       (For_stmt(tpo1, teo, tpo2, tps), g3)
+       let (tpo2,g2) = typo (tStmt frt) (scope g1) po2 in
+       let (tps,g3) = thread (tStmt frt) g2 ps in
+       (For_stmt(tpo1, teo, tpo2, tps), (unscope stdout dumpsymtab g3))
          
     | Var_stmt(ids_eso_typo_ls) ->
        let t_ids_eso_typo_ls =
@@ -155,11 +192,15 @@ let typeAST (Prog(pkg,decls)) =
        (Expr_stmt(te), g)
     | Return(eo) ->
        let teo = mapo (tExpr g) eo in
-       (Return(teo), g)
+       (match teo with
+       | None -> (Return(teo), g)
+       | Some te -> 
+          if frt = te.typ then (Return(teo), g)
+          else raise (DeclError (typ_to_str te.typ^" does not match expected return type "^typ_to_str te.typ)))
     | Break -> (Break, g)
     | Block(s) -> 
-       let (ts,g1) = thread tStmt g s in
-       (Block(ts), g1)
+       let (ts,g1) = thread (tStmt frt) (scope g) s in
+       (Block(ts), (unscope stdout dumpsymtab g1))
     | Continue -> (Continue, g)
     | Empty_stmt -> (Empty_stmt, g)
 
@@ -217,13 +258,17 @@ let typeAST (Prog(pkg,decls)) =
 
     | Type_decl(typId_typ_ls) -> 
        (List.iter (fun (num,typ) -> if in_scope num g
-                             then raise (DeclError ("Type \""^num^"\" already declared in scope"))
-                             else ()) typId_typ_ls);
-       (List.iter (fun (num,typ) -> add num typ g) typId_typ_ls); (* should we use a different kind of add? *)
+                                    then raise (DeclError ("Type \""^num^"\" already declared in scope"))
+                                    else tadd num typ g)
+                  typId_typ_ls);
        (Type_decl(typId_typ_ls), g)
-    | Func_decl(fId, id_typ_ls, typ, ps) -> 
-       let (tps,g1) = thread tStmt g ps in
+    | Func_decl(fId, id_typ_ls, typ, ps) -> (* start by creating a new frame?? *)
+       if in_context fId g
+       then raise (DeclError ("Function \""^fId^"\" already declared"))
+       else fadd fId typ g; List.iter (fun (id,typ) -> add id typ g) id_typ_ls;
+       let (tps,g1) = thread (tStmt typ) g ps in
        (Func_decl(fId, id_typ_ls, typ, tps), g)
+
   and tDecls gamma ds = thread tDecl gamma ds
   in
   (* fst is the typed tree, snd is the final context *)
