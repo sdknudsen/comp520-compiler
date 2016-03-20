@@ -1,6 +1,7 @@
 open Ast
 open Parser
 open Tokens
+open AuxFunctions
 
 (* let ppTable gamma outc =
   let str_of_typ = function
@@ -8,34 +9,6 @@ open Tokens
     | TFloat -> "float"
     | TString -> "string" in
   Ctx.iter (fun k v -> Printf.fprintf outc "%s" (k ^ " : " ^ str_of_typ v ^ "\n")) gamma *)
-
-let uop_to_str = function
-    Positive -> "+"           
-  | Negative -> "-"
-  | Boolnot -> "!"
-  | Bitnot -> "^"
-
-let bop_to_str = function
-    Boolor -> "||"
-  | Booland -> "&&"
-  | Equals -> "=="
-  | Notequals -> "!="
-  | Lt -> "<"
-  | Lteq -> "<="
-  | Gt -> ">"
-  | Gteq -> ">="
-  | Plus -> "+"
-  | Minus -> "-"
-  | Bitor -> "|"
-  | Bitand -> "&"
-  | Bitnand -> "&^"
-  | Bitxor -> "^"
-  | Times -> "*"
-  | Div -> "/"
-  | Modulo -> "%"
-  | Lshift -> "<<"
-  | Rshift -> ">>"
-
 let may f = function
   | Some typ -> f typ
   | None -> ()

@@ -16,6 +16,8 @@ type binop = Boolor | Booland |
              Times | Div | Modulo | Lshift | Rshift | Bitand | Bitnand
 type unop = Positive | Negative | Boolnot | Bitnot
 
+(* type opTyp  = Bool | Comparable | Ordered | Numeric | Integer | String *)
+
 (* Type declarations *)
 type typ =
   | TSimp of typ_id
@@ -23,6 +25,9 @@ type typ =
   | TArray  of typ * int
   | TSlice  of typ
   | Void
+
+type info = kind * typ
+and kind = Var | Typ | Fun
 
 (* Typed *)
 type t_expr = { exp : t_rec; typ : typ; }
@@ -38,7 +43,8 @@ and t_rec =
   | Fn_call of t_lvalue * t_expr list
   | Append of id * t_expr
 
-and t_lvalue =
+and t_lvalue = { lval : t_lrec; typ : typ; }
+and t_lrec =
   | Iden of id
   | AValue of t_lvalue * t_expr
   | SValue of t_lvalue * id
@@ -118,7 +124,3 @@ type decl =
   | Func_decl of fun_id * (id * typ) list * typ * stmt list
 
 type ast = Prog of pkg_id * decl list
-
-let check_balance (vars, exprs) pos =
-  if List.length vars <> List.length exprs
-  then Error.print_error pos "unbalanced variables and expressions"
