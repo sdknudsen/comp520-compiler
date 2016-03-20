@@ -109,6 +109,7 @@ let typeAST (Prog(pkg,decls)) =
     (* (\* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *\) *)
     | Append(x,e) ->
        let t = (match tfind g x with
+(* add (Iden id) (Typ,typ) g *)
          | TSlice t -> t
          | _ -> raise (TypeError ("\"" ^ x ^ "\" must have type slice")))
        in
