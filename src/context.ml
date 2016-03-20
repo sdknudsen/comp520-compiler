@@ -5,7 +5,7 @@ exception ContextError of string
 
 (* Cactus stack of hash tables *)
 
-type context = Root | Frame of (lvalue, info) Hashtbl.t * context
+type context = Root | Frame of (string, info) Hashtbl.t * context
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
@@ -15,8 +15,8 @@ let add name kind = function
 
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
-  add (Iden "true") (Typ, (TSimp "bool")) ctx;
-  add (Iden "false") (Typ, (TSimp "bool")) ctx;
+  add "true" (Typ, (TSimp "bool")) ctx;
+  add "false" (Typ, (TSimp "bool")) ctx;
   ctx
 
 let scope parent_ctx =
@@ -30,7 +30,7 @@ let unscope outc dumpsymtab = function
         Hashtbl.fold
           (fun key value init ->
              let (kind, typ) = value in
-            Printf.sprintf "%s (%s)-> %s" (lv_to_str key) (kind_to_str kind) (typ_to_str typ) :: init)
+            Printf.sprintf "%s (%s)-> %s" key (kind_to_str kind) (typ_to_str typ) :: init)
           tbl []
       in
       if dumpsymtab then
@@ -41,7 +41,7 @@ let unscope outc dumpsymtab = function
 
 let in_scope name = function
   | Frame(tbl, _) -> Hashtbl.mem tbl name
-  | Root -> raise (ContextError "Empty Context")
+  | Root -> false
 
 (* is there already a way to do this? or do we need it? *)
 let rec in_context name = function
