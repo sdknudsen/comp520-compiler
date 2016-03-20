@@ -26,6 +26,9 @@ type typ =
   | TSlice  of typ
   | Void
 
+type info = kind * typ
+and kind = Var | Typ | Fun
+
 (* Typed *)
 type t_expr = { exp : t_rec; typ : typ; }
 and t_rec =
@@ -121,7 +124,3 @@ type decl =
   | Func_decl of fun_id * (id * typ) list * typ * stmt list
 
 type ast = Prog of pkg_id * decl list
-
-let check_balance (vars, exprs) pos =
-  if List.length vars <> List.length exprs
-  then Error.print_error pos "unbalanced variables and expressions"

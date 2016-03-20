@@ -1,5 +1,9 @@
 %{
   open Ast
+  
+  let check_balance (vars, exprs) pos =
+    if List.length vars <> List.length exprs
+    then Error.print_error pos "unbalanced variables and expressions"
 %}
 
 %start <Ast.ast> program
