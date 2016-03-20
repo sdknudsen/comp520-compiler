@@ -27,10 +27,10 @@ let bop_to_str = function
   | Lshift -> "<<"
   | Rshift -> ">>"
 
-let lv_to_str = function
+let rec lv_to_str = function
   | Iden(id) -> id
-  | AValue(t_lvalue, t_expr) -> failwith "not done"
-  | SValue(t_lvalue, id) -> failwith "not done"
+  | AValue(t_lvalue, t_expr) -> lv_to_str t_lvalue
+  | SValue(t_lvalue, id) -> lv_to_str t_lvalue
 
 let typ_to_str = function
   | TSimp(x) -> x
@@ -39,6 +39,10 @@ let typ_to_str = function
   | TSlice(t) -> failwith "not done"
   | Void -> failwith "not done"
 
+let kind_to_str = function
+  | Var -> "var"
+  | Typ -> "type"
+  | Fun -> "func"
 
 let isBool g = function
   | TSimp "bool" -> true

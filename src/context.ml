@@ -1,12 +1,11 @@
 open Ast
+open AuxFunctions
 
 exception ContextError of string
 
 (* Cactus stack of hash tables *)
 
 type context = Root | Frame of (lvalue, info) Hashtbl.t * context
-and info = kind * typ
-and kind = Var | Typ | Fun
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
@@ -32,26 +31,12 @@ let scope parent_ctx =
 
 let unscope outc dumpsymtab = function
   | Frame(tbl, parent_ctx) ->
-      let pName = function
-        | Iden(id) -> id
-        | AValue(t_lvalue, t_expr) -> failwith "not done"
-        | SValue(t_lvalue, id) -> failwith "not done"
-      in
-      let pKind = function
-        | Var -> "var"
-        | Typ -> "type"
-        | Fun -> "func"
-      in
-      let pType = function
-        | TSimp(typ_id) -> typ_id
-        | _ -> ""
-      in
       let print_symtab tbl =
         (* print hash table contents: reference [7] *)
         Hashtbl.fold
           (fun key value init ->
              let (kind, typ) = value in
-            Printf.sprintf "%s (%s)-> %s" (pName key) (pKind kind) (pType typ) :: init)
+            Printf.sprintf "%s (%s)-> %s" (lv_to_str key) (kind_to_str kind) (typ_to_str typ) :: init)
           tbl []
       in
       if dumpsymtab then

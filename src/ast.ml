@@ -26,6 +26,9 @@ type typ =
   | TSlice  of typ
   | Void
 
+type info = kind * typ
+and kind = Var | Typ | Fun
+
 (* Typed *)
 type t_expr = { exp : t_rec; typ : typ; }
 and t_rec =
