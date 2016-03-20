@@ -1,5 +1,9 @@
 open Ast
 
+let at_most cond lst n =
+  (List.length (List.filter cond lst)) <= n
+
+
 let weed ast =
 
   let weed_reserved_words w = match w with
@@ -28,10 +32,10 @@ let weed ast =
           weed_expression l false;
           weed_expression r false
       | Fn_call(fn, args) ->
-          weed_expression x fn;
+          (* weed_expression fn false; *)
           List.iter (fun x -> weed_expression x false) args
-      | Append(_,args) ->
-          List.iter (fun x -> weed_expression x false) args
+      | Append(_,arg) ->
+         weed_expression arg false
 
   in
   let rec weed_statement stmt in_loop in_switch = 
@@ -44,8 +48,16 @@ let weed ast =
           List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
           List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
       | Switch_stmt(init, value, cases) ->
+          if not (at_most
+                   (fun c -> match c with 
+                     | Switch_clause(None, _) -> true
+                     | _ -> false)
+                   cases
+                   1)
+          then raise (Error.CompileError "Two default in switch statement")
           List.iter (fun x -> weed_statement x in_loop true) cases;
-      | Switch_clause(cases, stmts) -> ()
+      | Switch_clause(cases, stmts) ->
+          List.iter (fun x -> weed_statement x in_loop true) stmts;
       | For_stmt(init, cond, inc, stmts) ->
           List.iter (fun x -> weed_statement x true in_switch) stmts;
       | Var_stmt(_) -> ()
