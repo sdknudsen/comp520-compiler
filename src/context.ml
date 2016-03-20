@@ -12,9 +12,6 @@ let add name kind = function
                      else Hashtbl.add tbl name kind
   | Root -> raise (ContextError "Empty Context")
 
-let fadd name kind = failwith "function add not implemenented"
-let tadd name kind = failwith "type add not implemenented"
-
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
   add "true" (TSimp "bool") ctx;

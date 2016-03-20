@@ -40,7 +40,8 @@ and t_rec =
   | Fn_call of t_lvalue * t_expr list
   | Append of id * t_expr
 
-and t_lvalue =
+and t_lvalue = { lval : t_lrec; typ : typ; }
+and t_lrec =
   | Iden of id
   | AValue of t_lvalue * t_expr
   | SValue of t_lvalue * id

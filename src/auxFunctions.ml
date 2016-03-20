@@ -1,4 +1,5 @@
 open Ast
+open Errors
 
 let uop_to_str = function
   | Positive -> "+"           
@@ -39,29 +40,60 @@ let typ_to_str = function
   | TSlice(t) -> failwith "not done"
   | Void -> failwith "not done"
 
+let mapo f o = match o with
+  | None -> None
+  | Some x -> Some (f x)
 
-let isBool g = function
-  | TSimp "bool" -> true
-  (* also, check if it's a new type in the context *)
-  | _ -> false
+let typo f gam o = match o with
+  | None -> (None, gam)
+  | Some x -> let (tx,g) = f gam x in (Some(tx), g)
 
-let isComparable g = function
-  | _ -> false
+let rec list_type = function
+  | [] -> failwith "empty list"
+  | [x] -> x
+  | x::y::tl -> if x = y then list_type (y::tl)
+                else raise (TypeError ("Multiple types in single assignment"))
 
-let isOrdered g = function
-  | _ -> false
+let rec zip l1 l2 = match (l1,l2) with
+  | (x::xs, y::ys) -> (x,y)::zip xs ys
+  | ([],[]) -> []
+  | _ -> failwith "Mismatch on number of arguments"
 
-let isNumeric g = function
-  | TSimp "int" -> true
-  | TSimp "rune" -> true
-  | TSimp "float64" -> true
-  | _ -> false
+let rec unzip l = match l with
+  | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
+  | [] -> ([],[])
 
-let isInteger g = function
-  | TSimp "int" -> true
-  | TSimp "rune" -> true
-  | _ -> false
+(* change to include defined types *)
+let unify g t1 t2 =
+  if t1 == t2 then t1 else 
+    raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 
-let isString g = function
-  | TSimp "string" -> true
-  | _ -> false
+let isBool t =
+    t = TSimp "bool"
+
+let isComparable t =
+    match t with
+    | _ -> false
+
+let isOrdered t =
+    match t with
+    | _ -> false
+
+let isNumeric t =
+  t = TSimp "int" || t = TSimp "rune" || t = TSimp "float64"
+  (* match t with *)
+  (* | TSimp "int" *)
+  (*   | TSimp "rune" *)
+  (*   | TSimp "float64" -> true *)
+  (* | _ -> false *)
+
+let isInteger t =
+  (* if e1 != e2 then false else *)
+  (*   match e1 with *)
+  (*   | TSimp "int" -> true *)
+  (* | TSimp "rune" -> true *)
+  (* | _ -> false *)
+           t = TSimp "int" || t = TSimp "rune"
+
+let isString t =
+  t = TSimp "string"
