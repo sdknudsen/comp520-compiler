@@ -36,6 +36,25 @@ let parse in_channel =
        exit 1
 
 
+let weed in_channel =
+  let lexbuf = Lexing.from_channel in_channel in
+  try
+     let untypedTree = Parser.program Lexer.token lexbuf in
+     Weed.weed untypedTree;
+     print_endline "Valid"
+  with
+    | Error.CompileError message ->
+       Printf.fprintf stderr "Invalid %s\n" message;
+        exit 1
+    | Parser.Error ->
+       Printf.fprintf
+         stderr
+         "Invalid %s"
+         (Error.print_error lexbuf.Lexing.lex_curr_p "syntax error")
+       ;
+       exit 1
+
+
 
 let pretty in_channel =
   let lexbuf = Lexing.from_channel in_channel in
@@ -95,6 +114,7 @@ in let anon_fn str =
     | "lex"       -> action := lex
     | "pretty"    -> action := pretty
     | "parse"     -> action := parse
+    | "weed"      -> action := weed
     | "typecheck" -> action := typecheck
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)
