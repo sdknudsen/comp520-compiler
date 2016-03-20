@@ -4,7 +4,9 @@ exception ContextError of string
 
 (* Cactus stack of hash tables *)
 
-type context = Root | Frame of (string, typ) Hashtbl.t * context
+type context = Root | Frame of (lvalue, info) Hashtbl.t * context
+and info = kind * typ
+and kind = Var | Typ | Fun
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
@@ -12,15 +14,17 @@ let add name kind = function
                      else Hashtbl.add tbl name kind
   | Root -> raise (ContextError "Empty Context")
 
+(*
+Use same add for variables, types, and functions?
 let fadd name kind = failwith "function add not implemenented"
 let tadd name kind = failwith "type add not implemenented"
+*)
 
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
-  add "true" (TSimp "bool") ctx;
-  add "false" (TSimp "bool") ctx;
+  add (Iden "true") (Typ, (TSimp "bool")) ctx;
+  add (Iden "false") (Typ, (TSimp "bool")) ctx;
   ctx
-
 
 let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
@@ -28,7 +32,17 @@ let scope parent_ctx =
 
 let unscope outc dumpsymtab = function
   | Frame(tbl, parent_ctx) ->
-      let pTyp = function
+      let pName = function
+        | Iden(id) -> id
+        | AValue(t_lvalue, t_expr) -> failwith "not done"
+        | SValue(t_lvalue, id) -> failwith "not done"
+      in
+      let pKind = function
+        | Var -> "var"
+        | Typ -> "type"
+        | Fun -> "func"
+      in
+      let pType = function
         | TSimp(typ_id) -> typ_id
         | _ -> ""
       in
@@ -36,7 +50,8 @@ let unscope outc dumpsymtab = function
         (* print hash table contents: reference [7] *)
         Hashtbl.fold
           (fun key value init ->
-            Printf.sprintf "%s -> %s" key (pTyp value) :: init)
+             let (kind, typ) = value in
+            Printf.sprintf "%s (%s)-> %s" (pName key) (pKind kind) (pType typ) :: init)
           tbl []
       in
       if dumpsymtab then

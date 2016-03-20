@@ -126,9 +126,9 @@ let typeAST (Prog(pkg,decls)) =
     (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
     let id = lv_to_str lv in
     (* if not (mem id g) *)
-    if not (in_scope id g)
+    if not (in_scope lv g)
     then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
-    else let tid = find id g in
+    else let (_, tid) = find lv g in
          let te = tExpr g e in
          if (tid = te.typ) (*|| (tid = TFloat && te.typ = TInt) add parametricity!*)
          then (t_lv,te)
@@ -226,25 +226,25 @@ let typeAST (Prog(pkg,decls)) =
     | Var_decl(ids_eso_typo_ls) -> 
        let varDecl g (ids,eso,typo) : (string list * t_expr list option * typ option) * context =
          (* if (List.exists (id -> in_scope id g) ids) then raise DeclError "ID already declared in scope" (\* say which id? *\) *)
-         (List.iter (fun id -> if in_scope id g
+         (List.iter (fun id -> if in_scope (Iden id) g
                                then raise (DeclError ("Variable \""^id^"\" already declared in scope"))
                                else ()) ids);
          match (eso,typo) with
          | (None, None) -> raise (DeclError ("Variables declaration must have either type or expressions")) (*right?*)
          (* | (None, Some typ) -> let g1 = snd (thread (fun id gam -> (id, add id typ gam)) g ids) in ((ids,eso,typo),g1) *)
-         | (None, Some typ) -> List.iter (fun id -> add id typ g) ids; ((ids,None,typo),g)
+         | (None, Some typ) -> List.iter (fun id -> add (Iden id) (Var, typ) g) ids; ((ids,None,typo),g)
          (* do all the es have to have the same type? *)
          | (Some es, None) ->
             let pairs = zip ids es in
             let tes = List.map
-                        (fun (id,e) -> let te = tExpr g e in add id (te.typ) g; te)
+                        (fun (id,e) -> let te = tExpr g e in add (Iden id) (Var, te.typ) g; te)
                         pairs in
             ((ids, Some tes, typo), g)
          | (Some es, Some typ) ->
             let pairs = zip ids es in
             let tes = List.map (fun (id,e) ->
                              let te = tExpr g e in
-                             if te.typ = typ then add id typ g
+                             if te.typ = typ then add (Iden id) (Var, typ) g
                              else raise (DeclError ("Type mismatch on \""^id^"\"'s matching expression")); te) pairs in
             ((ids, Some tes, typo),g)
 
@@ -257,15 +257,15 @@ let typeAST (Prog(pkg,decls)) =
        (* else Ctx.add typ_id gamma *)
 
     | Type_decl(typId_typ_ls) -> 
-       (List.iter (fun (num,typ) -> if in_scope num g
+       (List.iter (fun (num,typ) -> if in_scope (Iden num) g
                                     then raise (DeclError ("Type \""^num^"\" already declared in scope"))
-                                    else tadd num typ g)
+                                    else add (Iden num) (Typ, typ) g)
                   typId_typ_ls);
        (Type_decl(typId_typ_ls), g)
     | Func_decl(fId, id_typ_ls, typ, ps) -> (* start by creating a new frame?? *)
-       if in_context fId g
+       if in_context (Iden fId) g
        then raise (DeclError ("Function \""^fId^"\" already declared"))
-       else fadd fId typ g; List.iter (fun (id,typ) -> add id typ g) id_typ_ls;
+       else add (Iden fId) (Fun, typ) g; List.iter (fun (id,typ) -> add (Iden id) (Fun, typ) g) id_typ_ls;
        let (tps,g1) = thread (tStmt typ) g ps in
        (Func_decl(fId, id_typ_ls, typ, tps), g)
 
