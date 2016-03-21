@@ -13,10 +13,13 @@
 program:
 | pkg=package decls=decl* EOF
     { Prog(pkg, decls) }
+(*
 | decls=decl* EOF
     { Error.print_error
         $startpos 
         "A package declaration is needed at the beginning of the program" }
+*)
+
 (* Is this case useful? *)
 (*
   | error
@@ -48,10 +51,13 @@ package:
 | PACKAGE i=id SEMICOLON
     { i }
 (* Error handling *)
+(*
 | PACKAGE error
     { Error.print_error $startpos "package identifier" }
+*)
 | id SEMICOLON
     { Error.print_error $startpos "Missing `package` keyword"}
+
 
 decl:
 | vd=var_decl SEMICOLON
@@ -95,6 +101,8 @@ typ:
   { TArray(t, n) }
 | LBRACKET RBRACKET t=typ
   { TSlice(t) }
+| LPAREN t=typ RPAREN
+  { t }
 
 id_type_pair:
 | i=id t=typ SEMICOLON
@@ -166,51 +174,47 @@ stmts:
 | sl=stmt*
     { sl }
 
-
-
-stmt:
-| s=stmt_no_decl
-    { s }
-(*
+stmt_no_decl:
+| b=stmts_block SEMICOLON
+    { Block(b, {Untyped.Info.pos=$startpos}) }
 | a=assignment SEMICOLON
     { a }
 | sd=short_decl SEMICOLON
     { sd }
 | ss=switch_stmt SEMICOLON
-    { ss }
+    { Block([ss], {Untyped.Info.pos=$startpos}) }
 | fs=for_stmt SEMICOLON
-    { fs }
+    { Block([fs], {Untyped.Info.pos=$startpos}) }
 | ps=print_stmt SEMICOLON
     { ps }
 | is=if_stmt SEMICOLON
-    { is }
+    { Block([is], {Untyped.Info.pos=$startpos}) }
 | RETURN e=expr? SEMICOLON
-    { Return(e) }
+    { Return(e, {Untyped.Info.pos=$startpos}) }
 | BREAK SEMICOLON
-    { Break }
+    { Break({Untyped.Info.pos=$startpos}) }
 | CONTINUE SEMICOLON
-    { Continue }
-*)
+    { Continue({Untyped.Info.pos=$startpos}) }
+| e=expr SEMICOLON
+    { Expr_stmt(e, {Untyped.Info.pos=$startpos}) }
+| error
+    { Error.print_error $startpos "error at statement" }
+
+stmt:
+| s=stmt_no_decl
+    { s }
 | vs=var_decl SEMICOLON
     { Var_stmt(vs,{Untyped.Info.pos=$startpos}) }
 | ts=type_decl SEMICOLON
     { Type_stmt(ts,{Untyped.Info.pos=$startpos}) }
 | SEMICOLON 
     { Empty_stmt({Untyped.Info.pos=$startpos}) }
-(*
-| es=expr_stmt SEMICOLON
-    { Expr_stmt(es) }
-*)
-(*
-| SEMICOLON { Empty_stmt }
-| error
-    { Error.print_error $startpos "error at statement" }
-*)
 
-
+(*
 expr_stmt:
-| lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
-    { Fn_call(lvl, el, {Untyped.Info.pos=$startpos}) }
+| e=expr
+    { Fn_call(e, el, {Untyped.Info.pos=$startpos}) }
+*)
 
 stmts_block:
 | LBRACE stmts=stmts RBRACE
@@ -221,8 +225,8 @@ for_init_stmt:
     { a }
 | sd=short_decl
     { sd }
-| es=expr_stmt
-    { Expr_stmt(es,{Untyped.Info.pos=$startpos}) }
+| e=expr
+    { Expr_stmt(e,{Untyped.Info.pos=$startpos}) }
 
 init_stmt:
 | SEMICOLON
@@ -231,14 +235,14 @@ init_stmt:
     { a }
 | sd=short_decl SEMICOLON
     { sd }
-| es=expr_stmt SEMICOLON
-    { Expr_stmt(es,{Untyped.Info.pos=$startpos}) }
+| e=expr SEMICOLON
+    { Expr_stmt(e,{Untyped.Info.pos=$startpos}) }
 
 post_stmt:
 | a=assignment
     { a }
-| es=expr_stmt
-    { Expr_stmt(es,{Untyped.Info.pos=$startpos}) }
+| e=expr
+    { Expr_stmt(e,{Untyped.Info.pos=$startpos}) }
 
 if_stmt:
 | IF is=ioption(init_stmt) e=expr b=stmts_block
@@ -277,15 +281,15 @@ print_stmt:
     { Println(exprs,{Untyped.Info.pos=$startpos}) }
 
 short_decl:
-| lvls=lvalues COLONEQ exprs=expressions
-    { ignore(check_balance (lvls, exprs) $startpos);
+| ids=expressions COLONEQ exprs=expressions
+    { ignore(check_balance (ids, exprs) $startpos);
       let var_ids =
         List.map (function
-                  | LIden(x,_) -> x
+                  | Iden(x,_) -> x
                   | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
-                 lvls
+                 ids
       in SDecl_stmt(var_ids, Some(exprs), {Untyped.Info.pos=$startpos}) }
-| lvalues COLONEQ error
+| expressions COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 
 
@@ -319,17 +323,17 @@ assignment:
     { pa }
 
 simple_assign:
-| lvs=lvalues ASSIGNMENT exprs=expressions
-    { ignore(check_balance (lvs, exprs) $startpos); 
-      Assign(List.rev lvs, exprs, {Untyped.Info.pos=$startpos}) }
+| es=expressions ASSIGNMENT exprs=expressions
+    { ignore(check_balance (es, exprs) $startpos); 
+      Assign(List.rev es, exprs, {Untyped.Info.pos=$startpos}) }
 
 binop_assign:
-| lv=lvalue binop=a_binop e=expr
-    { Assign([lv], [Bexp(binop, LValue(lv), e, {Untyped.Info.pos=$startpos})],{Untyped.Info.pos=$startpos}) }
+| e1=expr binop=a_binop e2=expr
+    { Assign([e1], [Bexp(binop, e1, e2, {Untyped.Info.pos=$startpos})],{Untyped.Info.pos=$startpos}) }
 
 postfix_assign:
-| lv=lvalue postfix=a_postfix
-    { Assign([lv], [Bexp(postfix, LValue(lv), ILit(1, {Untyped.Info.pos=$startpos}), {Untyped.Info.pos=$startpos})], {Untyped.Info.pos=$startpos}) }
+| e=expr postfix=a_postfix
+    { Assign([e], [Bexp(postfix, e, ILit(1, {Untyped.Info.pos=$startpos}), {Untyped.Info.pos=$startpos})], {Untyped.Info.pos=$startpos}) }
 
 callable_lvalue:
 | id=id
@@ -391,32 +395,30 @@ lvalue:
 | CIRCUMFLEX { Bitnot }
 
 expr:
-| l=lvalue
-    { LValue(l) }
-(*| id=IDEN
-    { Iden(id,$startpos) }
+| id=id
+    { Iden(id, {Untyped.Info.pos=$startpos}) }
 | e=expr LBRACKET i=expr RBRACKET
-    { AValue(e, i,$startpos) }
-| e=expr DOT structs_id=IDEN
-    { SValue(e, structs_id, $startpos) }*)
+    { AValue(e, i, {Untyped.Info.pos=$startpos}) }
+| e=expr DOT structs_id=id
+    { SValue(e, structs_id, {Untyped.Info.pos=$startpos}) }
 | LPAREN e=expr RPAREN
     { e }
 | n=INT
-    { ILit(n,{Untyped.Info.pos=$startpos}) }
+    { ILit(n, {Untyped.Info.pos=$startpos}) }
 | f=FLOAT64
-    { FLit(f,{Untyped.Info.pos=$startpos}) }
+    { FLit(f, {Untyped.Info.pos=$startpos}) }
 | b=BOOL
-    { BLit(b,{Untyped.Info.pos=$startpos}) }
+    { BLit(b, {Untyped.Info.pos=$startpos}) }
 | c=RUNE
-    { RLit(c,{Untyped.Info.pos=$startpos}) }
+    { RLit(c, {Untyped.Info.pos=$startpos}) }
 | s=STRING
-    { SLit(s,{Untyped.Info.pos=$startpos}) }
+    { SLit(s, {Untyped.Info.pos=$startpos}) }
 | e1=expr binop=e_binop e2=expr
     { Bexp(binop, e1, e2, {Untyped.Info.pos=$startpos}) }
 | unop=e_prefix_op e=expr %prec UOP
     { Uexp(unop, e, {Untyped.Info.pos=$startpos}) }
-| lvl=callable_lvalue LPAREN el=separated_list(COMMA, expr) RPAREN
-    { Fn_call(lvl, el, {Untyped.Info.pos=$startpos}) }
+| e=expr LPAREN el=separated_list(COMMA, expr) RPAREN
+    { Fn_call(e, el, {Untyped.Info.pos=$startpos}) }
 | APPEND LPAREN id=id COMMA e=expr RPAREN
     { Append(id, e, {Untyped.Info.pos=$startpos}) }
 
@@ -425,28 +427,3 @@ expr:
 
 
 (* Production rules for error handling *)
-stmt_no_decl:
-| b=stmts_block SEMICOLON
-    { Block(b, {Untyped.Info.pos=$startpos}) }
-| a=assignment SEMICOLON
-    { a }
-| sd=short_decl SEMICOLON
-    { sd }
-| ss=switch_stmt SEMICOLON
-    { Block([ss], {Untyped.Info.pos=$startpos}) }
-| fs=for_stmt SEMICOLON
-    { Block([fs], {Untyped.Info.pos=$startpos}) }
-| ps=print_stmt SEMICOLON
-    { ps }
-| is=if_stmt SEMICOLON
-    { Block([is], {Untyped.Info.pos=$startpos}) }
-| RETURN e=expr? SEMICOLON
-    { Return(e, {Untyped.Info.pos=$startpos}) }
-| BREAK SEMICOLON
-    { Break({Untyped.Info.pos=$startpos}) }
-| CONTINUE SEMICOLON
-    { Continue({Untyped.Info.pos=$startpos}) }
-| es=expr_stmt SEMICOLON
-    { Expr_stmt(es, {Untyped.Info.pos=$startpos}) }
-| error
-    { Error.print_error $startpos "error at statement" }
