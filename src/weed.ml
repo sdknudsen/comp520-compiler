@@ -21,31 +21,62 @@ let weed ast =
       | Bexp(Div, l, ILit(0,_), {Untyped.Info.pos}) -> raise (Error.CompileError "Division by 0")
       | _ -> ()
   in
-  let rec weed_expression expr in_lhs =
-    match expr with
-      | Uexp(op, e, _) ->
-          weed_expression e false;
-      | Bexp(op, l, r, _) as e ->
-          weed_binop e;
-          weed_expression l false;
-          weed_expression r false
-      | Fn_call(fn, args, _) ->
-          (* weed_expression fn false; *)
-          List.iter (fun x -> weed_expression x false) args
-      | Append(_,arg,_) ->
-         weed_expression arg false
+  let rec weed_expression expr in_lhs in_stmt_ctx =
+    match (expr, in_lhs, in_stmt_ctx) with
+
+      | (ILit(_,{Untyped.Info.pos}),_,true)
+      | (FLit(_,{Untyped.Info.pos}),_,true)
+      | (SLit(_,{Untyped.Info.pos}),_,true)
+      | (RLit(_,{Untyped.Info.pos}),_,true)
+      | (BLit(_,{Untyped.Info.pos}),_,true)
+      | (Iden(_,{Untyped.Info.pos}),_,true)
+      | (Iden(_,{Untyped.Info.pos}),_,true)
+      | (AValue(_,_,{Untyped.Info.pos}),_,true)
+      | (SValue(_,_,{Untyped.Info.pos}),_,true)
+      | (Bexp(_,_,_,{Untyped.Info.pos}),_,true)
+      | (Append(_,_,{Untyped.Info.pos}),_,true)
+      | (Uexp(_,_,{Untyped.Info.pos}),_,true) ->
+          Error.print_error pos "Unexpected expression in expression statement";
+      | (Fn_call(_, _, {Untyped.Info.pos}),true,_)
+      | (Bexp(_,_,_,{Untyped.Info.pos}),true,_)
+      | (Append(_,_,{Untyped.Info.pos}),true,_)
+      | (Uexp(_,_,{Untyped.Info.pos}),true,_) ->
+          Error.print_error pos "Unexpected expression as lvalue";
+
+      | (Fn_call(fn, args, _),false,_) ->
+          weed_expression fn false false;
+          List.iter (fun x -> weed_expression x false false) args;
+      | (Iden(x,_),false,_) ->
+          weed_blank x;
+      | (AValue(e1,e2,_),_,_) ->
+          weed_expression e1 false false;
+          weed_expression e2 false false;
+      | (SValue(e,i,_),_,_) ->
+          weed_blank i;
+          weed_expression e false false;
+      | (Uexp(op, e, _),_,_) ->
+          weed_expression e false false;
+      | (Bexp(op, l, r, _),_,_) ->
+          weed_binop expr;
+          weed_expression l false false;
+          weed_expression r false false;
+      | (Append(i,arg,_),_,_) ->
+          weed_blank i;
+          weed_expression arg false false
+
       | _ -> ()
 
   in
   let rec weed_statement stmt in_loop in_switch = 
     match stmt with
-(*
-      | Assign(a,_) -> ()
-      | Print(exprs,_) -> ()
-      | Println(exprs,_) -> ()
-*)
+      | Assign(lhss, rhss, _) ->
+          List.iter (fun lhs -> weed_expression lhs true false) lhss;
+          List.iter (fun rhs -> weed_expression rhs false false) rhss;
+      | Print(exprs,_) 
+      | Println(exprs,_) ->
+          List.iter (fun x -> weed_expression x false false) exprs;
       | If_stmt(_, cond, then_clause, else_clause,_) ->
-          weed_expression cond false;
+          weed_expression cond false false;
           List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
           List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
       | Switch_stmt(_, _, cases, {Untyped.Info.pos}) ->
@@ -70,11 +101,10 @@ let weed ast =
             (fun (iden, _) ->
               weed_reserved_words iden)
             tl
-(*
-      | Return(expr,_) -> ()
-*)
+      | Return(Some(expr),_) ->
+          weed_expression expr false false
       | Expr_stmt(expr,_) ->
-          weed_expression expr false
+          weed_expression expr false true
       | Block(stmts,_) ->
           List.iter (fun x -> weed_statement x in_loop in_switch) stmts;
       | Break({Untyped.Info.pos}) ->

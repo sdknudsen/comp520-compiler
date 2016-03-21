@@ -139,11 +139,12 @@ type 'i annotated_typ =
   | Void
 
 type ('a, 'e, 'i) annotated_expr =
-(*  | Iden of id * 'a
+  | Iden of 'i * 'a
   | AValue of 'e * 'e * 'a
-  | SValue of 'e * 'e * 'a
-*)
+  | SValue of 'e * 'i * 'a
+(*
   | LValue of ('a, 'e, 'i) annotated_lvalue
+*)
   | ILit of int * 'a
   | FLit of float * 'a
   | BLit of bool * 'a
@@ -151,14 +152,14 @@ type ('a, 'e, 'i) annotated_expr =
   | SLit of string * 'a
   | Uexp of unop * 'e * 'a
   | Bexp of binop * 'e * 'e * 'a
-  | Fn_call of ('a, 'e, 'i) annotated_lvalue * 'e list * 'a
+  | Fn_call of 'e * 'e list * 'a
   | Append of 'i * 'e * 'a
 
-type ('a, 'e, 'i) annotated_assignment = ('a, 'e, 'i) annotated_lvalue list * 'e list * 'a
+type ('a, 'e) annotated_assignment = 'e list * 'e list * 'a
 
 (* Statements *)
 type ('a, 's, 'e, 'i) annotated_stmt =
-  | Assign  of ('a, 'e, 'i) annotated_assignment
+  | Assign  of ('a, 'e) annotated_assignment
   | Print   of 'e list * 'a
   | Println of 'e list * 'a
   | If_stmt of 's option * 'e * 's list * 's list option * 'a
