@@ -10,7 +10,6 @@ let lex lexbuf =
   in consume lexbuf
 
 
-
 let parse lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   ignore (untypedTree);
@@ -22,17 +21,22 @@ let weed lexbuf =
   Weed.weed untypedTree;
   print_endline "Valid"
 
+
+(*
 let pretty lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   Pprint.pTree untypedTree stdout
+*)
 
 
+(*
 let typecheck lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   let typedTree = Type.typeAST untypedTree in
   (* let _ = write Pprint.ppTree typedTree name ".pretty.go" in *)
   ignore (typedTree);
   print_endline "Valid"
+*)
 
 let compile lexbup =
   print_endline "Compiling is complicated"
@@ -45,10 +49,12 @@ in let in_channel = ref stdin
 in let anon_fn str =
   match str with
     | "lex"       -> action := lex
-    | "pretty"    -> action := pretty
+(*    | "pretty"    -> action := pretty *)
     | "parse"     -> action := parse
     | "weed"      -> action := weed
+(*
     | "typecheck" -> action := typecheck
+ *)
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)
     | _ as f    -> in_channel := open_in f
