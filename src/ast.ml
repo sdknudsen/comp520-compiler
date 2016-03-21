@@ -1,6 +1,6 @@
 (* removed rectypes for better error messages *)
 
-module Ctx = Map.Make(String)
+(* module Ctx = Map.Make(String) *)
 (* make a new module that's a list of maps? *)
 
 type id = string
@@ -231,7 +231,3 @@ module Typed = struct
   type ast  = (decl, utid) annotated_ast
 end
 *)
-
-let check_balance (vars, exprs) pos =
-  if List.length vars <> List.length exprs
-  then Error.print_error pos "unbalanced variables and expressions"
