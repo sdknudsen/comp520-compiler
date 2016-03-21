@@ -40,12 +40,6 @@ let typ_to_str = function
   | TSlice(t) -> failwith "not done"
   | Void -> failwith "not done"
 
-let kind_to_str = function
-  | Var -> "var"
-  | Typ -> "type"
-  | Fun -> "func"
-
-
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)

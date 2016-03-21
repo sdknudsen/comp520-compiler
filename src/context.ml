@@ -4,8 +4,9 @@ open AuxFunctions
 exception ContextError of string
 
 (* Cactus stack of hash tables *)
-
 type context = Root | Frame of (string, info) Hashtbl.t * context
+and info = kind * string annotated_typ
+and kind = Var | Typ | Fun
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
@@ -15,8 +16,8 @@ let add name kind = function
 
 let init () =
   let ctx = Frame(Hashtbl.create 1337, Root) in
-  add "true" (Typ, (TSimp "bool")) ctx;
-  add "false" (Typ, (TSimp "bool")) ctx;
+  add "true" (Var, (TSimp "bool")) ctx;
+  add "false" (Var, (TSimp "bool")) ctx;
   ctx
 
 let scope parent_ctx =
@@ -25,6 +26,11 @@ let scope parent_ctx =
 
 let unscope outc dumpsymtab = function
   | Frame(tbl, parent_ctx) ->
+      let kind_to_str = function
+        | Var -> "var"
+        | Typ -> "type"
+        | Fun -> "func"
+      in
       let print_symtab tbl =
         (* print hash table contents: reference [7] *)
         Hashtbl.fold
