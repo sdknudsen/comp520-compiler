@@ -152,6 +152,7 @@ type ('a, 'e, 'i) annotated_expr =
   | SLit of string * 'a
   | Uexp of unop * 'e * 'a
   | Bexp of binop * 'e * 'e * 'a
+  | Parens of 'e * 'a
   | Fn_call of 'e * 'e list * 'a
   | Append of 'i * 'e * 'a
 

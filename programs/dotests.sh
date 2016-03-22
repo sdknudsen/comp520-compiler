@@ -55,14 +55,22 @@ for f in $files; do
     then
       printf '%*.*s' 0 70 "$f $pad"
       echo -e " [\e[32mpassed\e[39m]"
-      printf "$error\n\n"
+      echo "$error"
+      echo ""
     fi
+    passed=$((passed+1))
   elif [ $result -eq $((1 - $expected)) ] # 0 or 1
   then
     printf '%*.*s' 0 70 "$f $pad"
     echo -e " [\e[31mfailed\e[39m]"
-    printf "$error\n\n"
+    echo "$error"
+    echo ""
   else
+    printf '%*.*s' 0 70 "$f $pad"
+    echo -e " [\e[31mfailed\e[39m]"
     echo "There was something wrong with the diff command"
   fi
+  total=$((total+1))
 done
+
+echo -e "\nPassed: $passed/$total"

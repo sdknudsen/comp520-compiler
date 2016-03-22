@@ -2,6 +2,78 @@
   open Lexing
   open Tokens 
 
+  let escape s = begin
+    let b = Buffer.create (String.length s) in
+    let rec do_escape i =
+      if (i >= String.length s)
+      then Buffer.contents b
+      else
+      match s.[i] with
+        | '\\' ->
+            Buffer.add_char b '\\'; Buffer.add_char b '\\';
+            do_escape (i + 1)
+        | '\x07' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'a';
+            do_escape (i + 1)
+        | '\b' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'b';
+            do_escape (i + 1)
+        | '\x0c' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'f';
+            do_escape (i + 1)
+        | '\n' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'n'; 
+            do_escape (i + 1)
+        | '\r' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'r';
+            do_escape (i + 1)
+        | '\t' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 't'; 
+            do_escape (i + 1)
+        | '\x0b' ->
+            Buffer.add_char b '\\'; Buffer.add_char b 'v';
+            do_escape (i + 1)
+        | '\'' ->
+            Buffer.add_char b '\\'; Buffer.add_char b '\'';
+            do_escape (i + 1)
+        | '"' ->
+            Buffer.add_char b '\\'; Buffer.add_char b '"';
+            do_escape (i + 1)
+        | c ->
+            Buffer.add_char b c;
+            do_escape (i + 1)
+    in
+    do_escape 0;
+  end
+
+  let unescape s = begin
+    let b = Buffer.create (String.length s) in
+    let rec do_unescape i escaped =
+      if (i >= String.length s)
+      then Buffer.contents b
+      else
+      match (escaped, s.[i]) with
+        | (false, '\\') -> do_unescape (i + 1) true
+
+        | (true, '\\') -> Buffer.add_char b '\\';   do_unescape (i + 1) false
+        | (true, 'a')  -> Buffer.add_char b '\x07'; do_unescape (i + 1) false
+        | (true, 'b')  -> Buffer.add_char b '\b';   do_unescape (i + 1) false
+        | (true, 'f')  -> Buffer.add_char b '\x0c'; do_unescape (i + 1) false
+        | (true, 'n')  -> Buffer.add_char b '\n';   do_unescape (i + 1) false
+        | (true, 'r')  -> Buffer.add_char b '\r';   do_unescape (i + 1) false
+        | (true, 't')  -> Buffer.add_char b '\t';   do_unescape (i + 1) false
+        | (true, 'v')  -> Buffer.add_char b '\x0b'; do_unescape (i + 1) false
+        | (true, '\'') -> Buffer.add_char b '\'';   do_unescape (i + 1) false
+        | (true, '"')  -> Buffer.add_char b '"';    do_unescape (i + 1) false
+        | (_, c)       -> Buffer.add_char b c;      do_unescape (i + 1) false
+    in
+    do_unescape 0 false;
+  end
+
+  
+    
+
+
   let insert_semic = ref false
 
   (*let keywords = ["break"; "case"; "chan"; "const"; "continue"; "default";
@@ -124,18 +196,21 @@ let letter    = (['A'-'Z' 'a'-'z'] | '_')
 let dec_digit = ['0'-'9']
 let oct_digit = ['0'-'7']
 let hex_digit = ['0'-'9' 'A'-'F' 'a'-'f']
-let string_esc_seq = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
-let rune_esc_seq   = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' )
+let string_esc_seq = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '"')
+let rune_esc_seq   = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | ''' )
+
+(*
 let esc_char  = '\\' ('a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' | '\'' | '"')
 let esc_seq = esc_char
+*)
 
 let dec_lit   = (['1'-'9'] dec_digit* | '0')
 let oct_lit   = '0' oct_digit+
 let hex_lit   = '0' ('x' | 'X') hex_digit+
 
 let raw_str_char = [^ '`']
-let str_char  = (clean_ascii | ''' | '`' | string_esc_seq )
-let rune_char = (clean_ascii | rune_esc_seq | ['"' '`'])
+let str_char  = ([^ '\\' '"' '\r' '\n'] | string_esc_seq)
+let rune_char = ([^ '\\' ''' '\r' '\n'] | rune_esc_seq)
 
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.' dec_digit+
@@ -240,24 +315,57 @@ rule token = parse
   | "/*" { comment_block false lexbuf }
 
 (* Literals *)
-  | hex_lit as n  { insert_semic:=true; INT (int_of_string n) }
+  | hex_lit as n  {
+      insert_semic:=true;
+      try
+        INT (int_of_string n)
+      with
+        | Failure(_) ->
+            Error.print_error
+            lexbuf.lex_curr_p
+            (Printf.sprintf "invalid hex literal '%s'" n)
+    }
   | oct_lit as n  {
       insert_semic:=true;
       let s = String.sub n 1 ((String.length n) - 1) in
       let t = "0o" ^ s in
-      INT (int_of_string t)
+      try
+        INT (int_of_string t)
+      with
+        | Failure(_) ->
+            Error.print_error
+            lexbuf.lex_curr_p
+            (Printf.sprintf "invalid octal literal '%s'" n)
     }
-  | '0' ('8' | '9') dec_digit* {
+  | '0' dec_digit* ('8' | '9') dec_digit* as o {
       Error.print_error
         lexbuf.lex_curr_p
-        (Printf.sprintf "Ill-formed octal literal '%s'" (lexeme lexbuf))
+        (Printf.sprintf "Ill-formed octal literal '%s'" o)
     }
-  | dec_lit as n  { insert_semic:=true; INT (int_of_string n) }
+  | dec_lit as n  {
+      insert_semic:=true;
+      try
+        INT (int_of_string n)
+      with
+        | Failure(_) ->
+            Error.print_error
+            lexbuf.lex_curr_p
+            (Printf.sprintf "invalid dec literal '%s'" n)
+    }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
   | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
-  | ''' (rune_char as c) '''     { insert_semic:=true; RUNE c.[0] }
-  | '"' (str_char* as s) '"'     { insert_semic:=true; STRING s }
-  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING (String.escaped s) }
+  | ''' (rune_char as c) ''' {
+      insert_semic:=true; RUNE (unescape c).[0]
+    }
+  | ''' ([^ ''']* as c) ''' {
+      Error.print_error
+        lexbuf.lex_curr_p
+        (Printf.sprintf "Invalid rune '%s'" c)
+    }
+  | '"' (str_char* as s) '"'     {
+      insert_semic:=true; STRING s
+    }
+  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING (escape s) }
 
 (* String error handling *)
   | '"' { string_error lexbuf }
@@ -293,10 +401,10 @@ rule token = parse
   | [' ' '\t']+ { token lexbuf }
 
 (* Unknown *)
-  | _ {
+  | _ as s {
       Error.print_error
         lexbuf.lex_curr_p
-        (Printf.sprintf "unexpected token '%s'" (lexeme lexbuf))
+        (Printf.sprintf "unexpected character '%c'" s)
     }
 
 and comment_block newline=parse
@@ -312,21 +420,24 @@ and comment_block newline=parse
   | eol {
       new_line lexbuf;
       comment_block true lexbuf
-    } 
+    }
+  | eof {
+      Error.print_error
+        lexbuf.lex_curr_p
+        "eof in comment"
+    }
   | _ {
       comment_block newline lexbuf
     }
 
 and string_error = parse
-  | clean_ascii | '`' { string_error lexbuf }
-  | '\\' dec_digit+   { string_error lexbuf }
-  | esc_char    { string_error lexbuf }
-  | '\\' as c { 
+  | str_char { string_error lexbuf }
+  | '\\' { 
       Error.print_error
         lexbuf.lex_curr_p
-        (Printf.sprintf
-          "unexpected character `%c` in string" c)
+        "Invalid escape sequence in string"
     }
+  | eof { Error.print_error lexbuf.lex_curr_p "eof in string" }
   | _ as c {
       Error.print_error
         lexbuf.lex_curr_p
@@ -336,7 +447,8 @@ and string_error = parse
     }
 
 and raw_string_error = parse
-  | clean_ascii | '"' | ''' | '\\'  { raw_string_error lexbuf }
+  | raw_str_char  { raw_string_error lexbuf }
+  | eof { Error.print_error lexbuf.lex_curr_p "eof in raw string" }
   | _ as c {
       Error.print_error
         lexbuf.lex_curr_p

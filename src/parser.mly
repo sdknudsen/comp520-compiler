@@ -21,10 +21,9 @@ program:
 *)
 
 (* Is this case useful? *)
-(*
-  | error
+| error
     { Error.print_error $startpos "syntax error" }
-*)
+
 
 id:
 | i=IDEN
@@ -51,10 +50,8 @@ package:
 | PACKAGE i=id SEMICOLON
     { i }
 (* Error handling *)
-(*
 | PACKAGE error
     { Error.print_error $startpos "package identifier" }
-*)
 | id SEMICOLON
     { Error.print_error $startpos "Missing `package` keyword"}
 
@@ -103,6 +100,7 @@ typ:
   { TSlice(t) }
 | LPAREN t=typ RPAREN
   { t }
+
 
 id_type_pair:
 | i=id t=typ SEMICOLON
@@ -200,6 +198,7 @@ stmt_no_decl:
 | error
     { Error.print_error $startpos "error at statement" }
 
+
 stmt:
 | s=stmt_no_decl
     { s }
@@ -280,18 +279,20 @@ print_stmt:
 | PRINTLN LPAREN exprs=separated_list(COMMA, expr) RPAREN
     { Println(exprs,{Untyped.Info.pos=$startpos}) }
 
+(* expression... *)
 short_decl:
 | ids=expressions COLONEQ exprs=expressions
     { ignore(check_balance (ids, exprs) $startpos);
       let var_ids =
-        List.map (function
-                  | Iden(x,_) -> x
-                  | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
-                 ids
+      List.map (function
+                | Iden(x,_) -> x
+                | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
+               ids
       in SDecl_stmt(var_ids, Some(exprs), {Untyped.Info.pos=$startpos}) }
+(*
 | expressions COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
-
+*)
 
 
 %inline a_binop:
@@ -402,7 +403,7 @@ expr:
 | e=expr DOT structs_id=id
     { SValue(e, structs_id, {Untyped.Info.pos=$startpos}) }
 | LPAREN e=expr RPAREN
-    { e }
+    { Parens(e, {Untyped.Info.pos=$startpos}) }
 | n=INT
     { ILit(n, {Untyped.Info.pos=$startpos}) }
 | f=FLOAT64
