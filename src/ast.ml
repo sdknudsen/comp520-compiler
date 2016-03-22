@@ -29,7 +29,7 @@ type t_rec =
   (* | Lvalue of t_lvalue *)
   | ILit of int
   | FLit of float
-  | BLit of bool
+  (* | BLit of bool *)
   | RLit of char
   | SLit of string
   | Uexp of unop * t_expr
@@ -144,7 +144,7 @@ type ('a, 'e, 'i) annotated_expr =
 *)
   | ILit of int * 'a
   | FLit of float * 'a
-  | BLit of bool * 'a
+  (* | BLit of bool * 'a *)
   | RLit of char * 'a
   | SLit of string * 'a
   | Uexp of unop * 'e * 'a

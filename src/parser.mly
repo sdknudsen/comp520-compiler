@@ -407,8 +407,8 @@ expr:
     { ILit(n, {Untyped.Info.pos=$startpos}) }
 | f=FLOAT64
     { FLit(f, {Untyped.Info.pos=$startpos}) }
-| b=BOOL
-    { BLit(b, {Untyped.Info.pos=$startpos}) }
+(* | b=BOOL
+    { BLit(b, {Untyped.Info.pos=$startpos}) } *)
 | c=RUNE
     { RLit(c, {Untyped.Info.pos=$startpos}) }
 | s=STRING

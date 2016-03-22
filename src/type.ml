@@ -38,7 +38,7 @@ let typeAST (Prog(pkg,decls)) =
 
     | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
     | FLit(f) -> { exp = FLit f ; typ = TSimp "float64" }
-    | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } (* why is bool not included in the pdf?? *)
+    (* | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } *) (* why is bool not included in the pdf?? *)
     | RLit(c) -> { exp = RLit c ; typ = TSimp "rune" }
     | SLit(s) -> { exp = SLit s ; typ = TSimp "string" }
     | Bexp(op,e1,e2) -> 

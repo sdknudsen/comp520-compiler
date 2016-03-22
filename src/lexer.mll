@@ -139,7 +139,7 @@ let rune_char = (clean_ascii | rune_esc_seq | ['"' '`'])
 
 let int_lit   = dec_lit | oct_lit | hex_lit
 let flt_lit   = (dec_digit+ '.' dec_digit*) | '.' dec_digit+
-let bool_lit  = "true" | "false"
+(* let bool_lit  = "true" | "false" *)
 let iden     = letter (letter | dec_digit)*
 
 rule token = parse
@@ -254,7 +254,7 @@ rule token = parse
     }
   | dec_lit as n  { insert_semic:=true; INT (int_of_string n) }
   | flt_lit as f  { insert_semic:=true; FLOAT64 (float_of_string f) }
-  | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) }
+  (* | bool_lit as b { insert_semic:=true; BOOL (bool_of_string b) } *)
   | ''' (rune_char as c) '''     { insert_semic:=true; RUNE c.[0] }
   | '"' (str_char* as s) '"'     { insert_semic:=true; STRING s }
   | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING (String.escaped s) }
