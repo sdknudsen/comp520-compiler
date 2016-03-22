@@ -23,7 +23,7 @@ let dumpsymtab = true (* for testing purposes *)
 (* let rec str_of_typ = function *)
 
 
-let typeAST (Prog(pkg,decls)) =
+let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
     | [] -> ([],gamma)
     | x::xs -> let (d,g) = f gamma x in
@@ -31,21 +31,22 @@ let typeAST (Prog(pkg,decls)) =
                (d::tl,gam)
   in
   (* let rec tExpr gamma = function *)
-  let rec tExpr g e : t_expr = match e with
-    | Lvalue(l) ->
-       let (tl,t) = tLVal g l in
-       { exp = Lvalue(tl) ; typ = t }
-
-    | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
-    | FLit(f) -> { exp = FLit f ; typ = TSimp "float64" }
+  let rec tExpr g (e,pos) : Typed.annotated_texpr = match e with
+    | ILit(d) -> (ILit d, (pos, TSimp "int"))
+    | FLit(f) -> (FLit f, (pos, TSimp "float64"))
     (* | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } *) (* why is bool not included in the pdf?? *)
-    | RLit(c) -> { exp = RLit c ; typ = TSimp "rune" }
-    | SLit(s) -> { exp = SLit s ; typ = TSimp "string" }
+    | RLit(c) -> (RLit c, (pos, TSimp "rune"))
+    | SLit(s) -> (SLit s, (pos, TSimp "string"))
+    | Parens(e) -> 
+       let (_,(_,typ)) as te = tExpr g e in
+       (Parens te, (pos, typ))
     | Bexp(op,e1,e2) -> 
-       let te1 = tExpr g e1 in
-       let te2 = tExpr g e2 in
-       let lub = unify g te1.typ te2.typ in
-       let t = (match op with
+       let (_,(_,typ1)) as te1 = tExpr g e1 in
+       let (_,(_,typ2)) as te2 = tExpr g e2 in
+    (*   let lub = unify g typ1 typ1 in *)
+       let t = Void
+(*
+               (match op with
                 | Boolor
                 | Booland	when isBool lub -> lub
                 | Equals
@@ -67,16 +68,16 @@ let typeAST (Prog(pkg,decls)) =
                 | Bitand
                 | Bitnand 	when isInteger lub -> lub
                 | _ -> raise (TypeError ("Mismatch with '" ^ bop_to_str op ^ "' operation")))
-
+*)
                 (* | TSimp "int", TSimp "int", Plus -> TSimp "int" *)
                 (* | TSimp "int", TSimp "int", Plus -> TSimp "int") *)
 
        (* in { exp = Bexp(op,te1,te2) ; typ = t } *)
-       in { exp = Bexp(op,te1,te2) ; typ = t }
+       in (Bexp(op,te1,te2), (pos, t))
 
     | Uexp(op,e) -> 
-       let te = tExpr g e in
-       let t = (match (te.typ, op) with
+       let (_,(_,typ)) as te = tExpr g e in
+       let t = (match (typ, op) with
                 (* just to start with *)
                 | TSimp "int", Positive -> TSimp "int"
                 | TSimp "float64", Positive -> TSimp "float64"
@@ -90,46 +91,47 @@ let typeAST (Prog(pkg,decls)) =
                 | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation")))
                  (* change to allow for new types *)
        (* let te = typeExpr gamma e *)
-       in { exp = Uexp(op,te) ; typ = t }
+       in (Uexp(op,te), (pos, t))
+
     | Fn_call(f,es) -> 
-       let tf = tLVal g f in
-       let (fargs,ft) = ffind f g in
+       let tf = tExpr g f in
+       let (fargs,ft) = find f g in
        let tes = List.map (tExpr g) es in
        List.iter (fun (arg,te) ->
            if arg != te.typ
            then raise (TypeError ("Function argument mistmatch between "^typ_to_str arg^" and "^typ_to_str te.typ))
            else ()) (zip fargs tes);
-       { exp = Fn_call(tf,tes) ; typ = ft ; }
+       (Fn_call(tf,tes), (pos, ft))
     (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
+
     | Append(x,e) ->
-       let t = (match tfind g x with
+       let t = (match find g x with
 (* add (Iden id) (Typ,typ) g *)
          | TSlice t -> t
          | _ -> raise (TypeError ("\"" ^ x ^ "\" must have type slice")))
        in
        let te = tExpr g e in
-       if t = te.typ then { exp = Append(x,te) ; typ = TSlice t }
+       if t = te.typ then (Append(x,te), (pos, TSlice t))
        else raise (TypeError ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str te.typ))
   (* missing typecast? *)
   (* and tLVal g l : t_lvalue * typ = match l with *)
-  and tLVal g l : t_lvalue = match l with
-    | Iden(id) -> (Iden(id),find id g)
+    | Iden((i,_) as id) -> (Iden(id),find i g)
+
     | AValue(r,e) ->
-       let tr = tLVal g r in
+       let tr = tExpr g r in
        let te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
        if te.typ = TSimp "int"
        then raise (TypeError "Array index must have type int")
-       (* else { lval = AValue(tr,te) ; typ = TArray (te.typ,te.exp) } *)
-       else failwith "not yet"
+       else (AValue(tr,te), (pos, TArray (te.typ,te.exp)))
+
     (* make tlval a record and return tr.typ? *)
     | SValue(r,id) -> 
-       let tr = tLVal g r in
+       let tr = tExpr g r in
        let id_typ_ls = tr.typ in
        if tr.typ = TSimp "int"
        then raise (TypeError "Struct type error")
-       (* else { lval = SValue(tr,id) ; typ = TStruct(tr.typ,0) } *)
-       else failwith "not yet"
+       else (SValue(tr,id), (pos, TStruct(tr.typ,0)))
   in
   let get_assign_typ g (lv,e) = 
     let t_lv = tLVal g lv in
@@ -145,7 +147,7 @@ let typeAST (Prog(pkg,decls)) =
          else raise (TypeError "Mismatch in assignment")
   in
   (* let rec tStmt gamma = function *)
-  let rec tStmt frt g p : t_stmt * context = match p with (* frt is function return type *)
+  let rec tStmt frt g (p, pos) : t_stmt * context = match p with (* frt is function return type *)
     (* Should assign take lvalues?? *)
     | Assign(xs,es) -> 
        let (txs, tes) = unzip (List.map (get_assign_typ g) (zip xs es)) in
@@ -232,7 +234,7 @@ let typeAST (Prog(pkg,decls)) =
   (* let rec tDecl gamma = function *)
   (* let varDecl gamma (ids,eso,typo) = *)
     
-  let rec tDecl g d : t_decl * context = match d with
+  let rec tDecl g (d,pos) : t_decl * context = match d with
     | Var_decl(ids_eso_typo_ls) -> 
        let varDecl g (ids,eso,typo) : (string list * t_expr list option * typ option) * context =
          (* if (List.exists (id -> in_scope id g) ids) then raise DeclError "ID already declared in scope" (\* say which id? *\) *)

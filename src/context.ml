@@ -1,22 +1,27 @@
 open Ast
-open AuxFunctions
+
+(*open AuxFunctions*)
 
 exception ContextError of string
 
 (* Cactus stack of hash tables *)
-type context = Root | Frame of (string, info) Hashtbl.t * context
-and info = kind * string annotated_typ
+type context =
+  | Root of (string, info) Hashtbl.t
+  | Frame of (string, info) Hashtbl.t * context
+and info = kind * typ
 and kind = Var | Typ | Fun
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
                      then raise (ContextError "Variable Declared")
                      else Hashtbl.add tbl name kind
-  | Root -> raise (ContextError "Empty Context")
+  | Root(tbl) -> if Hashtbl.mem tbl name
+                 then raise (ContextError "Variable Declared")
+                 else Hashtbl.add tbl name kind
 
 let init () =
-  let ctx = Frame(Hashtbl.create 1337, Root) in
-  add "true" (Var, (TSimp "bool")) ctx;
+  let ctx = Root(Hashtbl.create 1337) in
+  add "true"  (Var, (TSimp "bool")) ctx;
   add "false" (Var, (TSimp "bool")) ctx;
   ctx
 
@@ -24,6 +29,15 @@ let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
   new_ctx
 
+let typ_to_str = function
+  | TSimp(x) -> x
+  | TStruct(id_typ_ls) -> failwith "not done"
+  | TArray(t,d) -> failwith "not done"
+  | TSlice(t) -> failwith "not done"
+  | Void -> failwith "not done"
+
+
+(*
 let unscope outc dumpsymtab = function
   | Frame(tbl, parent_ctx) ->
       let kind_to_str = function
@@ -44,21 +58,35 @@ let unscope outc dumpsymtab = function
           (String.concat "\n" (print_symtab tbl));
       parent_ctx
   | Root -> raise (ContextError "Empty Context")
+*)
 
 let in_scope name = function
-  | Frame(tbl, _) -> Hashtbl.mem tbl name
-  | Root -> false
+  | Root(tbl) | Frame(tbl, _) -> Hashtbl.mem tbl name
 
-(* is there already a way to do this? or do we need it? *)
 let rec in_context name = function
   | Frame(tbl, tl) -> Hashtbl.mem tbl name || in_context name tl
-  | Root -> false
+  | Root(tbl)      -> Hashtbl.mem tbl name
 
 let rec find name = function
   | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
                        then Hashtbl.find tbl name
                        else find name ctx
-  | Root -> raise (ContextError "Undeclared Variable")
+  | Root(tbl)       -> if Hashtbl.mem tbl name
+                       then Hashtbl.find tbl name
+                       else raise (ContextError (Printf.sprintf "Undeclared symbol %s" name))
+
+let rec get_base_type name = function
+  let rec inner name ct = match ct with
+    | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
+                         then match Hashtbl.find tbl name with
+                          | TSimp(f) -> inner f ct
+                          | _ -> name
+                         else inner name ctx
+    | Root(tbl)       -> if Hashtbl.mem tbl name
+                         then match Hashtbl.find tbl name with
+                          | TSimp(f) -> inner f ct
+                          | _ -> name
+                         else name 
 
 
 

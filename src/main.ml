@@ -23,6 +23,7 @@ let weed lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
   print_endline "Valid"
+
 (*
 let pretty lexbuf =
   let name = Filename.chop_suffix !file ".go" in
@@ -31,17 +32,17 @@ let pretty lexbuf =
   (* Pprint.pTree untypedTree stdout *)
 *)
 
-(*
 let typecheck lexbuf =
   let name = Filename.chop_suffix !file ".go" in
   let untypedTree = Parser.program Lexer.token lexbuf in
   let typedTree = Type.typeAST untypedTree in
+(*
   if !pptype then
     write Pprint.pTree typedTree name ".pptype.go"
   else
     ignore (typedTree)
-  print_endline "Valid"
 *)
+  print_endline "Valid"
 
 let compile lexbuf =
   print_endline "Compiling is complicated"
@@ -63,8 +64,9 @@ let main =
     | "weed"      -> action := weed
 (*
     | "pretty"    -> action := pretty
-    | "typecheck" -> action := typecheck
 *)
+    | "typecheck" -> action := typecheck
+
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)
     | _ as f    -> (in_channel := open_in f;
