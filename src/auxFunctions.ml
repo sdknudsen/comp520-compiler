@@ -29,18 +29,14 @@ let bop_to_str = function
   | Lshift -> "<<"
   | Rshift -> ">>"
 
-<<<<<<< HEAD
+(* let rec lv_to_str (tlv:t_lvalue) = match tlv with *)
 (*
 let rec lv_to_str = function
-=======
-let rec lv_to_str (tlv:t_lvalue) = match tlv with
->>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334
   | Iden(id) -> id
   | AValue(t_lvalue, t_expr) -> lv_to_str t_lvalue
   | SValue(t_lvalue, id) -> lv_to_str t_lvalue
 *)
 
-<<<<<<< HEAD
 (*
 let typ_to_str = function
   | TSimp(x) -> x
@@ -50,8 +46,6 @@ let typ_to_str = function
   | Void -> failwith "not done"
 *)
 
-=======
->>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)

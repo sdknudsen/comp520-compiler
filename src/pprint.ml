@@ -40,7 +40,7 @@ let pTree (Prog(pkg,decls)) outc =
   in
   let rec pExpr = function
     (* | LValue(x) -> Printf.fprintf outc "%s" x *)
-    | Lvalue(l) -> pLVal l
+    (* | Lvalue(l) -> pLVal l *)
     | ILit(d) -> Printf.fprintf outc "%d" d
     | FLit(f) -> Printf.fprintf outc "%f" f
     (* | BLit(b) -> Printf.fprintf outc "%b" b *)

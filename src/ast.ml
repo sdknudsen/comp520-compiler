@@ -118,9 +118,6 @@ module Typed = struct
   type ast  = (decl, utid) annotated_ast
 end
 *)
-<<<<<<< HEAD
-=======
-
 
 (* Untyped *)
 (* Expressions *)
@@ -225,4 +222,3 @@ type ast = Prog of pkg_id * decl list
 (* and a_decl = { decl : a_decl_rec ; decl_ann : annotation } *)
 
 (* type a_ast = TProg of pkg_id * a_decl list *)
->>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334

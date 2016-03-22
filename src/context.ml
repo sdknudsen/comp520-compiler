@@ -7,6 +7,7 @@ type context =
   | Root of (string, info) Hashtbl.t
   | Frame of (string, info) Hashtbl.t * context
 and info = kind * typ
+(* and info = kind * (string annotated_typ) (*use this?*)*)
 and kind = Var | Typ | Fun
 
 let typ_to_str = function
@@ -80,22 +81,24 @@ let rec find name = function
                        then Hashtbl.find tbl name
                        else raise (ContextError (Printf.sprintf "Undeclared symbol %s" name))
 
-let rec get_base_type name = function
+let rec get_base_type name =
+  (* function *)
   let rec inner name ct = match ct with
     | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
                          then match Hashtbl.find tbl name with
-                          | TSimp(f) -> inner f ct
-                          | _ -> name
+                              | TSimp(f) -> inner f ct
+                              | _ -> name
                          else inner name ctx
     | Root(tbl)       -> if Hashtbl.mem tbl name
                          then match Hashtbl.find tbl name with
-                          | TSimp(f) -> inner f ct
-                          | _ -> name
+                              | TSimp(f) -> inner f ct
+                              | _ -> name
                          else name 
+  in inner name
 
 
 
-(*
+                                (*
 exception ContextError of string
 (* use a map instead of a hash table? *)
 (* module Ctx = Map.Make(String) *)
@@ -142,7 +145,9 @@ module Ctx =
         (* let filter *)
         (* let map *)
         end
-(*
+                                 *)
+
+                                (*
 module Ctx :
 sig
   type values = { scp : string; typ : string };;
@@ -150,6 +155,4 @@ sig
   (* val empty : 'a list *)
                                       (* type context = frame list *)
                                       (* val empty : 'a context *)
-end
- *)
-*)
+end *)

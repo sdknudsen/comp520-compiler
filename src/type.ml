@@ -91,6 +91,7 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
 
+    | Fn_call(fun_id, es) -> 
        let tf = tExpr g f in
        let (fargs,ft) = find f g in
        let tes = List.map (tExpr g) es in
