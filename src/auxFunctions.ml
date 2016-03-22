@@ -70,8 +70,8 @@ let rec getBaseTyp g t =
   | _ -> t
   
 let unify g ta tb = 
-  let t1 = getBaseTyp ta in
-  let t2 = getBaseTyp tb in
+  let t1 = getBaseTyp g ta in
+  let t2 = getBaseTyp g tb in
   if t1 == t2 then t1 else 
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 

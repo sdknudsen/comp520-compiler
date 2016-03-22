@@ -76,19 +76,26 @@ let typeAST (Prog(pkg,decls)) =
 
     | Uexp(op,e) -> 
        let te = tExpr g e in
-       let t = (match (te.typ, op) with
-                (* just to start with *)
-                | TSimp "int", Positive -> TSimp "int"
-                | TSimp "float64", Positive -> TSimp "float64"
-                | TSimp "rune", Positive -> TSimp "rune"
-                | TSimp "int", Negative -> TSimp "int"
-                | TSimp "float64", Negative -> TSimp "float64"
-                | TSimp "rune", Negative -> TSimp "rune"
-                | TSimp "bool", Boolnot -> TSimp "bool"
-                | TSimp "int", Bitnot -> TSimp "int"
-                | TSimp "rune", Bitnot -> TSimp "rune"
+       let base = getBaseTyp g te.typ in
+       let t = (match op with
+                | Positive	when isNumeric base -> base
+                | Negative	when isNumeric base -> base
+                | BoolNot	when isBool base -> base
+                | BitNot	when isInteger base -> base
                 | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation")))
-                 (* change to allow for new types *)
+       (* let t = (match (te.typ, op) with *)
+       (*          (\* just to start with *\) *)
+       (*          | TSimp "int", Positive -> TSimp "int" *)
+       (*          | TSimp "float64", Positive -> TSimp "float64" *)
+       (*          | TSimp "rune", Positive -> TSimp "rune" *)
+       (*          | TSimp "int", Negative -> TSimp "int" *)
+       (*          | TSimp "float64", Negative -> TSimp "float64" *)
+       (*          | TSimp "rune", Negative -> TSimp "rune" *)
+       (*          | TSimp "bool", Boolnot -> TSimp "bool" *)
+       (*          | TSimp "int", Bitnot -> TSimp "int" *)
+       (*          | TSimp "rune", Bitnot -> TSimp "rune" *)
+       (*          | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation"))) *)
+       (*           (\* change to allow for new types *\) *)
        (* let te = typeExpr gamma e *)
        in { exp = Uexp(op,te) ; typ = t }
     | Fn_call(f,es) -> 
