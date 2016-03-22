@@ -31,10 +31,10 @@ let typeAST (Prog(pkg,decls)) =
                (d::tl,gam)
   in
   (* let rec tExpr gamma = function *)
-  let rec tExpr g e : t_expr = match e with
-    | Lvalue(l) ->
-       let (tl,t) = tLVal g l in
-       { exp = Lvalue(tl) ; typ = t }
+  let rec tExpr g e = match e with
+    (* | Lvalue(l) -> *)
+    (*    let (tl,t) = tLVal g l in *)
+    (*    { exp = Lvalue(tl) ; typ = t } *)
 
     | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
     | FLit(f) -> { exp = FLit f ; typ = TSimp "float64" }
@@ -101,7 +101,7 @@ let typeAST (Prog(pkg,decls)) =
        else raise (TypeError ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str te.typ))
   (* missing typecast? *)
   (* and tLVal g l : t_lvalue * typ = match l with *)
-  and tLVal g l : t_lvalue = match l with
+  and tLVal g l = match l with
     | Iden(id) -> (Iden(id),find id g)
     | AValue(r,e) ->
        let tr = tLVal g r in
