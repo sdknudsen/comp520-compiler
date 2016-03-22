@@ -6,8 +6,7 @@ exception ContextError of string
 type context =
   | Root of (string, info) Hashtbl.t
   | Frame of (string, info) Hashtbl.t * context
-and info = kind * typ
-(* and info = kind * (string annotated_typ) (*use this?*)*)
+and info = kind * (string annotated_typ)
 and kind = Var | Typ | Fun
 
 let typ_to_str = function
@@ -86,12 +85,12 @@ let rec get_base_type name =
   let rec inner name ct = match ct with
     | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
                          then match Hashtbl.find tbl name with
-                              | TSimp(f) -> inner f ct
+                              | (Typ, TSimp(f)) -> inner f ct
                               | _ -> name
                          else inner name ctx
     | Root(tbl)       -> if Hashtbl.mem tbl name
                          then match Hashtbl.find tbl name with
-                              | TSimp(f) -> inner f ct
+                              | (Typ, TSimp(f)) -> inner f ct
                               | _ -> name
                          else name 
   in inner name

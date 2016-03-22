@@ -92,47 +92,56 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        in (Uexp(op,te), (pos, t))
 
     | Fn_call(fun_id, es) -> 
-       let tf = tExpr g f in
+       raise (TypeError ("Function type unimplemented"))
+      (* let tf = tExpr g f in
        let (fargs,ft) = find f g in
        let tes = List.map (tExpr g) es in
        List.iter (fun (arg,te) ->
            if arg != te.typ
            then raise (TypeError ("Function argument mistmatch between "^typ_to_str arg^" and "^typ_to_str te.typ))
            else ()) (zip fargs tes);
-       (Fn_call(tf,tes), (pos, ft))
+       (Fn_call(tf,tes), (pos, ft)) *)
     (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
 
-    | Append(x,e) ->
-       let t = (match find g x with
+    | Append((x,_) as id, e) ->
+       let t = (match find x g with
 (* add (Iden id) (Typ,typ) g *)
-         | TSlice t -> t
+         | (k,TSlice t) -> t
          | _ -> raise (TypeError ("\"" ^ x ^ "\" must have type slice")))
        in
-       let te = tExpr g e in
-       if t = te.typ then (Append(x,te), (pos, TSlice t))
-       else raise (TypeError ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str te.typ))
-  (* missing typecast? *)
-  (* and tLVal g l : t_lvalue * typ = match l with *)
-    | Iden((i,_) as id) -> (Iden(id),find i g)
+       let (_,(_,typ)) as te = tExpr g e in
+       if t = typ then (Append(id,te), (pos, TSlice t))
+       else raise (TypeError ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ))
+
+    | Iden((i,_) as id) -> 
+       let (_,t) = find i g in
+       (Iden(id), (pos, t))
 
     | AValue(r,e) ->
-       let tr = tExpr g r in
-       let te = tExpr g e in
+       let (_,(_,typ1)) as tr = tExpr g r in
+       let (_,(_,typ2)) as te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
-       if te.typ = TSimp "int"
-       then raise (TypeError "Array index must have type int")
-       else (AValue(tr,te), (pos, TArray (te.typ,te.exp)))
+       (match typ2 with
+         | _ -> raise (TypeError "Array index must have type int")
+         | TSimp "int" -> (AValue(tr,te), (pos, typ1)));
 
     (* make tlval a record and return tr.typ? *)
-    | SValue(r,id) -> 
-       let tr = tExpr g r in
-       let id_typ_ls = tr.typ in
-       if tr.typ = TSimp "int"
-       then raise (TypeError "Struct type error")
-       else (SValue(tr,id), (pos, TStruct(tr.typ,0)))
+    | SValue(r, id) ->
+       let (i,_) = id in
+       try
+       match tExpr g r with
+         | (_,(_, TStruct(tl))) as tr ->
+            let (_,field_typ) = List.find (function
+                                            | (_,i) -> true
+                                            | _ -> false)
+                                      tl
+            in (SValue(tr,id), (pos, field_typ))
+         | _ -> raise (TypeError "Something very wrong")
+       with 
+         | Not_found -> raise (TypeError "Invalid struct field")
   in
   let get_assign_typ g (lv,e) = 
-    let t_lv = tLVal g lv in
+    let t_lv = tExpr g lv in
     (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
     let id = lv_to_str lv in
     (* if not (mem id g) *)
