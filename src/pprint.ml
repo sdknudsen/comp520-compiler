@@ -181,8 +181,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                              (* change this !! *)
                              (fun c -> pssl ";\n" pStmt ps)
   in
-  pln(); pln(); List.iter pDecl decls
-(* pstr ("package "^(pkg)); pln(); pln(); List.iter pDecl decls *)
+  pstr ("package "^id); pln(); pln(); List.iter pDecl decls
 
 
 (********************************************************************************)
@@ -367,5 +366,4 @@ let ptTree (Prog(id,decls) : Ast.Typed.ast) outc =
                              (* change this !! *)
                              (fun c -> pssl ";\n" pStmt ps)
   in
-  pln(); pln(); List.iter pDecl decls
-                          (* pstr ("package "^(pkg)); pln(); pln(); List.iter pDecl decls *)
+  pstr ("package "^id); pln(); pln(); List.iter pDecl decls
