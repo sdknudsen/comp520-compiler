@@ -68,10 +68,6 @@ let typeAST (Prog(pkg,decls)) =
                 | Bitnand 	when isInteger lub -> lub
                 | _ -> raise (TypeError ("Mismatch with '" ^ bop_to_str op ^ "' operation")))
 
-                (* | TSimp "int", TSimp "int", Plus -> TSimp "int" *)
-                (* | TSimp "int", TSimp "int", Plus -> TSimp "int") *)
-
-       (* in { exp = Bexp(op,te1,te2) ; typ = t } *)
        in { exp = Bexp(op,te1,te2) ; typ = t }
 
     | Uexp(op,e) -> 
@@ -83,20 +79,6 @@ let typeAST (Prog(pkg,decls)) =
                 | BoolNot	when isBool base -> base
                 | BitNot	when isInteger base -> base
                 | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation")))
-       (* let t = (match (te.typ, op) with *)
-       (*          (\* just to start with *\) *)
-       (*          | TSimp "int", Positive -> TSimp "int" *)
-       (*          | TSimp "float64", Positive -> TSimp "float64" *)
-       (*          | TSimp "rune", Positive -> TSimp "rune" *)
-       (*          | TSimp "int", Negative -> TSimp "int" *)
-       (*          | TSimp "float64", Negative -> TSimp "float64" *)
-       (*          | TSimp "rune", Negative -> TSimp "rune" *)
-       (*          | TSimp "bool", Boolnot -> TSimp "bool" *)
-       (*          | TSimp "int", Bitnot -> TSimp "int" *)
-       (*          | TSimp "rune", Bitnot -> TSimp "rune" *)
-       (*          | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation"))) *)
-       (*           (\* change to allow for new types *\) *)
-       (* let te = typeExpr gamma e *)
        in { exp = Uexp(op,te) ; typ = t }
     | Fn_call(f,es) -> 
        let tf = tLVal g f in
@@ -127,16 +109,16 @@ let typeAST (Prog(pkg,decls)) =
        (* do we allow e to be empty if this is a slice?? *)
        if te.typ = TSimp "int"
        then raise (TypeError "Array index must have type int")
-       (* else { lval = AValue(tr,te) ; typ = TArray (te.typ,te.exp) } *)
-       else failwith "not yet"
+       else { lval = AValue(tr,te) ; typ = TArray (te.typ,te.exp) }
+       (* else failwith "not yet" *)
     (* make tlval a record and return tr.typ? *)
     | SValue(r,id) -> 
        let tr = tLVal g r in
        let id_typ_ls = tr.typ in
        if tr.typ = TSimp "int"
        then raise (TypeError "Struct type error")
-       (* else { lval = SValue(tr,id) ; typ = TStruct(tr.typ,0) } *)
-       else failwith "not yet"
+       else { lval = SValue(tr,id) ; typ = TStruct(tr.typ,0) }
+       (* else failwith "not yet" *)
   in
   let get_assign_typ g (lv,e) = 
     let t_lv = tLVal g lv in
@@ -327,3 +309,17 @@ append cap close complex copy delete imag len make new panic print println real 
     (* | BLit(b) -> BLit(b) *)
     (* | RLit(c) -> RLit(c) *)
     (* | SLit(s) -> SLit(s) *)
+
+       (* let t = (match (te.typ, op) with *)
+       (*          (\* just to start with *\) *)
+       (*          | TSimp "int", Positive -> TSimp "int" *)
+       (*          | TSimp "float64", Positive -> TSimp "float64" *)
+       (*          | TSimp "rune", Positive -> TSimp "rune" *)
+       (*          | TSimp "int", Negative -> TSimp "int" *)
+       (*          | TSimp "float64", Negative -> TSimp "float64" *)
+       (*          | TSimp "rune", Negative -> TSimp "rune" *)
+       (*          | TSimp "bool", Boolnot -> TSimp "bool" *)
+       (*          | TSimp "int", Bitnot -> TSimp "int" *)
+       (*          | TSimp "rune", Bitnot -> TSimp "rune" *)
+       (*          | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation"))) *)
+       (*           (\* change to allow for new types *\) *)

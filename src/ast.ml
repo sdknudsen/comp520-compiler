@@ -70,58 +70,6 @@ type t_decl =
 type t_ast = TProg of pkg_id * t_decl list
 
 
-(* (\* Annotated with records *\) *)
-(* type annotation = () (\**** change this line ****\) *)
-(* type a_expr_rec = *)
-(*   (\* | Lvalue of a_lvalue *\) *)
-(*   | ILit of int *)
-(*   | FLit of float *)
-(*   | BLit of bool *)
-(*   | RLit of char *)
-(*   | SLit of string *)
-(*   | Uexp of unop * a_expr *)
-(*   | Bexp of binop * a_expr * a_expr *)
-(*   | Fn_call of a_lvalue * a_expr list *)
-(*   | Append of id * a_expr *)
-(* and a_expr = { exp : a_expr_rec ; expr_ann : annotation } *)
-
-(* and a_lvalue_rec = *)
-(*   | Iden of id *)
-(*   | AValue of a_lvalue * a_expr *)
-(*   | SValue of a_lvalue * id *)
-(* and a_lvalue = { lval : a_lvalue_rec ; lval_ann : annotation } *)
-
-(* type a_assignment_rec = a_lvalue list * a_expr list *)
-(* and a_assignment = { assign : a_assignment_rec ; assign_ann : annotation } *)
-
-(* type a_stmt_rec = *)
-(*   | Assign  of a_assignment *)
-(*   | Print   of a_expr list *)
-(*   | Println of a_expr list *)
-(*   | If_stmt of a_stmt option * a_expr * a_stmt list * a_stmt list option *)
-(*   | Switch_stmt of a_stmt option * a_expr option * a_stmt list *)
-(*   | Switch_clause of a_expr list option * a_stmt list *)
-(*   | For_stmt    of a_stmt option * a_expr option * a_stmt option * a_stmt list *)
-(*   | Var_stmt    of (id list * a_expr list option * typ option) list *)
-(*   | SDecl_stmt  of (id list * a_expr list option) *)
-(*   | Type_stmt   of (id * typ) list *)
-(*   | Expr_stmt   of a_expr *)
-(*   | Return      of a_expr option *)
-(*   | Break *)
-(*   | Continue *)
-(*   | Empty_stmt *)
-(* and a_stmt = { stmt : a_stmt_rec ; stmt_ann : annotation } *)
-
-(* type a_decl_rec = *)
-(*   | Var_decl  of (id list * a_expr list option * typ option) list *)
-(*   | Type_decl of (typ_id * typ) list *)
-(*   | Func_decl of fun_id * (id * typ) list * typ * a_stmt list *)
-(* and a_decl = { decl : a_decl_rec ; decl_ann : annotation } *)
-
-(* type a_ast = TProg of pkg_id * a_decl list *)
-
-
-
 (* Annotated tree *)
 type 'i annotated_typ =
   | TSimp   of 'i (*typ_id*)
@@ -276,3 +224,55 @@ type decl =
 
 type ast = Prog of pkg_id * decl list
 *)
+
+
+
+(* (\* Annotated with records *\) *)
+(* type annotation = () (\**** change this line ****\) *)
+(* type a_expr_rec = *)
+(*   (\* | Lvalue of a_lvalue *\) *)
+(*   | ILit of int *)
+(*   | FLit of float *)
+(*   | BLit of bool *)
+(*   | RLit of char *)
+(*   | SLit of string *)
+(*   | Uexp of unop * a_expr *)
+(*   | Bexp of binop * a_expr * a_expr *)
+(*   | Fn_call of a_lvalue * a_expr list *)
+(*   | Append of id * a_expr *)
+(* and a_expr = { exp : a_expr_rec ; expr_ann : annotation } *)
+
+(* and a_lvalue_rec = *)
+(*   | Iden of id *)
+(*   | AValue of a_lvalue * a_expr *)
+(*   | SValue of a_lvalue * id *)
+(* and a_lvalue = { lval : a_lvalue_rec ; lval_ann : annotation } *)
+
+(* type a_assignment_rec = a_lvalue list * a_expr list *)
+(* and a_assignment = { assign : a_assignment_rec ; assign_ann : annotation } *)
+
+(* type a_stmt_rec = *)
+(*   | Assign  of a_assignment *)
+(*   | Print   of a_expr list *)
+(*   | Println of a_expr list *)
+(*   | If_stmt of a_stmt option * a_expr * a_stmt list * a_stmt list option *)
+(*   | Switch_stmt of a_stmt option * a_expr option * a_stmt list *)
+(*   | Switch_clause of a_expr list option * a_stmt list *)
+(*   | For_stmt    of a_stmt option * a_expr option * a_stmt option * a_stmt list *)
+(*   | Var_stmt    of (id list * a_expr list option * typ option) list *)
+(*   | SDecl_stmt  of (id list * a_expr list option) *)
+(*   | Type_stmt   of (id * typ) list *)
+(*   | Expr_stmt   of a_expr *)
+(*   | Return      of a_expr option *)
+(*   | Break *)
+(*   | Continue *)
+(*   | Empty_stmt *)
+(* and a_stmt = { stmt : a_stmt_rec ; stmt_ann : annotation } *)
+
+(* type a_decl_rec = *)
+(*   | Var_decl  of (id list * a_expr list option * typ option) list *)
+(*   | Type_decl of (typ_id * typ) list *)
+(*   | Func_decl of fun_id * (id * typ) list * typ * a_stmt list *)
+(* and a_decl = { decl : a_decl_rec ; decl_ann : annotation } *)
+
+(* type a_ast = TProg of pkg_id * a_decl list *)
