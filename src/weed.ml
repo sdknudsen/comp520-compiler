@@ -17,10 +17,10 @@ let weed ast =
       | _ -> ()
   in
 
-  let weed_binop expr = match expr with
+  (* let weed_binop expr = match expr with
       | Bexp(Div, l, ILit(0,_), {Untyped.Info.pos}) -> raise (Error.CompileError "Division by 0")
       | _ -> ()
-  in
+  in *)
   let rec weed_expression expr in_lhs in_stmt_ctx =
     match (expr, in_lhs, in_stmt_ctx) with
 
@@ -57,7 +57,7 @@ let weed ast =
       | (Uexp(op, e, _),_,_) ->
           weed_expression e false false;
       | (Bexp(op, l, r, _),_,_) ->
-          weed_binop expr;
+          (* weed_binop expr; *)
           weed_expression l false false;
           weed_expression r false false;
       | (Append(i,arg,_),_,_) ->
