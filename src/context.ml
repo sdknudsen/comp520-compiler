@@ -1,7 +1,5 @@
 open Ast
 
-(*open AuxFunctions*)
-
 exception ContextError of string
 
 (* Cactus stack of hash tables *)
@@ -10,6 +8,13 @@ type context =
   | Frame of (string, info) Hashtbl.t * context
 and info = kind * typ
 and kind = Var | Typ | Fun
+
+let typ_to_str = function
+  | TSimp(x) -> x
+  | TStruct(id_typ_ls) -> failwith "not done"
+  | TArray(t,d) -> failwith "not done"
+  | TSlice(t) -> failwith "not done"
+  | Void -> failwith "not done"
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name

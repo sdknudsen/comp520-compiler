@@ -39,9 +39,8 @@ let typecheck lexbuf =
 (*
   if !pptype then
     write Pprint.pTree typedTree name ".pptype.go"
-  else
+  else*)
     ignore (typedTree)
-*)
   print_endline "Valid"
 
 let compile lexbuf =
@@ -66,7 +65,10 @@ let main =
     | "pretty"    -> action := pretty
 *)
     | "typecheck" -> action := typecheck
+<<<<<<< HEAD
 
+=======
+>>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)
     | _ as f    -> (in_channel := open_in f;

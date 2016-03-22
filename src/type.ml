@@ -4,8 +4,6 @@ open Context
 open AuxFunctions
 open Errors
 
-let dumpsymtab = true (* for testing purposes *)
-
 (* add (Iden id) (Var,typ) g *)
 (* add (Iden id) (Fun,typ) g *)
 (* add (Iden id) (Typ,typ) g *)
@@ -93,7 +91,6 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
 
-    | Fn_call(f,es) -> 
        let tf = tExpr g f in
        let (fargs,ft) = find f g in
        let tes = List.map (tExpr g) es in
@@ -322,3 +319,17 @@ append cap close complex copy delete imag len make new panic print println real 
     (* | BLit(b) -> BLit(b) *)
     (* | RLit(c) -> RLit(c) *)
     (* | SLit(s) -> SLit(s) *)
+
+       (* let t = (match (te.typ, op) with *)
+       (*          (\* just to start with *\) *)
+       (*          | TSimp "int", Positive -> TSimp "int" *)
+       (*          | TSimp "float64", Positive -> TSimp "float64" *)
+       (*          | TSimp "rune", Positive -> TSimp "rune" *)
+       (*          | TSimp "int", Negative -> TSimp "int" *)
+       (*          | TSimp "float64", Negative -> TSimp "float64" *)
+       (*          | TSimp "rune", Negative -> TSimp "rune" *)
+       (*          | TSimp "bool", Boolnot -> TSimp "bool" *)
+       (*          | TSimp "int", Bitnot -> TSimp "int" *)
+       (*          | TSimp "rune", Bitnot -> TSimp "rune" *)
+       (*          | _ -> raise (TypeError ("Mismatch with '" ^ uop_to_str op ^ "' operation"))) *)
+       (*           (\* change to allow for new types *\) *)

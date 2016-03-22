@@ -29,13 +29,18 @@ let bop_to_str = function
   | Lshift -> "<<"
   | Rshift -> ">>"
 
+<<<<<<< HEAD
 (*
 let rec lv_to_str = function
+=======
+let rec lv_to_str (tlv:t_lvalue) = match tlv with
+>>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334
   | Iden(id) -> id
   | AValue(t_lvalue, t_expr) -> lv_to_str t_lvalue
   | SValue(t_lvalue, id) -> lv_to_str t_lvalue
 *)
 
+<<<<<<< HEAD
 (*
 let typ_to_str = function
   | TSimp(x) -> x
@@ -45,6 +50,8 @@ let typ_to_str = function
   | Void -> failwith "not done"
 *)
 
+=======
+>>>>>>> 39cb7ac7b7ad9ca5e27e1926f5190619e6345334
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
@@ -78,12 +85,11 @@ let rec getBaseTyp g t =
   | _ -> t
 
 let unify g ta tb = 
-  let t1 = getBaseTyp ta in
-  let t2 = getBaseTyp tb in
+  let t1 = getBaseTyp g ta in
+  let t2 = getBaseTyp g tb in
   if t1 == t2 then t1 else 
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 *)
-
 
 
 
