@@ -4,8 +4,6 @@ open Context
 open AuxFunctions
 open Errors
 
-let dumpsymtab = true (* for testing purposes *)
-
 (* add (Iden id) (Var,typ) g *)
 (* add (Iden id) (Fun,typ) g *)
 (* add (Iden id) (Typ,typ) g *)
@@ -23,7 +21,7 @@ let dumpsymtab = true (* for testing purposes *)
 (* let rec str_of_typ = function *)
 
 
-let typeAST (Prog(pkg,decls)) =
+let typeAST (Prog(pkg,decls)) dumpsymtab =
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
     | [] -> ([],gamma)
     | x::xs -> let (d,g) = f gamma x in
