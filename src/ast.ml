@@ -123,11 +123,6 @@ type t_ast = TProg of pkg_id * t_decl list
 
 
 (* Annotated tree *)
-type ('a, 'e, 'i) annotated_lvalue = 
-  | LIden of 'i * 'a
-  | LAValue of ('a, 'e, 'i) annotated_lvalue * 'e * 'a
-  | LSValue of ('a, 'e, 'i) annotated_lvalue * 'i * 'a
-
 type 'i annotated_typ =
   | TSimp   of 'i (*typ_id*)
   | TStruct of ('i (*typ_id*) * 'i annotated_typ) list
@@ -135,68 +130,65 @@ type 'i annotated_typ =
   | TSlice  of 'i annotated_typ
   | Void
 
-type ('a, 'e, 'i) annotated_expr =
-  | Iden of 'i * 'a
-  | AValue of 'e * 'e * 'a
-  | SValue of 'e * 'i * 'a
-(*
-  | LValue of ('a, 'e, 'i) annotated_lvalue
-*)
-  | ILit of int * 'a
-  | FLit of float * 'a
-  (* | BLit of bool * 'a *)
-  | RLit of char * 'a
-  | SLit of string * 'a
-  | Uexp of unop * 'e * 'a
-  | Bexp of binop * 'e * 'e * 'a
-  | Parens of 'e * 'a
-  | Fn_call of 'e * 'e list * 'a
-  | Append of 'i * 'e * 'a
-
-type ('a, 'e) annotated_assignment = 'e list * 'e list * 'a
+type ('e, 'i) annotated_expr =
+  | Iden    of 'i
+  | Parens  of 'e
+  | AValue  of 'e * 'e
+  | SValue  of 'e * 'i
+  | Append  of 'i * 'e
+  | Fn_call of 'e * 'e list
+  | ILit    of int
+  | RLit    of char
+  | FLit    of float
+  | SLit    of string
+  | Uexp    of unop * 'e
+  | Bexp    of binop * 'e * 'e
 
 (* Statements *)
-type ('a, 's, 'e, 'i) annotated_stmt =
-  | Assign  of ('a, 'e) annotated_assignment
-  | Print   of 'e list * 'a
-  | Println of 'e list * 'a
-  | If_stmt of 's option * 'e * 's list * 's list option * 'a
-  | Switch_stmt of 's option * 'e option * 's list * 'a
-  | Switch_clause of 'e list option * 's list * 'a
-  | For_stmt    of 's option * 'e option * 's option * 's list * 'a
-  | Var_stmt    of ('i list * 'e list option * 'i annotated_typ option) list * 'a
-  | SDecl_stmt  of 'i list * 'e list option * 'a
-  | Type_stmt   of ('i * 'i annotated_typ) list * 'a
-  | Expr_stmt   of 'e * 'a
-  | Return      of 'e option * 'a
-  | Block       of 's list * 'a
-  | Break       of 'a
-  | Continue    of 'a
-  | Empty_stmt  of 'a
+type ('s, 'e, 'i) annotated_stmt =
+  | Assign      of 'e list * 'e list
+  | If_stmt     of 's option * 'e * 's list * 's list option
+  | Switch_stmt of 's option * 'e option * 's list
+  | For_stmt    of 's option * 'e option * 's option * 's list
+  | Switch_clause of 'e list option * 's list
+  | Var_stmt    of ('i list * 'e list option * 'i annotated_typ option) list
+  | SDecl_stmt  of 'i list * 'e list option
+  | Type_stmt   of ('i * 'i annotated_typ) list
+  | Return      of 'e option
+  | Block       of 's list
+  | Print       of 'e list
+  | Println     of 'e list
+  | Expr_stmt   of 'e
+  | Break
+  | Continue
+  | Empty_stmt
 
 (* Top-level declarations *)
-type ('a, 's, 'e, 'i) annotated_decl =
-  | Var_decl  of ('i list * 'e list option * 'i annotated_typ option) list * 'a
-  | Type_decl of ('i * 'i annotated_typ) list * 'a
-  | Func_decl of 'i * ('i * 'i annotated_typ) list * 'i annotated_typ * 's list * 'a
+type ('s, 'e, 'i) annotated_decl =
+  | Var_decl  of ('i list * 'e list option * 'i annotated_typ option) list
+  | Type_decl of ('i * 'i annotated_typ) list
+  | Func_decl of 'i * ('i * 'i annotated_typ) list * 'i annotated_typ * 's list
 
 type ('d, 'i) annotated_ast = Prog of 'i * 'd list
 
 
 (* Untyped *)
 module Untyped = struct
-  module Info = struct
+  (*module Info = struct
     type t =
       {
         pos: Lexing.position;
       }
-  end
-  type info = Info.t (*{bline:int; bcol:int}*)
-  type id   = string * info
-  type expr = (info, expr, id) annotated_expr
-  type stmt = (info, stmt, expr, id) annotated_stmt
-  type decl = (info, stmt, expr, id) annotated_decl
-  type ast  = (decl, id) annotated_ast
+  end*)
+(*  type info = Info.t (*{bline:int; bcol:int}*) *)
+  type id = string * Lexing.position
+  type utexpr = (annotated_utexpr, id) annotated_expr
+  and annotated_utexpr =  (utexpr * Lexing.position)
+  type utstmt = (annotated_utstmt, annotated_utexpr, id) annotated_stmt
+  and annotated_utstmt = utstmt * Lexing.position
+  type utdecl = (annotated_utstmt, annotated_utexpr, id) annotated_decl
+  type annotated_utdecl = utdecl * Lexing.position
+  type ast  = (annotated_utdecl, id) annotated_ast
 end
 
 

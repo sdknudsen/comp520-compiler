@@ -19,12 +19,10 @@ let parse lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   ignore (untypedTree);
   print_endline "Valid"
-
 let weed lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
   print_endline "Valid"
-
 (*
 let pretty lexbuf =
   let name = Filename.chop_suffix !file ".go" in
@@ -66,7 +64,7 @@ let main =
 (*
     | "pretty"    -> action := pretty
     | "typecheck" -> action := typecheck
- *)
+*)
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)
     | _ as f    -> (in_channel := open_in f;
