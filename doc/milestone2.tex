@@ -23,8 +23,10 @@ Initially, the symbol table consisted of a list of maps (as in dictionaries). We
 
 \subsection*{Type checker}
 Type-checking closely followed the typechecker pdf.
+New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped.
+At variable, type, and function declarations, a check is made to see if the id has been declared in the current scope. A type error is raised if it's already been declared.
 
-Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element. Since we decided not to use the map, this is no longer needed, (simply mapping suffices) but not all instances were replaced.
+Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element of the list. Since we decided not to use the map, this is no longer needed, (simply mapping suffices) but not all instances were replaced.
 
 Because type declaration is allowed in golite, the approach of matching the types and operators that we had seen for for the minilang compiler wouldn't work. We took the approach of pattern matching on the operator and checking if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
 
