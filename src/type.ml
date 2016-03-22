@@ -6,13 +6,9 @@ open Errors
 
 let dumpsymtab = true (* for testing purposes *)
 
-let fadd name kind = failwith "function add not implemenented"
-                              (* add (Iden id) (Var,typ) g *)
-                              (* add (Iden id) (Fun,typ) g *)
-                              (* add (Iden id) (Typ,typ) g *)
-let ffind name kind = failwith "function find not implemenented"
-let tadd name kind = failwith "type add not implemenented"
-let tfind name kind = failwith "type find not implemenented"
+(* add (Iden id) (Var,typ) g *)
+(* add (Iden id) (Fun,typ) g *)
+(* add (Iden id) (Typ,typ) g *)
 
 (* type context = lvalue Ast.Ctx.t *)
 
@@ -37,19 +33,17 @@ let typeAST (Prog(pkg,decls)) =
   (* let rec tExpr gamma = function *)
   let rec tExpr g e : t_expr = match e with
     | Lvalue(l) ->
-       (* let (tl,t) = tLVal g l in *)
-       (* { exp = Lvalue(tl) ; typ = t } *)
-       failwith "not implemented"
+       let (tl,t) = tLVal g l in
+       { exp = Lvalue(tl) ; typ = t }
 
     | ILit(d) -> { exp = ILit d ; typ = TSimp "int" }
     | FLit(f) -> { exp = FLit f ; typ = TSimp "float64" }
-    | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } (* why is bool not included in the pdf?? *)
+    (* | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } *) (* why is bool not included in the pdf?? *)
     | RLit(c) -> { exp = RLit c ; typ = TSimp "rune" }
     | SLit(s) -> { exp = SLit s ; typ = TSimp "string" }
     | Bexp(op,e1,e2) -> 
        let te1 = tExpr g e1 in
        let te2 = tExpr g e2 in
-       (* let t = (match (typClass g te1.typ, typClass g te2.typ, op) with *)
        let lub = unify g te1.typ te2.typ in
        let t = (match op with
                 | Boolor
@@ -97,18 +91,19 @@ let typeAST (Prog(pkg,decls)) =
                  (* change to allow for new types *)
        (* let te = typeExpr gamma e *)
        in { exp = Uexp(op,te) ; typ = t }
-    | Fn_call(f,es) -> failwith "error"
-    (*    let tf = tLVal g f in *)
-    (*    let (fargs,ft) = ffind f g in *)
-    (*    let tes = List.map (tExpr g) es in *)
-    (*    List.iter (fun (arg,te) -> *)
-    (*        if arg != te.typ *)
-    (*        then raise (TypeError ("Function argument mistmatch between "^typ_to_str arg^" and "^typ_to_str te.typ)) *)
-    (*        else ()) (zip fargs tes); *)
-    (*    { exp = Fn_call(tf,tes) ; typ = ft ; } *)
-    (* (\* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *\) *)
+    | Fn_call(f,es) -> 
+       let tf = tLVal g f in
+       let (fargs,ft) = ffind f g in
+       let tes = List.map (tExpr g) es in
+       List.iter (fun (arg,te) ->
+           if arg != te.typ
+           then raise (TypeError ("Function argument mistmatch between "^typ_to_str arg^" and "^typ_to_str te.typ))
+           else ()) (zip fargs tes);
+       { exp = Fn_call(tf,tes) ; typ = ft ; }
+    (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
     | Append(x,e) ->
        let t = (match tfind g x with
+(* add (Iden id) (Typ,typ) g *)
          | TSlice t -> t
          | _ -> raise (TypeError ("\"" ^ x ^ "\" must have type slice")))
        in
@@ -118,8 +113,7 @@ let typeAST (Prog(pkg,decls)) =
   (* missing typecast? *)
   (* and tLVal g l : t_lvalue * typ = match l with *)
   and tLVal g l : t_lvalue = match l with
-    | Iden(id) -> failwith "not implemented"
-                           (* (Iden(id),find id g) *)
+    | Iden(id) -> (Iden(id),find id g)
     | AValue(r,e) ->
        let tr = tLVal g r in
        let te = tExpr g e in

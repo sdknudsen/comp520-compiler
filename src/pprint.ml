@@ -43,7 +43,7 @@ let pTree (Prog(pkg,decls)) outc =
     | Lvalue(l) -> pLVal l
     | ILit(d) -> Printf.fprintf outc "%d" d
     | FLit(f) -> Printf.fprintf outc "%f" f
-    | BLit(b) -> Printf.fprintf outc "%b" b
+    (* | BLit(b) -> Printf.fprintf outc "%b" b *)
     | RLit(c) -> Printf.fprintf outc "'%c'" c
     | SLit(s) -> Printf.fprintf outc "\"%s\"" s
     | Bexp(op,e1,e2) -> Printf.fprintf outc "(%t %s %t)"

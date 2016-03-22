@@ -40,12 +40,6 @@ let typ_to_str = function
   | TSlice(t) -> failwith "not done"
   | Void -> failwith "not done"
 
-let kind_to_str = function
-  | Var -> "var"
-  | Typ -> "type"
-  | Fun -> "func"
-
-
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
@@ -69,8 +63,15 @@ let rec unzip l = match l with
   | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
   | [] -> ([],[])
 
-(* change to include defined types *)
-let unify g t1 t2 =
+let rec getBaseTyp g t =
+  try let (Typ,t') = find (Iden t) g
+      in getBaseTyp g t'
+  with
+  | _ -> t
+  
+let unify g ta tb = 
+  let t1 = getBaseTyp ta in
+  let t2 = getBaseTyp tb in
   if t1 == t2 then t1 else 
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 
