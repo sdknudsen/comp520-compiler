@@ -33,7 +33,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
   in
 
   let rec tTyp g (t:(string * Lexing.position) annotated_typ): string annotated_typ = match t with
-    | TSimp((i,_)) -> TSimp(i)
+    | TSimp((i,p)) -> if in_context i g
+                      then TSimp(i)
+                      else typecheck_error p "Use of undefined type"
     | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
     | TArray(t,s) -> TArray(tTyp g t, s)
     | TSlice(t) -> TSlice(tTyp g t)
@@ -313,6 +315,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Var_decl(ls), pos)
 
 
+
+
     | Type_decl(typId_typ_ls) -> 
        let tl = List.map
                   (fun ((i,ipos), t) ->
@@ -335,12 +339,21 @@ typId_typ_ls
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
-         let itl = List.map (fun((i,_), t) -> (i, tTyp g t)) id_typ_ls in
+         let ng = scope g in  
+         let itl = List.map (fun((i,ipos), t) ->
+                               let t = tTyp g t in
+                               if in_scope i ng
+                               then typecheck_error
+                                      ipos
+                                      ("Parameter name `" ^ i ^ "` use twice")
+                               else (add i t ng; (i, t)))
+                            id_typ_ls in
          let tl = List.map (fun(_, t) -> t) itl in
-         add fId (TFn(tl , tTyp g typ)) g;
-         List.iter (fun (id,typ) -> add id typ g) itl;
-         let tps = List.map (tStmt (tTyp g typ) g) ps in
-         (Func_decl(fId, itl, tTyp g typ, tps), pos)
+         let rtntyp = tTyp g typ in
+
+         add fId (TFn(tl, rtntyp)) g;
+         let tps = List.map (tStmt rtntyp ng) ps in
+         (Func_decl(fId, itl, rtntyp, tps), pos)
        end
     |_ ->
        typecheck_error pos "Oups";
