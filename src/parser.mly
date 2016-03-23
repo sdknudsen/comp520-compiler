@@ -155,7 +155,7 @@ func_decl:
     {
       match t with
       | Some(t) -> (Func_decl(fun_id, params, t, b), $startpos)
-      | None    -> (Func_decl(fun_id, params, Void, b), $startpos)
+      | None    -> (Func_decl(fun_id, params, TVoid, b), $startpos)
     }
 
 parameters:

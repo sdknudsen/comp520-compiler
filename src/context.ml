@@ -4,15 +4,24 @@ open Ast
 type context =
   | Root of (string, info) Hashtbl.t
   | Frame of (string, info) Hashtbl.t * context
-and info = kind * (string annotated_typ)
-and kind = Var | Typ | Fun
+and info = (string annotated_typ)
 
-let typ_to_str = function
+let rec typ_to_str = function
   | TSimp(x) -> x
-  | TStruct(id_typ_ls) -> failwith "not done"
-  | TArray(t,d) -> failwith "not done"
-  | TSlice(t) -> failwith "not done"
-  | Void -> failwith "not done"
+  | TStruct(id_typ_ls) -> "#struct { "
+                        ^ (String.concat 
+                            ", "
+                            (List.map (fun (id, t) -> id ^ ":" ^ (typ_to_str t)) id_typ_ls)
+                          )
+                        ^ "}"
+  | TArray(t,d) -> "[" ^ (string_of_int d) ^ "]" ^ (typ_to_str t)
+  | TSlice(t) -> "[]" ^ (typ_to_str t)
+  | TFn(ts,x) -> "("
+               ^ (String.concat ", " (List.map typ_to_str ts)) 
+               ^ ") -> "
+               ^ (typ_to_str x)
+  | TKind(t) -> "#kind(" ^ (typ_to_str t) ^ ")"
+  | TVoid -> "#void"
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
@@ -24,21 +33,13 @@ let add name kind = function
 
 let init () =
   let ctx = Root(Hashtbl.create 1337) in
-  add "true"  (Var, (TSimp "bool")) ctx;
-  add "false" (Var, (TSimp "bool")) ctx;
+  add "true"  (TSimp "bool") ctx;
+  add "false" (TSimp "bool") ctx;
   ctx
 
 let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
   new_ctx
-
-let typ_to_str = function
-  | TSimp(x) -> x
-  | TStruct(id_typ_ls) -> failwith "not done"
-  | TArray(t,d) -> failwith "not done"
-  | TSlice(t) -> failwith "not done"
-  | Void -> failwith "not done"
-
 
 (*
 let unscope outc dumpsymtab = function
@@ -72,12 +73,13 @@ let rec in_context name = function
 
 let rec find name = function
   | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
-                       then Hashtbl.find tbl name
+                       then Some(Hashtbl.find tbl name)
                        else find name ctx
   | Root(tbl)       -> if Hashtbl.mem tbl name
-                       then Hashtbl.find tbl name
-                       else raise (Error.CompileError (Printf.sprintf "Undeclared symbol %s" name))
+                       then Some(Hashtbl.find tbl name)
+                       else None (*raise (Error.CompileError (Printf.sprintf "Undeclared symbol %s" name))*)
 
+(*
 let rec get_base_type name =
   (* function *)
   let rec inner name ct = match ct with
@@ -89,10 +91,10 @@ let rec get_base_type name =
     | Root(tbl)       -> if Hashtbl.mem tbl name
                          then match Hashtbl.find tbl name with
                               | (Typ, TSimp(f)) -> inner f ct
-                              | _ -> name
+                              | _ -> Some(name)
                          else name 
-  in inner name
-
+  in inner name None
+*)
 
 
                                 (*

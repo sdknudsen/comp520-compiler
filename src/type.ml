@@ -37,7 +37,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp t)) tl)
     | TArray(t,s) -> TArray(tTyp t, s)
     | TSlice(t) -> TSlice(tTyp t)
-    | Void -> Void
+    | TFn(args, rtn) -> TFn(List.map tTyp args, tTyp rtn)
+    | TKind(t) -> TKind(tTyp t)
+    | TVoid -> TVoid
   in
 
   (* let rec tExpr gamma = function *)
@@ -54,7 +56,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in
     (*   let lub = unify g typ1 typ1 in *)
-       let t = Void
+       let t = TVoid
 (*
                (match op with
                 | Boolor
@@ -115,20 +117,22 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Fn_call(tf,tes), (pos, ft)) *)
     (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
 
-    | Append((i,_) as id, e) ->
+    | Append((i,ipos) as id, e) ->
 (* add (Iden id) (Typ,typ) g *)
        let t = (match find i g with
-         | (k,TSlice t) -> t
-         | _ -> typecheck_error pos ("\"" ^ i ^ "\" must have type slice"))
+         | Some(TSlice t) -> t
+         | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
+         | _    -> typecheck_error pos  ("\"" ^ i ^ "\" must have type slice"))
        in
        let (_,(_,typ)) as te = tExpr g e in
        if t = typ then (Append(i,te), (pos, TSlice t))
        else typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
 
-    | Iden((i,_) as id) -> 
-       let (_,t) = find i g in
-       (Iden(i), (pos, t))
-
+    | Iden((i, ipos) as id) -> begin
+        match find i g with
+          | Some(t) -> (Iden(i), (pos, t))
+          | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
+      end
     | AValue(r,e) ->
        let (_,(_,typ1)) as tr = tExpr g r in
        let (_,(_,typ2)) as te = tExpr g e in
@@ -247,7 +251,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Expr_stmt(te),pos)
 
     | Return(None) ->
-       if not (frt == Void)
+       if not (frt == TVoid)
        then typecheck_error pos "Function should return a value"
        else (Return(None),pos)
     | Return(Some(e)) ->
@@ -308,8 +312,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tl = List.map (fun ((i,_), t) -> (i, tTyp t)) typId_typ_ls
        in
        (List.iter (fun (num,typ) -> if in_scope num g
-                                    then typecheck_error pos ("Type \""^num^"\" already declared in scope")
-                                    else add num (Typ, typ) g)
+                                    then typecheck_error pos ("Type `" ^ num ^ "` already declared in scope")
+                                    else add num (TKind(typ)) g)
                   tl);
       
        (Type_decl(tl), pos)
@@ -318,13 +322,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        if in_scope fId g
        then typecheck_error pos ("Function \""^fId^"\" already declared")
        else begin
-         add fId (Fun, tTyp typ) g;
-         List.iter (fun ((id,_),typ) -> add id (Var, tTyp typ) g) id_typ_ls;
+         let itl = List.map (fun((i,_), t) -> (i, tTyp t)) id_typ_ls in
+         let tl = List.map (fun(_, t) -> t) itl in
+         add fId (TFn(tl , tTyp typ)) g;
+         List.iter (fun (id,typ) -> add id typ g) itl;
          let tps = List.map (tStmt (tTyp typ) g) ps in
-         let tl = List.map (fun((i,_), t) -> (i, tTyp t)) id_typ_ls
-         in
-         
-         (Func_decl(fId, tl, tTyp typ, tps), pos)
+         (Func_decl(fId, itl, tTyp typ, tps), pos)
        end
     |_ ->
        typecheck_error pos "Oups";

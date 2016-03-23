@@ -22,7 +22,9 @@ type 'i annotated_typ =
   | TStruct of ('i * 'i annotated_typ) list
   | TArray  of 'i annotated_typ * int
   | TSlice  of 'i annotated_typ
-  | Void
+  | TFn     of 'i annotated_typ list * 'i annotated_typ
+  | TKind   of 'i annotated_typ
+  | TVoid
 
 type ('e, 'i) annotated_expr =
   | Iden    of 'i

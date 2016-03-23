@@ -32,7 +32,7 @@ let weed ast =
           then raise (Error.CompileError "Index must be greater than 0")
         end
       | TSlice(t) -> weed_type t;
-      | Void -> ()
+      | _ -> () (* Other types aren't weedable *)
   in
   let rec weed_expression (expr, pos) in_lhs in_stmt_ctx =
     match (expr, in_lhs, in_stmt_ctx) with
