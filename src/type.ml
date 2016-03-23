@@ -105,8 +105,8 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
     (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
 
     | Append((x,_) as id, e) ->
-       let t = (match find x g with
 (* add (Iden id) (Typ,typ) g *)
+       let t = (match find x g with
          | (k,TSlice t) -> t
          | _ -> raise (TypeError ("\"" ^ x ^ "\" must have type slice")))
        in
@@ -126,7 +126,6 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
          | _ -> raise (TypeError "Array index must have type int")
          | TSimp "int" -> (AValue(tr,te), (pos, typ1)));
 
-    (* make tlval a record and return tr.typ? *)
     | SValue(r, id) ->
        let (i,_) = id in
        try
@@ -141,33 +140,18 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        with 
          | Not_found -> raise (TypeError "Invalid struct field")
   in
-(*
-  let get_assign_typ g (lv,e) = 
-    let (exp, _) = tExpr g lv in
-    match exp with
-      | Iden(x) ->
-      | _ ->
-    (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
-    let id = lv_to_str lv in
-    (* if not (mem id g) *)
-    if not (in_scope id g)
-    then raise (DeclError("Assignment of undeclared variable \""^id^"\""))
-    else let (_, tid) = find id g in
-         let te = tExpr g e in
-         if (tid = te.typ) (*|| (tid = TFloat && te.typ = TInt) add parametricity!*)
-         then (t_lv,te)
-         else raise (TypeError "Mismatch in assignment")
-  in
-*)
-  (* let rec tStmt gamma = function *)
-  (* frt is function return type *)
-  let rec tStmt frt g (p, pos) : Typed.annotated_utstmt = match p with 
-    (* Should assign take lvalues?? *)
-    (*| Assign(xs,es) -> 
-       let (txs, tes) = unzip (List.map (get_assign_typ g) (zip xs es)) in
-       Assign(txs, tes)*)
-    (* are we missing op assignment?? *)
 
+
+  let rec tStmt frt g (p, pos) : Typed.annotated_utstmt = match p with 
+    | Assign(xs,es) -> 
+       let txs = List.map (tExpr g) xs in
+       let tes = List.map (tExpr g) es in
+       List.iter
+         (fun ((_,(_,tx)),(_,(_,ty))) ->
+           if not (tx == ty)
+           then raise (TypeError "Type mismath in assign"))
+         (zip txs tes);
+       (Assign(txs, tes), pos)
     | Print(es) -> 
       (Print(List.map (tExpr g) es), pos)
     | Println(es) ->
@@ -209,11 +193,16 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        (Switch_clause(None, tps),pos)
 
     | For_stmt(po1, eo, po2, ps) -> 
-       (* should I remove threading?? replace the hash table with a map? *)
-       let (tpo1,g1) = typo (tStmt frt) g po1 in
-       let teo = mapo (tExpr g1) eo in
-       let (tpo2,g2) = typo (tStmt frt) (scope g1) po2 in
-       let (tps,g3) = thread (tStmt frt) g2 ps in
+       let tpo1 = match po1 with
+                   | Some(p) -> Some(tStmt frt g p)
+                   | None -> None
+       in
+       let teo  = mapo (tExpr g) eo in
+       let tpo2 = match po2 with
+                   | Some(p) -> Some(tStmt frt g p)
+                   | None -> None
+       in
+       let tps  = List.map (tStmt frt g) ps in
        (For_stmt(tpo1, teo, tpo2, tps), pos)
          
     | Var_stmt(ids_eso_typo_ls) ->
@@ -262,24 +251,9 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
     | Empty_stmt -> (Empty_stmt,pos)
     | _ -> (Continue, pos)
 
-(* and tStmts xs = thread tStmt g s in *)
-
-(*
-  let rec typeStmt = function
-    | Read(id) -> if Ctx.mem id gamma
-                  then Read(id)
-                  else raise (DeclError ("Read of undeclared variable \""^id^"\""))
-    | Ifte(e,xs,ys) ->
-       let te = typeExpr gamma e in
-       if te.typ = TInt
-       then Ifte(typeExpr gamma e, typeStmts xs, typeStmts ys)
-       else raise (TypeError "Expression in if-then-else statement must have int type")
- *)
-
   in
-  (* let rec tDecl gamma = function *)
-  (* let varDecl gamma (ids,eso,typo) = *)
-    
+
+
   let rec tDecl g (d,pos) : Typed.annotated_utdecl = match d with
     | Var_decl(ids_eso_typo_ls) -> 
        let varDecl g (ids,eso,typo) : (string list * t_expr list option * typ option) * context =
