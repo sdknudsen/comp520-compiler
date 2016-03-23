@@ -1,0 +1,8 @@
+package main
+
+func main() {
+  a := 0
+  switch a, b := 1, "Hello"; b {
+  c := 1;
+  }
+}

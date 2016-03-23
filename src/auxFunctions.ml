@@ -50,10 +50,6 @@ let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
 
-let typo f o = match o with
-  | None -> None
-  | Some x -> let tx = f x in Some(tx)
-
 let rec list_type = function
   | [] -> failwith "empty list"
   | [x] -> x
@@ -134,3 +130,12 @@ let isInteger t =
 
 let isString t =
   t = TSimp "string"
+
+
+  (* let rec thread f gamma = function (\* map, but updated gamma is used for next element *\) *)
+  (*   | [] -> ([],gamma) *)
+  (*   | x::xs -> let (d,g) = f gamma x in *)
+  (*              let (tl,gam) = thread f g xs in *)
+  (*              (d::tl,gam) *)
+  (* in *)
+
