@@ -57,41 +57,41 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       
        (* let lub = unify g typ1 typ2 in *)
-       let lub = if same_type typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
+       let base = if same_type typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
        let t = 
          (match op with
           | Boolor
             | Booland
             | Equals
-            | Notequals	when isComparable lub -> lub
+            | Notequals	when isComparable base -> base
           | Lt
             | Lteq	
             | Gt
-            | Gteq	when isOrdered lub -> lub
-          | Plus	when isString lub -> lub
+            | Gteq	when isOrdered base -> base
+          | Plus	when isString base -> base
           | Plus
             | Minus	
             | Times	
             | Div
-            | Modulo	when isNumeric lub -> lub
+            | Modulo	when isNumeric base -> base
           | Bitor
             | Bitxor
             | Lshift
             | Rshift
             | Bitand
-            | Bitnand 	when isInteger lub -> lub
+            | Bitnand 	when isInteger base -> base
           | _ -> typecheck_error pos ("Mismatch with '" ^ bop_to_str op ^ "' operation"))
 
        in (Bexp(op,te1,te2), (pos, t))
 
     | Uexp(op,e) -> 
        let (_,(_,typ)) as te = tExpr g e in
-       let lub = if true then typ else failwith "not done" in (* check defined types *)
+       let base = if true then typ else failwith "not done" in (* check defined types *)
        let t = (match op with
-                | Positive	when isNumeric lub -> lub
-                | Negative	when isNumeric lub -> lub
-                | Boolnot	when isBool lub -> lub
-                | Bitnot	when isInteger lub -> lub
+                | Positive	when isNumeric base -> base
+                | Negative	when isNumeric base -> base
+                | Boolnot	when isBool base -> base
+                | Bitnot	when isInteger base -> base
                 | _ -> typecheck_error pos ("Mismatch with '" ^ uop_to_str op ^ "' operation"))
                  (* change to allow for new types *)
                  (* let te = typeExpr gamma e *)
