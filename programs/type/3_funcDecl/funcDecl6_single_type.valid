@@ -1,0 +1,8 @@
+package main
+
+func a (i int) {}
+func b (i float64) {}
+func c (i bool) {}
+func d (i rune) {}
+func e (i string) {}
+
