@@ -170,7 +170,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | If_stmt(po,e,ps,pso) ->
        let tpo = typo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
-       if typ != TSimp "bool"
+       if not (same_type typ (TSimp "bool"))
        then typecheck_error pos "If condition must have typ bool"
        else
          let gthen = scope g in
