@@ -171,7 +171,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
       (Print(List.map (tExpr g) es), pos)
     | Println(es) ->
       (Println(List.map (tExpr g) es), pos)
-
     | If_stmt(po,e,ps,pso) ->
        let tpo = typo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
@@ -185,7 +184,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                let gesle = scope g in
                (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
            | None -> (If_stmt(tpo, te, tps, None), pos));
-
     | Switch_stmt(po, eo, ps) -> 
        let tpo = match po with
                   | Some(p) -> Some(tStmt frt g p)
@@ -197,16 +195,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        in
        let tps = List.map (tStmt frt g) ps in
        (Switch_stmt(tpo, teo, tps),pos)
-
     | Switch_clause(Some(exps), ps) ->
        let teso = (List.map (tExpr g) exps) in
        let tps = List.map (tStmt frt g) ps in
        (Switch_clause(Some(teso), tps),pos)
-
     | Switch_clause(None, ps) ->
        let tps = List.map (tStmt frt g) ps in
        (Switch_clause(None, tps),pos)
-
     | For_stmt(po1, eo, po2, ps) -> 
        let tpo1 = match po1 with
                    | Some(p) -> Some(tStmt frt g p)
@@ -219,28 +214,39 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        in
        let tps  = List.map (tStmt frt g) ps in
        (For_stmt(tpo1, teo, tpo2, tps), pos)
-(*         
-    | Var_stmt(ids_eso_typo_ls) ->
-       let t_ids_eso_typo_ls =
-         List.map
-           (fun (a,eso,c) -> 
-             let eso = match eso with
-                        | Some(eso) -> Some(List.map (tExpr g) eso)
-                        | None -> None
-             in
-             (a,eso ,c))
-           ids_eso_typo_ls
+
+    | Var_stmt(decls) ->
+       let tc_vardecl ((i,ipos) as id, e, t) =
+         if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
+         
+         let te = match e with
+           | None -> None
+           | Some(e) -> Some(tExpr g e)
+         in
+         let tt = match te, t with
+           | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
+           | None, Some(t) -> tTyp t
+           | Some((e,(_,etyp))), Some(t) ->
+               let tt = tTyp t in 
+               if etyp == tt
+               then tt
+               else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
+           | Some((_,(_,etyp))), None -> etyp
+         in
+         add i tt g;
+         (i, te, Some(tt))
        in
-       (Var_stmt(t_ids_eso_typo_ls), pos)
-*)
+
+       let ls = List.map (List.map tc_vardecl) decls in
+       (Var_stmt(ls), pos)
+
 (*
     | SDecl_stmt(ids, None) ->
        (SDecl_stmt(ids, None), pos)
 *)     
-    | SDecl_stmt(ids, Some(exps)) ->
-       let teso = (List.map (tExpr g) exps) in
-       let ids =  List.map (fun (i,_) -> i) ids in
-       (SDecl_stmt(ids, Some(teso)), pos)
+    | SDecl_stmt(ds) ->
+       let tds = List.map (fun ((i,_), e) -> (i, tExpr g e)) ds in
+       (SDecl_stmt(tds), pos)
 
 (*
     | Type_stmt(id_typ_ls) -> 
@@ -249,7 +255,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Expr_stmt e ->
        let te = tExpr g e in
        (Expr_stmt(te),pos)
-
     | Return(None) ->
        if not (frt == TVoid)
        then typecheck_error pos "Function should return a value"
@@ -259,7 +264,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        if frt == typ
        then (Return(Some(te)), pos)
        else typecheck_error pos "Unexpected return type"
-
     | Break -> (Break, pos)
     | Block(s) -> 
        let ts = List.map (tStmt frt (scope g)) s in
@@ -273,40 +277,32 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
 
   let rec tDecl g ((d,pos): Untyped.annotated_utdecl) : Typed.annotated_utdecl = match d with
-(*
-    | Var_decl(ids_eso_typo_ls) -> 
-       let varDecl (ids,eso,typo) =
-         (* if (List.exists (id -> in_scope id g) ids) then raise DeclError "ID already declared in scope" (\* say which id? *\) *)
-         (List.iter (fun id -> if in_scope id g
-                               then raise (DeclError ("Variable \""^id^"\" already declared in scope"))
-                               else ()) ids);
-         match (eso,typo) with
-         | (None, None) -> raise (DeclError ("Variables declaration must have either type or expressions")) (*right?*)
-         (* | (None, Some typ) -> let g1 = snd (thread (fun id gam -> (id, add id typ gam)) g ids) in ((ids,eso,typo),g1) *)
-         | (None, Some(typ)) -> List.iter (fun id -> add id (Var, typ) g) ids; (ids,None,typo)
-         (* do all the es have to have the same type? *)
-         | (Some es, None) ->
-            let pairs = zip ids es in
-            let tes = List.map
-                        (fun (id,e) -> let (_,(_,typ)) as te = tExpr g e in add id (Var, typ) g; te)
-                        pairs in
-            (ids, Some tes, typo)
-         | (Some es, Some typ) ->
-            let pairs = zip ids es in
-            let tes = List.map (fun (id,e) ->
-                             let (_,(_,tetyp)) as te = tExpr g e in
-                             if tetyp == typ then add id (Var, typ) g
-                             else raise (DeclError ("Type mismatch on \""^id^"\"'s matching expression")); te) pairs in
-            (ids, Some tes, typo)
 
-            (* let tes = List.map typ es g in *)
-            (*                       if List.forall (fun te -> te.typ = typ) tes *)
-            (*                       then thread (fun id -> add te.typ = typ) g ids *)
-       in let ls = List.map varDecl ids_eso_typo_ls in
-          (Var_decl(ls), pos)
-       (* if Ctx.in_scope typ_id gamma then raise DeclError "Already declared in scope" *)
-       (* else Ctx.add typ_id gamma *)
-*)
+    | Var_decl(decls) -> 
+       let tc_vardecl ((i,ipos) as id, e, t) =
+         if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
+         
+         let te = match e with
+           | None -> None
+           | Some(e) -> Some(tExpr g e)
+         in
+         let tt = match te, t with
+           | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
+           | None, Some(t) -> tTyp t
+           | Some((e,(_,etyp))), Some(t) ->
+               let tt = tTyp t in 
+               if etyp == tt
+               then tt
+               else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
+           | Some((_,(_,etyp))), None -> etyp
+         in
+         add i tt g;
+         (i, te, Some(tt))
+       in
+
+       let ls = List.map (List.map tc_vardecl) decls in
+       (Var_decl(ls), pos)
+
 
     | Type_decl(typId_typ_ls) -> 
        let tl = List.map (fun ((i,_), t) -> (i, tTyp t)) typId_typ_ls
@@ -320,7 +316,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
     | Func_decl((fId,_), id_typ_ls, typ, ps) -> (* start by creating a new frame?? *)
        if in_scope fId g
-       then typecheck_error pos ("Function \""^fId^"\" already declared")
+       then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
          let itl = List.map (fun((i,_), t) -> (i, tTyp t)) id_typ_ls in
          let tl = List.map (fun(_, t) -> t) itl in

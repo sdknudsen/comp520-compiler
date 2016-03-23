@@ -46,8 +46,8 @@ type ('s, 'e, 'i) annotated_stmt =
   | Switch_stmt of 's option * 'e option * 's list
   | For_stmt    of 's option * 'e option * 's option * 's list
   | Switch_clause of 'e list option * 's list
-  | Var_stmt    of ('i list * 'e list option * 'i annotated_typ option) list
-  | SDecl_stmt  of 'i list * 'e list option
+  | Var_stmt    of ('i * 'e option * 'i annotated_typ option) list list
+  | SDecl_stmt  of ('i * 'e) list
   | Type_stmt   of ('i * 'i annotated_typ) list
   | Return      of 'e option
   | Block       of 's list
@@ -59,7 +59,7 @@ type ('s, 'e, 'i) annotated_stmt =
   | Empty_stmt
 
 type ('s, 'e, 'i) annotated_decl =
-  | Var_decl  of ('i list * 'e list option * 'i annotated_typ option) list
+  | Var_decl  of ('i * 'e option * 'i annotated_typ option) list list
   | Type_decl of ('i * 'i annotated_typ) list
   | Func_decl of 'i * ('i * 'i annotated_typ) list * 'i annotated_typ * 's list
 

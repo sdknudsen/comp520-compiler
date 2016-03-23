@@ -135,10 +135,12 @@ var_decls:
 
 var_decl_line:
 | var_ids=identifiers t=typ? ASSIGNMENT exprs=expressions
-    { ignore(check_balance (var_ids, exprs) $startpos);
-      (var_ids, Some(exprs), t) }
+    { try
+        (List.map2 (fun i e -> (i, Some(e), t)) var_ids exprs)
+      with
+        | Invalid_argument(_) -> Error.print_error $startpos "There must be as many expression as identifier in declaration" }
 | var_ids=identifiers t=typ
-    { (var_ids, None, Some(t)) }
+    { List.map (fun i -> (i, None, Some(t))) var_ids }
 
 
 
@@ -281,13 +283,18 @@ print_stmt:
 (* expression... *)
 short_decl:
 | ids=expressions COLONEQ exprs=expressions
-    { ignore(check_balance (ids, exprs) $startpos);
-      let var_ids =
-      List.map (function
-                | (Iden(x),_) -> x
-                | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
-               ids
-      in (SDecl_stmt(var_ids, Some(exprs)), $startpos) }
+    {
+      let defs =
+      try
+        List.map2 (fun id exp -> match id with
+                    | (Iden(x),_) -> (x, exp)
+                    | _ -> Error.print_error $startpos "ill-formed short declaration: identifiers expected" )
+                  ids
+                  exprs
+      with
+        | Invalid_argument(_) -> Error.print_error $startpos "There must be as many expression as identifier in declaration"
+      in (SDecl_stmt(defs), $startpos)
+    }
 | expressions COLONEQ error
     { Error.print_error $startpos "error at variable declaration" }
 

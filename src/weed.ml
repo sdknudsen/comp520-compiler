@@ -134,24 +134,25 @@ let weed ast =
         end
 
       | Var_stmt(l) -> begin
-          List.iter (fun (ids, exps, t) ->
-            List.iter (fun i -> weed_reserved_words i) ids;
-            match t with
-              | None -> ()
-              | Some(t) -> weed_type t;
-            match exps with
-              | Some(exps) ->
-                 List.iter (fun e -> weed_expression e false false) exps;
-              | None -> ();)
-          l;
+          List.iter
+            (List.iter
+              (fun (i, e, t) ->
+                weed_reserved_words i;
+                match t with
+                  | None -> ()
+                  | Some(t) -> weed_type t;
+                match e with
+                  | None -> () 
+                  | Some(e) -> weed_expression e false false;))
+            l
+          ; 
         end
-      | SDecl_stmt(ids,None) ->
-          List.iter (fun lhs -> weed_reserved_words lhs) ids;
-          List.iter (fun lhs -> weed_blank lhs) ids;
-      | SDecl_stmt(ids,Some(exps)) ->
-          List.iter (fun lhs -> weed_reserved_words lhs) ids;
-          List.iter (fun lhs -> weed_blank lhs) ids;
-          List.iter (fun rhs -> weed_expression rhs false false) exps;
+      | SDecl_stmt(decls) ->
+          List.iter (fun (lhs, rhs) ->
+                       weed_reserved_words lhs;
+                       weed_blank lhs;
+                       weed_expression rhs false false;)
+                    decls
       | Type_stmt(tl) ->
           List.iter
             (fun (id, t) ->
@@ -180,14 +181,15 @@ let weed ast =
     match decl with
       | Var_decl(il) ->
           List.iter
-            (fun (ids, exps, typ) ->
-              List.iter (fun id -> weed_reserved_words id) ids;
-              match typ with
-                | None -> ()
-                | Some(t) -> weed_type t;
-              match exps with
-                | None -> () 
-                | Some(es) -> List.iter (fun e -> weed_expression e false false) es;)
+            (List.iter
+              (fun (i, e, t) ->
+                weed_reserved_words i;
+                match t with
+                  | None -> ()
+                  | Some(t) -> weed_type t;
+                match e with
+                  | None -> () 
+                  | Some(e) -> weed_expression e false false;))
             il
           ; 
       | Type_decl(tl) ->
