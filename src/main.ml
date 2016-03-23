@@ -36,6 +36,7 @@ let pretty lexbuf =
 let typecheck lexbuf =
   let name = Filename.chop_suffix !file ".go" in
   let untypedTree = Parser.program Lexer.token lexbuf in
+  Weed.weed untypedTree;
   let typedTree = Type.typeAST untypedTree in
 (*
   if !pptype then

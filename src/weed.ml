@@ -99,10 +99,14 @@ let weed ast =
       | Print(exprs) 
       | Println(exprs) ->
           List.iter (fun x -> weed_expression x false false) exprs;
-      | If_stmt(_, cond, then_clause, else_clause) ->
+      | If_stmt(_, cond, then_clause, else_clause) -> begin
           weed_expression cond false false;
           List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
-          List.iter (fun x -> weed_statement x in_loop in_switch) then_clause;
+          match else_clause with
+           | Some(c) ->
+             List.iter (fun x -> weed_statement x in_loop in_switch) c;
+           | None -> ()
+        end
       | Switch_stmt(s, e, cases) ->
           (match s with
             | Some(stmt) -> weed_statement stmt in_loop in_switch;
@@ -163,8 +167,15 @@ let weed ast =
           ;
       | Return(Some(expr)) ->
           weed_expression expr false false;
-      | Expr_stmt(expr) ->
-          weed_expression expr false true;
+      | Expr_stmt(expr) -> begin
+          let rec no_parens x = match x with
+           | (Parens(x),_) -> (no_parens x)
+           | _ -> x
+          in
+          match (no_parens expr) with
+           | (Fn_call(_,_),_) as expr -> weed_expression expr false true
+           | _ -> Error.print_error pos "invalid expression statement"
+        end
       | Block(stmts) ->
           List.iter (fun x -> weed_statement x in_loop in_switch) stmts;
       | Break ->

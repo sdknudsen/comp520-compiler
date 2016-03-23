@@ -167,18 +167,17 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Println(es) ->
       (Println(List.map (tExpr g) es), pos)
     | If_stmt(po,e,ps,pso) ->
-       let tpo = typo (tStmt frt g) po in
+       let tpo = mapo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
        if not (same_type typ (TSimp "bool"))
-       then typecheck_error pos "If condition must have typ bool"
-       else
-         let gthen = scope g in
-         let tps = List.map (tStmt frt gthen) ps in
-         (match pso with
-           | Some(ps) ->
-               let gesle = scope g in
-               (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
-           | None -> (If_stmt(tpo, te, tps, None), pos));
+       then typecheck_error pos "If condition must have type bool";
+       let gthen = scope g in
+       let tps = List.map (tStmt frt gthen) ps in
+       (match pso with
+         | Some(ps) ->
+             let gesle = scope g in
+             (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
+         | None -> (If_stmt(tpo, te, tps, None), pos));
     | Switch_stmt(po, eo, ps) -> 
        let tpo = match po with
                   | Some(p) -> Some(tStmt frt g p)
