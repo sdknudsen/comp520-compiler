@@ -4,10 +4,9 @@
 \usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{enumitem}
+\usepackage{parskip}
 
 \begin{document}
-
-\pagestyle{empty}
 
 \title{COMP 520 - Milestone 2}
 \author{
@@ -19,53 +18,66 @@ Cheuk Chuen Siow (260660584)}
 \raggedright
 \section*{Design Decisions}
 \subsection*{Symbol table}
-Initially, the symbol table consisted of a list of maps (as in dictionaries). We briefly considered the alpha-renaming approach, but ended up changing the symbol table to be a list of hashtables, as had been presented in class.
+Initially, the symbol table consisted of a list of maps (as in dictionaries). We briefly considered the alpha-renaming approach, but since hash tables are typically used for symbol table because of its performance, we ended up changing the symbol table to utilize hash tables instead.
+
+The way we design the symbol table is to implement a cactus stack of hash tables, as had been presented in class. The root represents the global scope with a hash table which stores the information for top-level declarations. Whenever a block is entered, a new frame is generated. This frame (\verb|F|) has a new hash table associated with the new scope, and also has a pointer to the parent frame. This allows for the lookup of a declaration starting from the innermost scope that \verb|F| resides, and recursively traverse towards the root node through the parent frame, but not the neighboring nodes as the scopes of these nodes and \verb|F| are disjoint.
 
 \subsection*{Type checker}
-Type-checking closely followed the typechecker pdf.
-New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped.
-At variable, type, and function declarations, a check is made to see if the id has been declared in the current scope. A type error is raised if it's already been declared.
+Type-checking closely followed the \verb|typechecker.pdf|. New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped. At variable, type, and function declarations, a check is made to see if the \verb|id| has been declared in the current scope. A type error is raised if it's already been declared.
 
 Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element of the list. Since we decided not to use the map, this is no longer needed, (simply mapping suffices) but not all instances were replaced.
 
-Because type declaration is allowed in golite, the approach of matching the types and operators that we had seen for for the minilang compiler wouldn't work. We took the approach of pattern matching on the operator and checking if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
-
+Because type declaration is allowed in \verb|GoLite|, the approach of matching the types and operators that we had seen for the \verb|minilang| compiler wouldn't work. We took the approach of pattern matching on the operator and check if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
 
 \subsection*{Weeder}
+The weeder checks for invalid programs that we deferred from milestone 1. In particular, we check for
+\begin{itemize}
+	\item Invalid use of basic types (\verb|int|, \verb|float64|, \verb|bool|, \verb|rune|, \verb|string|) as an identifier, since we didn't specify those basic types as keywords.
+	\item Invalid use of underscore.
+	\item Negative index for arrays.
+	\item Invalid use of expression as expression statement or left value.
+	\item Multiple \verb|default| in a switch statement.
+	\item Invalid use of \verb|break| and \verb|continue| outside of loops.
+\end{itemize}
 
 \subsection*{Pretty printer}
-We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the ast, only minor modifications were then needed to allow type printing of the typed AST.
+We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the AST, only minor modifications were then needed to allow type printing of the typed AST.
 
 \subsection*{Testing}
+\begin{enumerate}
+	\item \verb|programs/invalid/types/1_functionDecl.go| checks for the redeclaration of a variable in a function body, which has the same name as the parameter of that function.
+	\item \verb|programs/invalid/types/2_shortDeclaration.go| checks for short declaration that has at least one variable on the left-hand side that is not declared.
+	\item \verb|programs/invalid/types/3_opAssignment.go| checks for the types of left value and right-hand side expression and whether both types are compatible for the operator.
+	\item \verb|programs/invalid/types/4_block.go| checks for variable that is declared in another scope.
+	\item \verb|programs/invalid/types/5_forLoop.go| type checks a three-part for loop. In this case the middle expression of the for loop is not a \verb|bool| type.
+	\item \verb|programs/invalid/types/6_switchStmt.go| type checks a switch statement. In this case the \verb|print| statement in the case clause fails the type check because of invalid use of arithmetic negation on a string.
+	\item \verb|programs/invalid/types/7_functionCall.go| checks for the number of parameters of a function and the number of arguments used in a function call matches.
+	\item \verb|programs/invalid/types/8_fieldSelection.go| checks for undefined field access of structs.
+	\item \verb|programs/invalid/types/9_append.go| checks whether the variable used in the first argument of \verb|append| is of slice type.
+	\item \verb|programs/invalid/types/10_typeCast.go| checks for equivalent types between the type of the left value and the type cast.
+\end{enumerate}
+\hfill
 
-\section*{Team Work}
+\section*{Contributions}
 \subsection*{Main}
-Alexandre made modifications to main.ml that allowed for the -dumpsymtab and -pptype flags.
+Cheuk Chuen made modifications to main.ml that allowed for the -dumpsymtab and -pptype flags.
 
-\subsection*{Ast}
+\subsection*{AST}
 Alexandre modified the AST so as to add annotations.
 
 \subsection*{Symbol table}
-Cheuk Chuen wrote the symbol table.
+Cheuk Chuen wrote the symbol table, and Alexandre made changes according to the modified type checker.
 
 \subsection*{Type checker}
-Stefan laid the ground work for the type checker, and Alexandre made changes for the modified ast.
+Stefan laid the ground work for the type checker, and Alexandre made changes according to the modified AST.
 
 \subsection*{Weeder}
-Alexandre wrote the brunt of the weeder, with Chuek making changes as well.
+Alexandre wrote the weeder.
 
 \subsection*{Pretty printer}
-Stefan modified the pretty printer to work for the new ast and to print the types of typed expresions.
+Stefan modified the pretty printer to work for the new AST and to print the types of typed expressions.
 
 \subsection*{Testing}
 Cheuk Chuen wrote the majority of the tests.
-
-
-%% \section*{References}
-%% \begin{enumerate}
-%%   \item http://caml.inria.fr/pub/docs/manual-ocaml-4.00/manual026.html
-%%   \item https://realworldocaml.org/v1/en/html/parsing-with-ocamllex-and-menhir.html
-%%   \item http://pauillac.inria.fr/~fpottier/menhir/manual.pdf
-%% \end{enumerate}
 
 \end{document}
