@@ -158,7 +158,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        List.iter
          (fun ((_,(pos,tx)),(_,(_,ty))) ->
            if not (tx == ty)
-           then typecheck_error pos "Type mismath in assign")
+           then typecheck_error pos "Type mismatch in assign")
          (zip txs tes);
        (Assign(txs, tes), pos)
     | Print(es) -> 
