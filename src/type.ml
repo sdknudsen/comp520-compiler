@@ -22,6 +22,7 @@ open Errors
 
 
 let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
+
   let rec thread f gamma = function (* map, but updated gamma is used for next element *)
     | [] -> ([],gamma)
     | x::xs -> let (d,g) = f gamma x in
@@ -140,8 +141,12 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        with 
          | Not_found -> raise (TypeError "Invalid struct field")
   in
+(*
   let get_assign_typ g (lv,e) = 
-    let t_lv = tExpr g lv in
+    let (exp, _) = tExpr g lv in
+    match exp with
+      | Iden(x) ->
+      | _ ->
     (* fix t_lv problems, currently, it just compares with the string for Id and rejects for other lvalues *)
     let id = lv_to_str lv in
     (* if not (mem id g) *)
@@ -153,39 +158,40 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
          then (t_lv,te)
          else raise (TypeError "Mismatch in assignment")
   in
+*)
   (* let rec tStmt gamma = function *)
-  let rec tStmt frt g (p, pos) : t_stmt * context = match p with (* frt is function return type *)
+  (* frt is function return type *)
+  let rec tStmt frt g (p, pos) : Typed.annotated_utstmt = match p with 
     (* Should assign take lvalues?? *)
-    | Assign(xs,es) -> 
+    (*| Assign(xs,es) -> 
        let (txs, tes) = unzip (List.map (get_assign_typ g) (zip xs es)) in
-       (Assign(txs, tes), g)
+       Assign(txs, tes)*)
     (* are we missing op assignment?? *)
 
-    | Print(es) -> (Print(List.map (tExpr g) es), g) (* change tExpr to return a pair and use thread instead of map? *)
-    (* why do the notes say that println takes an expression, not a list? *)
-    | Println(es) -> (Println(List.map (tExpr g) es), g)
-    (* why do the notes say that println takes two expressions? *)
+    | Print(es) -> 
+      (Print(List.map (tExpr g) es), pos)
+    | Println(es) ->
+      (Println(List.map (tExpr g) es), pos)
+(*
     | If_stmt(po,e,ps,pso) ->
-       let (tpo,g1) = typo (tStmt frt) g po in
-       let te = tExpr g1 e in
-       if te.typ != TSimp "bool"
+       let tpo = typo (tStmt frt) g po in
+       let (_,(_,typ)) as te = tExpr g1 e in
+       if typ != TSimp "bool"
        then raise (TypeError "If statement must have typ bool")
        else
          let (tps,g2) = thread (tStmt frt) g1 ps in
          let (tpso,g3) = typo (thread (tStmt frt)) g2 pso in
-         (* (If_stmt(tpo, te, tps, mapo (thread (tStmt frt) g) pso), g) *)
-         (If_stmt(tpo, te, tps, tpso), g3)
+         If_stmt(tpo, te, tps, tpso)
 
-    (* how do switch clause and switch statement compare to what's presented in typecheck.pdf?? *)
     | Switch_stmt(po, eo, ps) -> 
        let (tpo,g1) = typo (tStmt frt) g po in
        let teo = mapo (tExpr g1) eo in
        let (tps,g2) = thread (tStmt frt) g1 ps in
-       (Switch_stmt(tpo, teo, tps), g2)
+       Switch_stmt(tpo, teo, tps)
     | Switch_clause(eso, ps) ->
        let teso = mapo (List.map (tExpr g)) eso in
        let (tps,g1) = thread (tStmt frt) g ps in
-       (Switch_clause(teso, tps), g1)
+       Switch_clause(teso, tps)
 
     | For_stmt(po1, eo, po2, ps) -> 
        (* should I remove threading?? replace the hash table with a map? *)
@@ -193,35 +199,41 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        let teo = mapo (tExpr g1) eo in
        let (tpo2,g2) = typo (tStmt frt) (scope g1) po2 in
        let (tps,g3) = thread (tStmt frt) g2 ps in
-       (For_stmt(tpo1, teo, tpo2, tps), (unscope stdout dumpsymtab g3))
+       For_stmt(tpo1, teo, tpo2, tps)
          
     | Var_stmt(ids_eso_typo_ls) ->
        let t_ids_eso_typo_ls =
          List.map (fun (a,eso,c) -> (a,mapo (List.map (tExpr g)) eso,c)) ids_eso_typo_ls in
-       (Var_stmt(t_ids_eso_typo_ls), g)
+       Var_stmt(t_ids_eso_typo_ls)
 
     | SDecl_stmt(ids, eso) ->
        (* should this be lvalues instead of ids? *)
        let teso = mapo (List.map (tExpr g)) eso in
-       (SDecl_stmt(ids, teso), g)
+       SDecl_stmt(ids, teso)
 
-    | Type_stmt(id_typ_ls) -> (Type_stmt(id_typ_ls),g)
+    | Type_stmt(id_typ_ls) -> 
+      Type_stmt(id_typ_ls)
+ 
     | Expr_stmt e ->
        let te = tExpr g e in
-       (Expr_stmt(te), g)
+       Expr_stmt(te)
     | Return(eo) ->
        let teo = mapo (tExpr g) eo in
        (match teo with
        | None -> (Return(teo), g)
        | Some te -> 
-          if frt = te.typ then (Return(teo), g)
+          if frt = te.typ then Return(teo)
           else raise (DeclError (typ_to_str te.typ^" does not match expected return type "^typ_to_str te.typ)))
-    | Break -> (Break, g)
+*)
+
+    | Break -> (Break, pos)
     | Block(s) -> 
-       let (ts,g1) = thread (tStmt frt) (scope g) s in
-       (Block(ts), (unscope stdout dumpsymtab g1))
-    | Continue -> (Continue, g)
-    | Empty_stmt -> (Empty_stmt, g)
+       let ts = List.map (tStmt frt (scope g)) s in
+       let out = (Block(ts), pos) in
+       out;
+    | Continue -> (Continue, pos)
+    | Empty_stmt -> (Empty_stmt,pos)
+    | _ -> (Continue, pos)
 
 (* and tStmts xs = thread tStmt g s in *)
 
@@ -241,7 +253,7 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
   (* let rec tDecl gamma = function *)
   (* let varDecl gamma (ids,eso,typo) = *)
     
-  let rec tDecl g (d,pos) : t_decl * context = match d with
+  let rec tDecl g (d,pos) : Typed.annotated_utdecl = match d with
     | Var_decl(ids_eso_typo_ls) -> 
        let varDecl g (ids,eso,typo) : (string list * t_expr list option * typ option) * context =
          (* if (List.exists (id -> in_scope id g) ids) then raise DeclError "ID already declared in scope" (\* say which id? *\) *)
