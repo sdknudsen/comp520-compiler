@@ -56,49 +56,44 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Bexp(op,e1,e2) -> 
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       
-       (*let lub = unify g typ1 typ2 in*)
-       let t = TVoid (*(match op with
-                | Boolor
-                | Booland
-                | Equals
-                | Notequals	when isComparable lub -> lub
-                | Lt
-                | Lteq	
-                | Gt
-                | Gteq		when isOrdered lub -> lub
-                | Plus		when isString lub -> lub
-                | Plus
-                | Minus	
-                | Times	
-                | Div
-                | Modulo	when isNumeric lub -> lub
-                | Bitor
-                | Bitxor
-                | Lshift
-                | Rshift
-                | Bitand
-                | Bitnand 	when isInteger lub -> lub
-                | _ -> typecheck_error pos ("Mismatch with '" ^ bop_to_str op ^ "' operation"))
+       (* let lub = unify g typ1 typ2 in *)
+       let lub = if sameTyp typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
+       let t = 
+         (match op with
+          | Boolor
+            | Booland
+            | Equals
+            | Notequals	when isComparable lub -> lub
+          | Lt
+            | Lteq	
+            | Gt
+            | Gteq	when isOrdered lub -> lub
+          | Plus	when isString lub -> lub
+          | Plus
+            | Minus	
+            | Times	
+            | Div
+            | Modulo	when isNumeric lub -> lub
+          | Bitor
+            | Bitxor
+            | Lshift
+            | Rshift
+            | Bitand
+            | Bitnand 	when isInteger lub -> lub
+          | _ -> typecheck_error pos ("Mismatch with '" ^ bop_to_str op ^ "' operation"))
 
-*)
        in (Bexp(op,te1,te2), (pos, t))
 
     | Uexp(op,e) -> 
        let (_,(_,typ)) as te = tExpr g e in
-       let t = (match (typ, op) with
-                (* just to start with *)
-                | TSimp "int",     Positive -> TSimp "int"
-                | TSimp "float64", Positive -> TSimp "float64"
-                | TSimp "rune",    Positive -> TSimp "rune"
-                | TSimp "int",     Negative -> TSimp "int"
-                | TSimp "float64", Negative -> TSimp "float64"
-                | TSimp "rune",    Negative -> TSimp "rune"
-                | TSimp "bool",    Boolnot  -> TSimp "bool"
-                | TSimp "int",     Bitnot   -> TSimp "int"
-                | TSimp "rune",    Bitnot   -> TSimp "rune"
+       let t = (match typ with
+                | Positive	when isNumeric lub -> lub
+                | Negative	when isNumeric lub -> lub
+                | Boolnot	when isBool lub -> lub
+                | Bitnot	when isInteger lub -> lub
                 | _ -> typecheck_error pos ("Mismatch with '" ^ uop_to_str op ^ "' operation"))
                  (* change to allow for new types *)
-       (* let te = typeExpr gamma e *)
+                 (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
 
     | Fn_call(fun_id, es) -> 
