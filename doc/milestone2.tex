@@ -25,7 +25,7 @@ The way we design the symbol table is to implement a cactus stack of hash tables
 \subsection*{Type checker}
 Type-checking closely followed the \verb|typechecker.pdf|. New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped. At variable, type, and function declarations, a check is made to see if the \verb|id| has been declared in the current scope. A type error is raised if it's already been declared.
 
-Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element of the list. Since we decided not to use the map, this is no longer needed, (simply mapping suffices) but not all instances were replaced.
+Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element of the list. Since we decided not to use the map, this is no longer needed, (simply mapping suffices).
 
 Because type declaration is allowed in \verb|GoLite|, the approach of matching the types and operators that we had seen for the \verb|minilang| compiler wouldn't work. We took the approach of pattern matching on the operator and check if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
 
@@ -55,7 +55,10 @@ We decided that we needed to modify the AST to include annotations. This require
 	\item \verb|programs/invalid/types/8_fieldSelection.go| checks for undefined field access of structs.
 	\item \verb|programs/invalid/types/9_append.go| checks whether the variable used in the first argument of \verb|append| is of slice type.
 	\item \verb|programs/invalid/types/10_typeCast.go| checks for equivalent types between the type of the left value and the type cast.
+	\item \verb|programs/invalid/types/11_typeRedeclaration.go| checks for binary operations between two variables that share the same type alias, but then one of the variable had a type alias redeclared to another type in an inner scope.
 \end{enumerate}
+
+The remaining valid and invalid test programs for type checking are located in \verb|programs/type/|
 \hfill
 
 \section*{Contributions}
