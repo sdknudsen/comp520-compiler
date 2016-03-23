@@ -57,7 +57,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       
        (* let lub = unify g typ1 typ2 in *)
-       let lub = if same_type typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
+       let lub = if same_type typ1 typ2
+       then typ1
+       else typecheck_error pos "Mismatched type"
+       in (* allow for defined types *)
        let t = 
          (match op with
           | Boolor
