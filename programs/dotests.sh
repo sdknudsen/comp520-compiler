@@ -39,7 +39,8 @@ for f in $files; do
   else
     if [ -f "$fname.expected" ]
     then
-      ({ error=$($GOC $1 < $f 2>&1 1>&$out); } {out}>&1) | diff $fname.expected - > /dev/null 
+	error=$($GOC $1 < $f 2>&1 1>/dev/null)
+	$GOC $1 < $f 2>/dev/null | diff $fname.expected - > /dev/null 
     else
       if [ $ext = "invalid" ]
       then
