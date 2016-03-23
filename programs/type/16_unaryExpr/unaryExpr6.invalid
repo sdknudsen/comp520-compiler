@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var a, b, c int
+  var d, e float64
+  var f, g, h rune
+  var i bool
+
+  a = !a
+}

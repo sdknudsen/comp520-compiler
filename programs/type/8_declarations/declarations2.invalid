@@ -1,0 +1,11 @@
+package main
+
+func main() {
+  type num int
+  var x num
+  {
+    type num float64
+    var y num
+  }
+  type num float64
+}

@@ -1,0 +1,19 @@
+package main
+
+func main() {
+  var x int
+  var y int = x
+  var z = x + 1
+  {
+    x := z
+    print(x)
+  }
+  print(x)
+  
+  type num int
+  var a num
+  {
+    type num float64
+    var b num
+  }
+}

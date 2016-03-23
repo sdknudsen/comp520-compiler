@@ -1,0 +1,32 @@
+package main
+
+func main() {
+  // basic types
+  var a int
+  var b float64
+  var c string
+  var d rune
+  var e bool
+
+  // self-defined types
+  type num int
+  var f, g num
+
+  // slice
+  var h []int
+  h = append(h, 123)
+
+  // array
+  var i [1]float64
+  i[0] = 10.
+
+  // structs
+  type point struct {
+    x, y, z int
+  }
+  var j point
+  j.x = 1
+  j.y = 2
+
+  a, b, c, d, e, f, h, i[0], j.z = 1, 2.3, "Hello", 'w', true, g, append(h, 456), .11, 3%3
+}

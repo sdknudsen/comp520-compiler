@@ -1,0 +1,13 @@
+package main
+
+func f() {
+  for {
+    continue
+  }
+}
+
+func main() {
+  for {
+    break
+  }
+}

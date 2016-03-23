@@ -1,0 +1,6 @@
+package main
+
+var x = 1.2 + 3
+
+func main() {
+}

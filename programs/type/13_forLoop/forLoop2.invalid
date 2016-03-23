@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var a string = "Hello"
+  for {
+    a += 1
+    print(a)
+    break
+  }
+}

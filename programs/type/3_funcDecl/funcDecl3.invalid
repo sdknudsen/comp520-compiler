@@ -1,0 +1,12 @@
+package main
+
+func f(f float64, a, b int, c bool) string {
+  return "Hello world"
+}
+
+func f(f float64, a, b int, c bool) string {
+  return "Hello world"
+}
+
+func main() {
+}

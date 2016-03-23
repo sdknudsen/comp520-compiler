@@ -1,0 +1,24 @@
+package main
+
+func main() {
+  var a string = "Hello"
+  for {
+    a += " world"
+    print(a)
+    break
+  }
+
+  var x bool = true
+  for x {
+    a := " world"
+    print(a)
+    break
+  }
+
+  var i int = 123
+  for i, j := 0, 1.2; i <= 10; i++ {
+    a = " world"
+    print(a)
+    j := 1
+  }
+}

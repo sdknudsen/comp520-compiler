@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var a int = 1
+  var b float64 = float64(a+1)
+  var c bool = bool(a+1)
+  var d rune = rune(a+1)
+  type num int
+  var e num = num(a+1)
+}

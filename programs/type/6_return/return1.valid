@@ -1,0 +1,13 @@
+package main
+
+func f1() string {
+  return "Hello world"
+}
+
+func f2() {
+  return
+}
+
+func main() {
+  print(f1())
+}

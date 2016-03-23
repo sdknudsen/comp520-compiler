@@ -1,0 +1,13 @@
+package main
+
+func main() {
+  var a, b, c int
+  var d, e float64
+  var f, g, h rune
+  var i bool
+
+  a, d, f = +a, +d, +f
+  b, e, g = -b, -e, -g
+  i = !i
+  c, h = ^c, ^h
+}

@@ -1,0 +1,13 @@
+package main
+
+func main() {
+  a := 0
+  switch a, b := 1, "Hello"; b {
+    case "a", "b", 'c':
+      a++
+    case "d", "e":
+      a--
+    default:
+      ;
+  }
+}

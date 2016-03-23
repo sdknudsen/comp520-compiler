@@ -1,0 +1,27 @@
+package main
+
+func main() {
+  if a, i := true, 0; a {
+    i++
+    if a {
+      i++
+    } else {
+      i--
+    }
+  } else if a {
+    i--
+    if a {
+      i++
+    } else {
+      i--
+    }
+  } else {
+    i--
+    if i, j := 1, 'a'; a {
+      i++
+    } else {
+      i--
+      j = '\n'
+    }
+  }
+}

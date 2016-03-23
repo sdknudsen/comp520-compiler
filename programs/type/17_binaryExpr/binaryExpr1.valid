@@ -1,0 +1,57 @@
+package main
+
+func main() {
+  var a bool
+  var b int
+  var c float64
+  var d string
+  var e rune
+  type point2d struct {
+    x, y float64
+  }
+  var p2d point2d
+  p2d.x = 1.2
+  p2d.y = 3.4
+  type point3d struct {
+    x, y, z int
+  }
+  var p3d point3d
+  p3d.x = 1
+  p3d.y = 2
+  p3d.z = 3
+
+  a = a || a
+  a = a && a
+  a = a == a
+  a = b != b
+  a = c == c
+  a = d != d
+  a = e == e
+  a = p2d != p2d
+  a = p3d == p3d
+  a = b < b
+  a = c <= c
+  a = d > d
+  a = e >= e
+  b = b + b
+  c = c + c
+  d = d + d
+  e = e + e
+  b = b - b
+  c = c - c
+  e = e - e
+  b = b * b
+  c = c * c
+  e = e * e
+  b = b / b
+  c = c / c
+  e = e / e
+  b = b % b
+  e = e % e
+  b = b | b
+  e = e & e
+  b = b << b
+  e = e >> e
+  b = b &^ b
+  e = e ^ e
+}

@@ -1,0 +1,7 @@
+package main
+
+func main() {
+  type num int
+  var b float64
+  num, b = 1 + 2, 4.5
+}
