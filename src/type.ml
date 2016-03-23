@@ -32,13 +32,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                (d::tl,gam)
   in
 
-  let rec tTyp (t:(string * Lexing.position) annotated_typ): string annotated_typ = match t with
+  let rec tTyp g (t:(string * Lexing.position) annotated_typ): string annotated_typ = match t with
     | TSimp((i,_)) -> TSimp(i)
-    | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp t)) tl)
-    | TArray(t,s) -> TArray(tTyp t, s)
-    | TSlice(t) -> TSlice(tTyp t)
-    | TFn(args, rtn) -> TFn(List.map tTyp args, tTyp rtn)
-    | TKind(t) -> TKind(tTyp t)
+    | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
+    | TArray(t,s) -> TArray(tTyp g t, s)
+    | TSlice(t) -> TSlice(tTyp g t)
+    | TFn(args, rtn) -> TFn(List.map (tTyp g) args, tTyp g rtn)
+    | TKind(t) -> TKind(tTyp g t)
     | TVoid -> TVoid
   in
 
@@ -46,7 +46,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
   let rec tExpr g (e,pos) : Typed.annotated_texpr = match e with
     | ILit(d) -> (ILit d, (pos, TSimp "int"))
     | FLit(f) -> (FLit f, (pos, TSimp "float64"))
-    (* | BLit(b) -> { exp = BLit b ; typ = TSimp "bool" } *) (* why is bool not included in the pdf?? *)
     | RLit(c) -> (RLit c, (pos, TSimp "rune"))
     | SLit(s) -> (SLit s, (pos, TSimp "string"))
     | Parens(e) -> 
@@ -54,13 +53,11 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Parens te, (pos, typ))
     | Bexp(op,e1,e2) -> 
        let (_,(_,typ1)) as te1 = tExpr g e1 in
-       let (_,(_,typ2)) as te2 = tExpr g e2 in
-    (*   let lub = unify g typ1 typ1 in *)
-       let t = TVoid
-(*
-               (match op with
+       let (_,(_,typ2)) as te2 = tExpr g e2 in       
+       (*let lub = unify g typ1 typ2 in*)
+       let t = TVoid (*(match op with
                 | Boolor
-                | Booland	when isBool lub -> lub
+                | Booland
                 | Equals
                 | Notequals	when isComparable lub -> lub
                 | Lt
@@ -79,27 +76,24 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                 | Rshift
                 | Bitand
                 | Bitnand 	when isInteger lub -> lub
-                | _ -> raise (TypeError ("Mismatch with '" ^ bop_to_str op ^ "' operation")))
-*)
-                (* | TSimp "int", TSimp "int", Plus -> TSimp "int" *)
-                (* | TSimp "int", TSimp "int", Plus -> TSimp "int") *)
+                | _ -> typecheck_error pos ("Mismatch with '" ^ bop_to_str op ^ "' operation"))
 
-       (* in { exp = Bexp(op,te1,te2) ; typ = t } *)
+*)
        in (Bexp(op,te1,te2), (pos, t))
 
     | Uexp(op,e) -> 
        let (_,(_,typ)) as te = tExpr g e in
        let t = (match (typ, op) with
                 (* just to start with *)
-                | TSimp "int", Positive -> TSimp "int"
+                | TSimp "int",     Positive -> TSimp "int"
                 | TSimp "float64", Positive -> TSimp "float64"
-                | TSimp "rune", Positive -> TSimp "rune"
-                | TSimp "int", Negative -> TSimp "int"
+                | TSimp "rune",    Positive -> TSimp "rune"
+                | TSimp "int",     Negative -> TSimp "int"
                 | TSimp "float64", Negative -> TSimp "float64"
-                | TSimp "rune", Negative -> TSimp "rune"
-                | TSimp "bool", Boolnot -> TSimp "bool"
-                | TSimp "int", Bitnot -> TSimp "int"
-                | TSimp "rune", Bitnot -> TSimp "rune"
+                | TSimp "rune",    Negative -> TSimp "rune"
+                | TSimp "bool",    Boolnot  -> TSimp "bool"
+                | TSimp "int",     Bitnot   -> TSimp "int"
+                | TSimp "rune",    Bitnot   -> TSimp "rune"
                 | _ -> typecheck_error pos ("Mismatch with '" ^ uop_to_str op ^ "' operation"))
                  (* change to allow for new types *)
        (* let te = typeExpr gamma e *)
@@ -225,12 +219,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
          in
          let tt = match te, t with
            | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
-           | None, Some(t) -> tTyp t
+           | None, Some(t) -> tTyp g t
            | Some((e,(_,etyp))), Some(t) ->
-               let tt = tTyp t in 
+               let tt = tTyp g t in 
                if etyp == tt
                then tt
-               else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
+               else typecheck_error ipos ("Conflicting type for variable declaration `" ^ i ^ "`")
            | Some((_,(_,etyp))), None -> etyp
          in
          add i tt g;
@@ -240,12 +234,27 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let ls = List.map (List.map tc_vardecl) decls in
        (Var_stmt(ls), pos)
 
-(*
-    | SDecl_stmt(ids, None) ->
-       (SDecl_stmt(ids, None), pos)
-*)     
     | SDecl_stmt(ds) ->
        let tds = List.map (fun ((i,_), e) -> (i, tExpr g e)) ds in
+
+       if not (List.exists (function
+                             | ("_", _) -> false
+                             | (i, _) ->  not (in_scope i g))
+                           tds)
+       then typecheck_error pos "Short declaration should define at least one new variable";
+
+       List.iter (fun (i, (e,(_,te))) ->
+                   if (in_scope i g)
+                   then match find i g with
+                     | None -> () (* Impossible *)
+                     | Some(t) -> begin
+                        if t != te
+                        then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`")
+                       end
+                   else
+                     add i te g)
+                 tds;
+
        (SDecl_stmt(tds), pos)
 
 (*
@@ -288,9 +297,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
          in
          let tt = match te, t with
            | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
-           | None, Some(t) -> tTyp t
+           | None, Some(t) -> tTyp g t
            | Some((e,(_,etyp))), Some(t) ->
-               let tt = tTyp t in 
+               let tt = tTyp g t in 
                if etyp == tt
                then tt
                else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
@@ -305,7 +314,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
 
     | Type_decl(typId_typ_ls) -> 
-       let tl = List.map (fun ((i,_), t) -> (i, tTyp t)) typId_typ_ls
+       let tl = List.map (fun ((i,_), t) -> (i, tTyp g t)) typId_typ_ls
        in
        (List.iter (fun (num,typ) -> if in_scope num g
                                     then typecheck_error pos ("Type `" ^ num ^ "` already declared in scope")
@@ -318,12 +327,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
-         let itl = List.map (fun((i,_), t) -> (i, tTyp t)) id_typ_ls in
+         let itl = List.map (fun((i,_), t) -> (i, tTyp g t)) id_typ_ls in
          let tl = List.map (fun(_, t) -> t) itl in
-         add fId (TFn(tl , tTyp typ)) g;
+         add fId (TFn(tl , tTyp g typ)) g;
          List.iter (fun (id,typ) -> add id typ g) itl;
-         let tps = List.map (tStmt (tTyp typ) g) ps in
-         (Func_decl(fId, itl, tTyp typ, tps), pos)
+         let tps = List.map (tStmt (tTyp g typ) g) ps in
+         (Func_decl(fId, itl, tTyp g typ, tps), pos)
        end
     |_ ->
        typecheck_error pos "Oups";

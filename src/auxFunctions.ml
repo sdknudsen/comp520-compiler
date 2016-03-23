@@ -71,6 +71,17 @@ let rec unzip l = match l with
 
 (*
 let rec getBaseTyp g t =
+  match t with
+   | TSimp x -> 
+      match g with
+        | Root(tbl) ->
+           match Hashtable.find tbl x with
+             | 
+             | _ -> 
+        | Frame(tbl, ctx) 
+
+  match g with
+
   try
     match find t g with
      | (Context.Typ,t') -> getBaseTyp g t'
@@ -84,8 +95,6 @@ let unify g ta tb =
   if t1 == t2 then t1 else 
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 *)
-
-
 
 
 let isBool t =

@@ -41,6 +41,7 @@ let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
   new_ctx
 
+
 (*
 let unscope outc dumpsymtab = function
   | Frame(tbl, parent_ctx) ->
