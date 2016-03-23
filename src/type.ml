@@ -56,8 +56,11 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Bexp(op,e1,e2) -> 
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       
-       (* let lub = unify g typ1 typ2 in *)
-       let base = if same_type typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
+       (* let base = unify g typ1 typ2 in *)
+       let base = if same_type typ1 typ2
+       then typ1
+       else typecheck_error pos "Mismatched type"
+       in (* allow for defined types *)
        let t = 
          (match op with
           | Boolor
@@ -166,7 +169,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | If_stmt(po,e,ps,pso) ->
        let tpo = typo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
-       if typ != TSimp "bool"
+       if not (same_type typ (TSimp "bool"))
        then typecheck_error pos "If condition must have typ bool"
        else
          let gthen = scope g in
