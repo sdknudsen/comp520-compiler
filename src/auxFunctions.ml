@@ -130,3 +130,12 @@ let isInteger t =
 
 let isString t =
   t = TSimp "string"
+
+
+  (* let rec thread f gamma = function (\* map, but updated gamma is used for next element *\) *)
+  (*   | [] -> ([],gamma) *)
+  (*   | x::xs -> let (d,g) = f gamma x in *)
+  (*              let (tl,gam) = thread f g xs in *)
+  (*              (d::tl,gam) *)
+  (* in *)
+

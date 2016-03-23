@@ -6,31 +6,7 @@ open AuxFunctions
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
-(* add (Iden id) (Var,typ) g *)
-(* add (Iden id) (Fun,typ) g *)
-(* add (Iden id) (Typ,typ) g *)
-
-(* type context = lvalue Ast.Ctx.t *)
-
-(* type context = string Ast.Ctx.t *)
-
-(* let typClass g = function *)
-(*   | TSimp "bool" -> [Bool] *)
-(*   | TSimp "int" -> [Numeric,Integer, *)
-(*   | TSimp "float64" -> [Numeric, *)
-(*   | TSimp "rune" -> [Numeric,Integer, *)
-
-(* let rec str_of_typ = function *)
-
-
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
-
-  let rec thread f gamma = function (* map, but updated gamma is used for next element *)
-    | [] -> ([],gamma)
-    | x::xs -> let (d,g) = f gamma x in
-               let (tl,gam) = thread f g xs in
-               (d::tl,gam)
-  in
 
   let rec tTyp g (t:(string * Lexing.position) annotated_typ): string annotated_typ = match t with
     | TSimp((i,p)) -> if in_context i g
@@ -159,7 +135,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        List.iter
          (fun ((_,(pos,tx)),(_,(_,ty))) ->
            if not (same_type tx ty)
-           then typecheck_error pos "Type mismath in assign")
+           then typecheck_error pos "Type mismatch in assign")
          (zip txs tes);
        (Assign(txs, tes), pos)
     | Print(es) -> 
@@ -167,7 +143,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Println(es) ->
       (Println(List.map (tExpr g) es), pos)
     | If_stmt(po,e,ps,pso) ->
-       let tpo = typo (tStmt frt g) po in
+       let tpo = mapo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
        if not (same_type typ (TSimp "bool"))
        then typecheck_error pos "If condition must have typ bool"
@@ -180,14 +156,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
            | None -> (If_stmt(tpo, te, tps, None), pos));
     | Switch_stmt(po, eo, ps) -> 
-       let tpo = match po with
-                  | Some(p) -> Some(tStmt frt g p)
-                  | None -> None
-       in
-       let teo = match eo with
-                  | Some(e) -> Some(tExpr g e)
-                  | None -> None
-       in
+       let tpo = mapo (fun p -> tStmt frt g p) po in
+       let teo = mapo (fun e -> tExpr g e) eo in
        let tps = List.map (tStmt frt g) ps in
        (Switch_stmt(tpo, teo, tps),pos)
     | Switch_clause(Some(exps), ps) ->
@@ -361,3 +331,4 @@ typId_typ_ls
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
   Prog(pkg, (tDecls (init()) decls))
+
