@@ -65,12 +65,17 @@ let unscope outc dumpsymtab = function
   | Root -> raise (ContextError "Empty Context")
 *)
 
+let base_type t = match t with
+  | "int" | "float64" | "rune" | "string" | "bool" -> true
+  | _ -> false
+
 let in_scope name = function
-  | Root(tbl) | Frame(tbl, _) -> Hashtbl.mem tbl name
+  | Root(tbl) | Frame(tbl, _) -> 
+     base_type name || Hashtbl.mem tbl name
 
 let rec in_context name = function
-  | Frame(tbl, tl) -> Hashtbl.mem tbl name || in_context name tl
-  | Root(tbl)      -> Hashtbl.mem tbl name
+  | Frame(tbl, tl) -> base_type name || Hashtbl.mem tbl name || in_context name tl
+  | Root(tbl)      -> base_type name ||Hashtbl.mem tbl name
 
 let rec find name = function
   | Frame(tbl, ctx) -> if Hashtbl.mem tbl name
