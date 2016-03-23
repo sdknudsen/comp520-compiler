@@ -292,8 +292,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                   (fun ((i,ipos), t) ->
                     let t = tTyp g t in
                     if in_scope i g
-                    then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope"))
-                    else (add i t g; (i,t))
+                    then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
+                    else (add i t g; (i,t)))
                   typId_typ_ls
                   (* (i, tTyp g t)) *)
                   
