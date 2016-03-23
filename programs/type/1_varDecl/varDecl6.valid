@@ -1,0 +1,5 @@
+package main
+
+var a int = 1
+var b float64 = 2.0
+var c string = "hello"

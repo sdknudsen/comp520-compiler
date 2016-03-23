@@ -1,0 +1,5 @@
+package main
+
+var a = 1
+var b = 2.0
+var c = "hello"

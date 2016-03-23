@@ -154,8 +154,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tes = List.map (tExpr g) es in
        List.iter
          (fun ((_,(pos,tx)),(_,(_,ty))) ->
-           if not (tx == ty)
-           then typecheck_error pos "Type mismatch in assign")
+           if not (same_type tx ty)
+           then typecheck_error pos "Type mismath in assign")
          (zip txs tes);
        (Assign(txs, tes), pos)
     | Print(es) -> 
@@ -219,7 +219,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
            | None, Some(t) -> tTyp g t
            | Some((e,(_,etyp))), Some(t) ->
                let tt = tTyp g t in 
-               if etyp == tt
+               if same_type etyp tt
                then tt
                else typecheck_error ipos ("Conflicting type for variable declaration `" ^ i ^ "`")
            | Some((_,(_,etyp))), None -> etyp
@@ -262,12 +262,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let te = tExpr g e in
        (Expr_stmt(te),pos)
     | Return(None) ->
-       if not (frt == TVoid)
+       if not (same_type frt TVoid)
        then typecheck_error pos "Function should return a value"
        else (Return(None),pos)
     | Return(Some(e)) ->
        let (_,(_,typ)) as te = tExpr g e in
-       if frt == typ
+       if same_type frt typ
        then (Return(Some(te)), pos)
        else typecheck_error pos "Unexpected return type"
     | Break -> (Break, pos)
@@ -286,18 +286,19 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
     | Var_decl(decls) -> 
        let tc_vardecl ((i,ipos) as id, e, t) =
-         if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
-         
          let te = match e with
            | None -> None
            | Some(e) -> Some(tExpr g e)
          in
+
+         if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
+         
          let tt = match te, t with
            | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
            | None, Some(t) -> tTyp g t
            | Some((e,(_,etyp))), Some(t) ->
                let tt = tTyp g t in 
-               if etyp == tt
+               if same_type etyp tt
                then tt
                else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
            | Some((_,(_,etyp))), None -> etyp
