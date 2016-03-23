@@ -1,0 +1,17 @@
+package main
+
+type num int
+var x num
+
+{
+	{
+		type abc int
+		type def num
+		var w abc
+		var x abc
+		d := w + x
+		var y def
+		var z def
+		e := y + z
+	}
+}
