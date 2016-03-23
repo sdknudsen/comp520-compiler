@@ -19,6 +19,9 @@ files=$(ls $1/*.go $1/*.valid)
 ;;
 "weed")
 files=$(find "parse" | egrep  "\.invalid$|\.valid$" | sort)
+;;
+"type")
+files=$(find "type" | egrep  "\.invalid$|\.valid$" | sort)
 
 
 esac
