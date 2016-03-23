@@ -4,6 +4,7 @@ open Tokens
 let write f obj name suff = f obj (open_out (name^suff))
 let dumpsymtab = ref false
 let pptype = ref false
+let file = ref "out.go"
 
 (* actions *)
 let lex lexbuf =
@@ -40,7 +41,7 @@ let typecheck lexbuf =
   if !pptype then
     write Pprint.pTree typedTree name ".pptype.go"
   else*)
-    ignore (typedTree)
+  ignore (typedTree);
   print_endline "Valid"
 
 let compile lexbuf =
@@ -56,7 +57,7 @@ let main =
   (*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)
   let action = ref compile in
   let in_channel = ref stdin in
-  let file = ref "foo/bar.go" in
+  (*let file = ref "foo/bar.go" in*)
   let anon_fun = function
     | "lex"       -> action := lex
     | "parse"     -> action := parse
@@ -64,7 +65,7 @@ let main =
 (*
     | "pretty"    -> action := pretty
 *)
-    | "typecheck" -> action := typecheck
+    | "type" -> action := typecheck
 
     | "compile"   -> action := compile
     (* unknown arguments are considered as files *)

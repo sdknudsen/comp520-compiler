@@ -1,7 +1,5 @@
 open Ast
 
-exception ContextError of string
-
 (* Cactus stack of hash tables *)
 type context =
   | Root of (string, info) Hashtbl.t
@@ -18,10 +16,10 @@ let typ_to_str = function
 
 let add name kind = function
   | Frame(tbl, _) -> if Hashtbl.mem tbl name
-                     then raise (ContextError "Variable Declared")
+                     then raise (Error.CompileError "Variable Declared")
                      else Hashtbl.add tbl name kind
   | Root(tbl) -> if Hashtbl.mem tbl name
-                 then raise (ContextError "Variable Declared")
+                 then raise (Error.CompileError "Variable Declared")
                  else Hashtbl.add tbl name kind
 
 let init () =
@@ -78,7 +76,7 @@ let rec find name = function
                        else find name ctx
   | Root(tbl)       -> if Hashtbl.mem tbl name
                        then Hashtbl.find tbl name
-                       else raise (ContextError (Printf.sprintf "Undeclared symbol %s" name))
+                       else raise (Error.CompileError (Printf.sprintf "Undeclared symbol %s" name))
 
 let rec get_base_type name =
   (* function *)

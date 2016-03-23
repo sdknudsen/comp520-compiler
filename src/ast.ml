@@ -77,7 +77,7 @@ module Untyped = struct
 end
 
 module Typed = struct
-  type id = string * Lexing.position
+  type id = string
   type texpr = (annotated_texpr, id) annotated_expr
   and annotated_texpr =  (texpr * (Lexing.position * string annotated_typ))
   type utstmt = (annotated_utstmt, annotated_texpr, id) annotated_stmt
