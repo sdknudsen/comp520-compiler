@@ -328,7 +328,7 @@ assignment:
 simple_assign:
 | es=expressions ASSIGNMENT exprs=expressions
     { ignore(check_balance (es, exprs) $startpos); 
-      (Assign(List.rev es, exprs), $startpos) }
+      (Assign(es, exprs), $startpos) }
 
 binop_assign:
 | e1=expr binop=a_binop e2=expr
