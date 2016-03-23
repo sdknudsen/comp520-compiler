@@ -318,13 +318,21 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
 
     | Type_decl(typId_typ_ls) -> 
-       let tl = List.map (fun ((i,_), t) -> (i, tTyp g t)) typId_typ_ls
+       let tl = List.map
+                  (fun ((i,ipos), t) ->
+                    let t = tTyp g t in
+                    if in_scope i g
+                    then (add i t g; (i,t))
+                    else typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope"))
+                  (* (i, tTyp g t)) *)
+typId_typ_ls
+                  
        in
-       (List.iter (fun (num,typ) -> if in_scope num g
-                                    then typecheck_error pos ("Type `" ^ num ^ "` already declared in scope")
-                                    else add num (TKind(typ)) g)
-                  tl);
-      
+       (* (List.iter (fun (num,typ) -> if in_scope num g *)
+       (*                              then typecheck_error pos ("Type `" ^ num ^ "` already declared in scope") *)
+       (*                              else add num (TKind(typ)) g) *)
+       (*            tl); *)
+       
        (Type_decl(tl), pos)
 
     | Func_decl((fId,_), id_typ_ls, typ, ps) -> (* start by creating a new frame?? *)
