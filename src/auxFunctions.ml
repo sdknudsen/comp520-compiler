@@ -50,9 +50,9 @@ let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
 
-let typo f gam o = match o with
-  | None -> (None, gam)
-  | Some x -> let (tx,g) = f gam x in (Some(tx), g)
+let typo f o = match o with
+  | None -> None
+  | Some x -> let tx = f x in Some(tx)
 
 let rec list_type = function
   | [] -> failwith "empty list"

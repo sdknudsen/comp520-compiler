@@ -172,26 +172,41 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
       (Print(List.map (tExpr g) es), pos)
     | Println(es) ->
       (Println(List.map (tExpr g) es), pos)
-(*
+
     | If_stmt(po,e,ps,pso) ->
-       let tpo = typo (tStmt frt) g po in
-       let (_,(_,typ)) as te = tExpr g1 e in
+       let tpo = typo (tStmt frt g) po in
+       let (_,(_,typ)) as te = tExpr g e in
        if typ != TSimp "bool"
-       then raise (TypeError "If statement must have typ bool")
+       then raise (TypeError "If condition must have typ bool")
        else
-         let (tps,g2) = thread (tStmt frt) g1 ps in
-         let (tpso,g3) = typo (thread (tStmt frt)) g2 pso in
-         If_stmt(tpo, te, tps, tpso)
+         let gthen = scope g in
+         let tps = List.map (tStmt frt gthen) ps in
+         (match pso with
+           | Some(ps) ->
+               let gesle = scope g in
+               (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
+           | None -> (If_stmt(tpo, te, tps, None), pos));
 
     | Switch_stmt(po, eo, ps) -> 
-       let (tpo,g1) = typo (tStmt frt) g po in
-       let teo = mapo (tExpr g1) eo in
-       let (tps,g2) = thread (tStmt frt) g1 ps in
-       Switch_stmt(tpo, teo, tps)
-    | Switch_clause(eso, ps) ->
-       let teso = mapo (List.map (tExpr g)) eso in
-       let (tps,g1) = thread (tStmt frt) g ps in
-       Switch_clause(teso, tps)
+       let tpo = match po with
+                  | Some(p) -> Some(tStmt frt g p)
+                  | None -> None
+       in
+       let teo = match eo with
+                  | Some(e) -> Some(tExpr g e)
+                  | None -> None
+       in
+       let tps = List.map (tStmt frt g) ps in
+       (Switch_stmt(tpo, teo, tps),pos)
+
+    | Switch_clause(Some(exps), ps) ->
+       let teso = (List.map (tExpr g) exps) in
+       let tps = List.map (tStmt frt g) ps in
+       (Switch_clause(Some(teso), tps),pos)
+
+    | Switch_clause(None, ps) ->
+       let tps = List.map (tStmt frt g) ps in
+       (Switch_clause(None, tps),pos)
 
     | For_stmt(po1, eo, po2, ps) -> 
        (* should I remove threading?? replace the hash table with a map? *)
@@ -199,32 +214,44 @@ let typeAST (Prog(pkg,decls) : Untyped.ast) : Typed.ast =
        let teo = mapo (tExpr g1) eo in
        let (tpo2,g2) = typo (tStmt frt) (scope g1) po2 in
        let (tps,g3) = thread (tStmt frt) g2 ps in
-       For_stmt(tpo1, teo, tpo2, tps)
+       (For_stmt(tpo1, teo, tpo2, tps), pos)
          
     | Var_stmt(ids_eso_typo_ls) ->
        let t_ids_eso_typo_ls =
-         List.map (fun (a,eso,c) -> (a,mapo (List.map (tExpr g)) eso,c)) ids_eso_typo_ls in
-       Var_stmt(t_ids_eso_typo_ls)
+         List.map
+           (fun (a,eso,c) -> 
+             let eso = match eso with
+                        | Some(eso) -> Some(List.map (tExpr g) eso)
+                        | None -> None
+             in
+             (a,eso ,c))
+           ids_eso_typo_ls
+       in
+       (Var_stmt(t_ids_eso_typo_ls), pos)
 
-    | SDecl_stmt(ids, eso) ->
-       (* should this be lvalues instead of ids? *)
-       let teso = mapo (List.map (tExpr g)) eso in
-       SDecl_stmt(ids, teso)
+    | SDecl_stmt(ids, None) ->
+       (SDecl_stmt(ids, None), pos)
+       
+    | SDecl_stmt(ids, Some(exps)) ->
+       let teso = (List.map (tExpr g) exps) in
+       (SDecl_stmt(ids, Some(teso)), pos)
 
     | Type_stmt(id_typ_ls) -> 
-      Type_stmt(id_typ_ls)
+       (Type_stmt(id_typ_ls),pos)
  
     | Expr_stmt e ->
        let te = tExpr g e in
-       Expr_stmt(te)
-    | Return(eo) ->
-       let teo = mapo (tExpr g) eo in
-       (match teo with
-       | None -> (Return(teo), g)
-       | Some te -> 
-          if frt = te.typ then Return(teo)
-          else raise (DeclError (typ_to_str te.typ^" does not match expected return type "^typ_to_str te.typ)))
-*)
+       (Expr_stmt(te),pos)
+
+    | Return(None) ->
+       if not (frt == Void)
+       then raise (DeclError "Function should return a value")
+       else (Return(None),pos)
+    | Return(Some(e)) ->
+       let (_,(_,typ)) as te = tExpr g e in
+       if frt == typ
+       then (Return(Some(te)), pos)
+       else raise (DeclError "Unexpected return type")
 
     | Break -> (Break, pos)
     | Block(s) -> 
