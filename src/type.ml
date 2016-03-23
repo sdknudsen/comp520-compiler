@@ -57,7 +57,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       
        (* let lub = unify g typ1 typ2 in *)
-       let lub = if sameTyp typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
+       let lub = if same_type typ1 typ2 then typ1 else failwith "not done" in (* allow for defined types *)
        let t = 
          (match op with
           | Boolor
@@ -86,7 +86,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
     | Uexp(op,e) -> 
        let (_,(_,typ)) as te = tExpr g e in
-       let t = (match typ with
+       let lub = if true then typ else failwith "not done" in (* check defined types *)
+       let t = (match op with
                 | Positive	when isNumeric lub -> lub
                 | Negative	when isNumeric lub -> lub
                 | Boolnot	when isBool lub -> lub
