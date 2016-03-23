@@ -219,7 +219,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                    then match find i g with
                      | None -> () (* Impossible *)
                      | Some(t) -> begin
-                        if t != te
+                        if not (same_type t te)
                         then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`")
                        end
                    else
