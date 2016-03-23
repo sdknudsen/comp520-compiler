@@ -1,0 +1,15 @@
+package main
+
+type num int
+var x num
+
+func main() {
+	type num float64
+	var y num
+	func in() {
+		type abc num
+		var x int
+		var y abc
+		var z num
+	}
+}
