@@ -160,8 +160,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tps = List.map (tStmt frt g) ps in
        (Switch_stmt(tpo, teo, tps),pos)
     | Switch_clause(Some(exps), ps) ->
-       let teso = (List.map (tExpr g) exps) in
-       let tps = List.map (tStmt frt g) ps in
+       let g' = scope g in
+       let teso = (List.map (tExpr g') exps) in
+       let tps = List.map (tStmt frt g') ps in
        (Switch_clause(Some(teso), tps),pos)
     | Switch_clause(None, ps) ->
        let tps = List.map (tStmt frt g) ps in
