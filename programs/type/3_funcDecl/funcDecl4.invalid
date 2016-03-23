@@ -1,0 +1,8 @@
+package main
+
+func f(f float64, a, b int, f bool) string {
+  return "Hello world"
+}
+
+func main() {
+}

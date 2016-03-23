@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var x int = 1
+  for x {
+    a := " world"
+    print(a)
+    break
+  }
+}

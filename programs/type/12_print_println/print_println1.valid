@@ -1,0 +1,6 @@
+package main
+
+func main() {
+  print(1+2-3)
+  println("Hello", 'w', true, 4, 5.6)
+}

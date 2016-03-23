@@ -1,0 +1,9 @@
+package main
+
+func main() {
+  if true {
+    // empty
+  } else {
+    ; // empty with semicolon
+  }
+}

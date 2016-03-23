@@ -1,0 +1,20 @@
+package main
+
+func main() {
+  type point2d struct {
+    x, y float64
+  }
+  var p2d point2d
+  p2d.x = 1.2
+  p2d.y = 3.4
+  type point3d struct {
+    x, y, z int
+  }
+  var p3d point3d
+  p3d.x = 1
+  p3d.y = 2
+  p3d.z = 3
+
+  var a float64 = p2d.x
+  var b int = p3d.x
+}

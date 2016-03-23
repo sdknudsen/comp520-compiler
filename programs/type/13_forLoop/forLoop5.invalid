@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var a string = "Hello"
+  for i := 0; i && 10; i++ {
+    a = " world"
+    print(a)
+    i := 1
+  }
+}

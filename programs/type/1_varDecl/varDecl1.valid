@@ -1,0 +1,13 @@
+package main
+
+var x int
+var y int = x
+var z = x + 1
+
+func main() {
+  {
+    x := z
+    print(x)
+  }
+  print(x)
+}

@@ -1,0 +1,9 @@
+package main
+
+func f(f float64, a, b int, c bool) string {
+  var f int = 1
+  return "Hello world"
+}
+
+func main() {
+}

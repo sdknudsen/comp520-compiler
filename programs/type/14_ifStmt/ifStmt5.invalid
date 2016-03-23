@@ -1,0 +1,9 @@
+package main
+
+func main() {
+  if a, i := true, 0; a {
+    i++
+  } else if i {
+    i--
+  }
+}

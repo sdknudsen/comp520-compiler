@@ -1,0 +1,8 @@
+package main
+
+func f() {
+  return "Hello world"
+}
+
+func main() {
+}
