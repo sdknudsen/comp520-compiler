@@ -40,13 +40,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let t = 
          (match op with
           | Boolor
-            | Booland
-            | Equals
-            | Notequals	when isComparable base -> base
+            | Booland when isBool base -> (TSimp "bool")
+          | Equals
+            | Notequals	when isComparable base -> (TSimp "bool")
           | Lt
             | Lteq	
             | Gt
-            | Gteq	when isOrdered base -> base
+            | Gteq	when isOrdered base -> (TSimp "bool")
           | Plus	when isString base -> base
           | Plus
             | Minus	
@@ -109,8 +109,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ2)) as te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
        (match typ2 with
-         | _ -> typecheck_error pos "Array index must have type int"
-         | TSimp "int" -> (AValue(tr,te), (pos, typ1)));
+         | TSimp "int" -> (AValue(tr,te), (pos, typ1))
+         | _ -> typecheck_error pos "Array index must have type int");
 
     | SValue(r, id) ->
        let (i,_) = id in
@@ -173,11 +173,18 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                    | None -> None
        in
        let teo  = mapo (tExpr g) eo in
-       let tpo2 = match po2 with
+
+       (match teo with 
+         | None -> ()
+         | Some(_,(_,t)) when (same_type t (TSimp "bool")) -> ()
+         | _ -> typecheck_error pos "Condition is not a boolean expression");
+
+       let tpo2 = (match po2 with
                    | Some(p) -> Some(tStmt frt g p)
-                   | None -> None
+                   | None -> None)
        in
-       let tps  = List.map (tStmt frt g) ps in
+       let ng = scope g in
+       let tps  = List.map (tStmt frt ng) ps in
        (For_stmt(tpo1, teo, tpo2, tps), pos)
 
     | Var_stmt(decls) ->
@@ -219,7 +226,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                    then match find i g with
                      | None -> () (* Impossible *)
                      | Some(t) -> begin
-                        if t != te
+                        if not (same_type t te)
                         then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`")
                        end
                    else

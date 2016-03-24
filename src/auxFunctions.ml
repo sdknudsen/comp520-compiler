@@ -104,12 +104,23 @@ let rec same_type t1 t2 = match t1, t2 with
 let isBool t =
     t = TSimp "bool"
 
-let isComparable t =
+let rec isComparable t =
     match t with
+    | TSimp("bool")
+    | TSimp("int")
+    | TSimp("float64")
+    | TSimp("string")
+    | TSimp("rune") -> true
+    | TStruct(fds) -> List.for_all (fun (i,t) -> isComparable t) fds
+    | TArray(v, d) -> (isComparable t)
     | _ -> false
 
 let isOrdered t =
     match t with
+    | TSimp("int")
+    | TSimp("float64")
+    | TSimp("string")
+    | TSimp("rune") -> true
     | _ -> false
 
 let isNumeric t =
@@ -128,9 +139,12 @@ let isInteger t =
   (* | _ -> false *)
            t = TSimp "int" || t = TSimp "rune"
 
+
+let isBool t =
+  t = TSimp "bool"
+
 let isString t =
   t = TSimp "string"
-
 
   (* let rec thread f gamma = function (\* map, but updated gamma is used for next element *\) *)
   (*   | [] -> ([],gamma) *)
