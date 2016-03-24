@@ -6,7 +6,7 @@
     then Error.print_error pos "unbalanced variables and expressions"
 %}
 
-%start <Ast.Untyped.ast> program
+%start <Untyped.ast> program
 
 %%
 

@@ -4,10 +4,10 @@ open Ast
 type context =
   | Root of (string, info) Hashtbl.t
   | Frame of (string, info) Hashtbl.t * context
-and info = (string, string) annotated_typ
+and info = (string, (string * context)) annotated_typ
 
 let rec typ_to_str = function
-  | TSimp(x) -> x
+  | TSimp(x,_) -> x
   | TStruct(id_typ_ls) -> "#struct { "
                         ^ (String.concat 
                             ", "
@@ -31,11 +31,13 @@ let add name kind = function
                  then raise (Error.CompileError "Variable Declared")
                  else Hashtbl.add tbl name kind
 
-let init () =
-  let ctx = Root(Hashtbl.create 1337) in
-  add "true"  (TSimp "bool") ctx;
-  add "false" (TSimp "bool") ctx;
-  ctx
+let init () = Root(Hashtbl.create 1337)
+
+let rec get_scope name g = match g with
+  | Frame(tbl, c) -> if Hashtbl.mem tbl name
+                     then g
+                     else get_scope name c
+  | Root(tbl) -> g 
 
 let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in

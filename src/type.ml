@@ -3,18 +3,22 @@ open Ast
 open Context
 open AuxFunctions
 
+let sure x = match x with
+  | Some(x) -> x
+  | _ -> failwith "So sure?"
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
-  let rec tTyp g (t:Untyped.uttyp): Typed.uttyp = match t with
+  let rec tTyp g (t:Untyped.uttyp): Typed.uttyp =
+   match t with
     | TSimp((i,p)) -> if in_context i g
-                      then TSimp(i)
+                      then TSimp(i, get_scope i g)
                       else typecheck_error p "Use of undefined type"
     | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
-    | TArray(t,s) -> TArray(tTyp g t, s)
-    | TSlice(t) -> TSlice(tTyp g t)
+    | TArray(at,s) -> TArray(tTyp g at, s)
+    | TSlice(st) -> TSlice(tTyp g st)
     | TFn(args, rtn) -> TFn(List.map (tTyp g) args, tTyp g rtn)
     | TKind(t) -> TKind(tTyp g t)
     | TVoid -> TVoid
@@ -22,10 +26,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   (* let rec tExpr gamma = function *)
   let rec tExpr g (e,pos) : Typed.annotated_texpr = match e with
-    | ILit(d) -> (ILit d, (pos, TSimp "int"))
-    | FLit(f) -> (FLit f, (pos, TSimp "float64"))
-    | RLit(c) -> (RLit c, (pos, TSimp "rune"))
-    | SLit(s) -> (SLit s, (pos, TSimp "string"))
+    | ILit(d) -> (ILit d, (pos, sure (find "int" g)))
+    | FLit(f) -> (FLit f, (pos, sure (find "float64" g)))
+    | RLit(c) -> (RLit c, (pos, sure (find "rune" g)))
+    | SLit(s) -> (SLit s, (pos, sure (find "string" g)))
     | Parens(e) -> 
        let (_,(_,typ)) as te = tExpr g e in
        (Parens te, (pos, typ))
@@ -40,14 +44,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let t = 
          (match op with
           | Boolor
-            | Booland when isBool base -> (TSimp "bool")
+            | Booland   when isBool base  -> sure (find "bool" g)
           | Equals
-            | Notequals	when isComparable base -> (TSimp "bool")
+            | Notequals	when isComparable base -> sure (find "bool" g)
           | Lt
             | Lteq	
             | Gt
-            | Gteq	when isOrdered base -> (TSimp "bool")
-          | Plus	when isString base -> base
+            | Gteq 	when isOrdered base -> sure (find "bool" g)
+          | Plus        when isString base  -> base
           | Plus
             | Minus	
             | Times	
@@ -76,10 +80,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                  (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
 
-    | Fn_call((Iden((x,ipos)),_), [e]) when List.mem x ["rune"; "int"; "float64"; "bool"] ->
+    | Fn_call((Iden((x,ipos)),_), [e]) when (match (find x g) with
+                                              | Some(x) -> isCastable x
+                                              | None -> false) ->
        let (_,(_,t)) as te = tExpr g e in
-       if (isBaseType t) && not (isString t)
-       then (Fn_call((Iden(x), (ipos, TKind(TSimp(x)))), [te]), (pos, TSimp x))
+       if (isCastable t)
+       then
+         let tx = sure (find x g) in 
+         (Fn_call((Iden(x), (ipos, TKind(tx))), [te]), (pos, tx))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
     | Fn_call(fun_id, es) -> 
@@ -117,11 +125,11 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let ot = (match typ1 with
          | TArray(t,_) -> t
          | TSlice(t) -> t
-         | _ -> typecheck_error p1 "Non-array value");
+         | _ -> typecheck_error p1 "Non-indexable value");
        in
-       (match typ2 with
-         | TSimp "int" -> (AValue(tr,te), (pos, ot))
-         | _ -> typecheck_error p2 "Array index must have type int");
+       (if same_type typ2 (sure (find "int" g))
+        then (AValue(tr,te), (pos, ot))
+        else typecheck_error p2 "Array index must have type int");
 
     | SValue(r, id) ->
        let (i,_) = id in
@@ -156,7 +164,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | If_stmt(po,e,ps,pso) ->
        let tpo = mapo (tStmt frt g) po in
        let (_,(_,typ)) as te = tExpr g e in
-       if not (same_type typ (TSimp "bool"))
+       if not (same_type typ (sure (find "bool" g)))
        then typecheck_error pos "If condition must have type bool";
        let gthen = scope g in
        let tps = List.map (tStmt frt gthen) ps in
@@ -187,7 +195,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
        (match teo with 
          | None -> ()
-         | Some(_,(_,t)) when (same_type t (TSimp "bool")) -> ()
+         | Some(_,(_,t)) when (same_type t (sure (find "bool" g))) -> ()
          | _ -> typecheck_error pos "Condition is not a boolean expression");
 
        let tpo2 = (match po2 with
@@ -355,5 +363,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
-  Prog(pkg, (tDecls (init()) decls))
+  let ctx = (init ()) in begin
+    add "int"     (TKind (TSimp("#",ctx))) ctx;
+    add "bool"    (TKind (TSimp("#",ctx))) ctx;
+    add "string"  (TKind (TSimp("#",ctx))) ctx;
+    add "rune"    (TKind (TSimp("#",ctx))) ctx;
+    add "float64" (TKind (TSimp("#",ctx))) ctx;
+    add "true"    (sure (find "bool" ctx)) ctx;
+    add "false"   (sure (find "bool" ctx)) ctx;
+    Prog(pkg, (tDecls ctx) decls)
+  end
 

@@ -92,69 +92,98 @@ let unify g ta tb =
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 *)
 
-let isBaseType t = 
-   t = TSimp "int" 
-|| t = TSimp "rune"
-|| t = TSimp "float64"
-|| t = TSimp "string"
-|| t = TSimp "bool"
-
-let rec same_type t1 t2 = match t1, t2 with
+let rec same_type t1 t2 = 
+   match t1, t2 with
     | TVoid, TVoid -> true
-    | TSimp(a), TSimp(a') -> a = a'
+    | TSimp((a,c)), TSimp((a',c')) -> a = a' && c == c'
     | TKind(t), TKind(t') -> same_type t t'
     | TArray(t, i), TArray(t', i') -> same_type t t' && i = i'
     | TSlice(t), TSlice(t') -> same_type t t'
     | TStruct(tl), TStruct(tl') -> false
     | _, _ -> false
 
-let isBool t =
-    t = TSimp "bool"
+let rec isBool = function
+    | TSimp(("bool", _)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isBool x
+         | _ -> false)
+    | _ -> false
 
-let rec isComparable t =
-    match t with
-    | TSimp("bool")
-    | TSimp("int")
-    | TSimp("float64")
-    | TSimp("string")
-    | TSimp("rune") -> true
+let rec isCastable = function
+    | TSimp(("bool", _)) -> true
+    | TSimp(("int", _)) -> true
+    | TSimp(("rune", _)) -> true
+    | TSimp(("float64", _)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isCastable x
+         | _ -> false)
+    | _ -> false
+
+
+let isBaseType = function
+    | TSimp((x, g)) ->
+        (match find x g with
+          | Some(TSimp(("#", _))) -> true
+          | _ -> false)
+    | _ -> false
+
+let rec isComparable = function
+    | TSimp(("bool", _))
+    | TSimp(("int", _))
+    | TSimp(("float64", _))
+    | TSimp(("string", _))
+    | TSimp(("rune", _)) -> true
+    | TSimp(("#", _)) -> false
     | TStruct(fds) -> List.for_all (fun (i,t) -> isComparable t) fds
-    | TArray(v, d) -> (isComparable t)
+    | TArray(t, d) -> (isComparable t)
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isComparable x
+         | _ -> false)
     | _ -> false
 
-let isOrdered t =
-    match t with
-    | TSimp("int")
-    | TSimp("float64")
-    | TSimp("string")
-    | TSimp("rune") -> true
+let rec isOrdered = function
+    | TSimp(("int",_))
+    | TSimp(("float64",_))
+    | TSimp(("string",_))
+    | TSimp(("rune",_)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isOrdered x
+         | _ -> false)
     | _ -> false
 
-let isNumeric t =
-  t = TSimp "int" || t = TSimp "rune" || t = TSimp "float64"
-  (* match t with *)
-  (* | TSimp "int" *)
-  (*   | TSimp "rune" *)
-  (*   | TSimp "float64" -> true *)
-  (* | _ -> false *)
+let rec isNumeric = function
+    | TSimp(("int",_))
+    | TSimp(("float64",_))
+    | TSimp(("rune",_)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isNumeric x
+         | _ -> false)
+    | _ -> false
 
-let isInteger t =
-  (* if e1 != e2 then false else *)
-  (*   match e1 with *)
-  (*   | TSimp "int" -> true *)
-  (* | TSimp "rune" -> true *)
-  (* | _ -> false *)
-           t = TSimp "int" || t = TSimp "rune"
+let rec isInteger  = function
+    | TSimp(("int",_))
+    | TSimp(("rune",_)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isInteger x
+         | _ -> false)
+    | _ -> false
 
-
-
-let isString t =
-  t = TSimp "string"
-
-  (* let rec thread f gamma = function (\* map, but updated gamma is used for next element *\) *)
-  (*   | [] -> ([],gamma) *)
-  (*   | x::xs -> let (d,g) = f gamma x in *)
-  (*              let (tl,gam) = thread f g xs in *)
-  (*              (d::tl,gam) *)
-  (* in *)
-
+let rec isString = function
+    | TSimp(("string",_)) -> true
+    | TSimp(("#", _)) -> false
+    | TSimp((x,g)) ->
+        (match find x g with
+         | Some(TKind(x)) -> isString x
+         | _ -> false)
+    | _ -> false
