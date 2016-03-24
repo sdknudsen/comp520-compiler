@@ -105,12 +105,17 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
       end
     | AValue(r,e) ->
-       let (_,(_,typ1)) as tr = tExpr g r in
-       let (_,(_,typ2)) as te = tExpr g e in
+       let (_,(p1,typ1)) as tr = tExpr g r in
+       let (_,(p2,typ2)) as te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
+       let ot = (match typ1 with
+         | TArray(t,_) -> t
+         | TSlice(t) -> t
+         | _ -> typecheck_error p1 "Non-array value");
+       in
        (match typ2 with
-         | TSimp "int" -> (AValue(tr,te), (pos, typ1))
-         | _ -> typecheck_error pos "Array index must have type int");
+         | TSimp "int" -> (AValue(tr,te), (pos, ot))
+         | _ -> typecheck_error p2 "Array index must have type int");
 
     | SValue(r, id) ->
        let (i,_) = id in
