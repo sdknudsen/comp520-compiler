@@ -224,7 +224,7 @@ let ptTree (Prog(id,decls) : Ast.Typed.ast) outc =
   (* let rec pExpr = function *)
   let rec pExpr (e:Ast.Typed.annotated_texpr) =
     let nodeTyp = snd (snd e) in
-    Printf.fprintf outc "(%t : %t)"
+    Printf.fprintf outc "%t // %t\n"
                    (fun c -> match fst e with
                     | Iden(id) -> pstr (fst id)
                     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)
