@@ -228,10 +228,17 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
        (SDecl_stmt(tds), pos)
 
-(*
-    | Type_stmt(id_typ_ls) -> 
-       (Type_stmt(id_typ_ls),pos)
-*) 
+    | Type_stmt(typId_typ_ls) -> 
+       let tl = List.map
+                  (fun ((i,ipos), t) ->
+                    let t = tTyp g t in
+                    if in_scope i g
+                    then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
+                    else (add i t g; (i,t)))
+                  typId_typ_ls
+       in
+       (Type_stmt(tl), pos)
+
     | Expr_stmt e ->
        let te = tExpr g e in
        (Expr_stmt(te),pos)
