@@ -43,29 +43,19 @@ let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337, parent_ctx) in
   new_ctx
 
-
-(*
-let unscope outc dumpsymtab = function
-  | Frame(tbl, parent_ctx) ->
-      let kind_to_str = function
-        | Var -> "var"
-        | Typ -> "type"
-        | Fun -> "func"
-      in
+let unscope line outc dumpsymtab = function
+  | Frame(tbl, ctx) ->
       let print_symtab tbl =
         (* print hash table contents: reference [7] *)
         Hashtbl.fold
           (fun key value init ->
-             let (kind, typ) = value in
-            Printf.sprintf "%s (%s)-> %s" key (kind_to_str kind) (typ_to_str typ) :: init)
+            Printf.sprintf "%s -> %s" key (typ_to_str value) :: init)
           tbl []
       in
       if dumpsymtab then
-        Printf.fprintf outc "Scope exited:\n%s\n"
+        Printf.fprintf outc "Scope exited at line %d:\n%s\n" line
           (String.concat "\n" (print_symtab tbl));
-      parent_ctx
-  | Root -> raise (ContextError "Empty Context")
-*)
+  | Root(tbl) -> raise (Error.CompileError "Cannot exit global scope")
 
 let base_type t = match t with
   | "int" | "float64" | "rune" | "string" | "bool" -> true
