@@ -6,6 +6,52 @@ open AuxFunctions
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
+let rec valid_return_path stmts =
+  let rec inner ebreak (econt,path_safe) stmt = match stmt with
+    | (Return(_),_)  -> (false, true)
+    | (Continue,_)   -> (true, false)
+    | (Break,_)      -> ebreak
+    | (For_stmt(po1, eo, po2, ps),_) -> 
+       (List.fold_left (inner (econt, path_safe))
+                       (econt, path_safe)
+                       (List.rev ps))
+      
+    | (Switch_stmt(_, _, ps),_) -> 
+      let cases = List.map (inner (econt,path_safe) (econt,path_safe)) ps in
+      let cont = List.map fst cases in
+      let rc = (List.fold_left (fun acc x -> acc && x) true cont) in
+      let rp = (List.fold_left (fun acc (tc,tp) -> acc && ((not tc) && tp)) true cases) in
+      (rc, rp)
+
+    | (Block(ps),_)
+    | (Switch_clause(_, ps),_) ->
+      (List.fold_left (inner ebreak)
+                      (econt,path_safe)
+                      (List.rev ps))
+ 
+    | (If_stmt(po,e,ps,pso),_) ->
+       let (tc,tp) = (List.fold_left
+                      (inner ebreak)
+                      (econt,path_safe)
+                      (List.rev ps))
+       in
+       let (ec,ep) = (defaulto
+                      (List.fold_left
+                       (inner ebreak)
+                       (econt,path_safe))
+                      (econt,path_safe)
+                      (mapo List.rev pso))
+       in
+       (tc && ec, ((not tc)&& tp) && ((not ec)&&ep))
+    | _ -> (econt, path_safe)
+
+  in
+  let (tc,tr) = List.fold_left (inner (false,false)) (false,false) (List.rev stmts) in
+  tr
+
+
+
+
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   let rec tTyp g (t:Untyped.uttyp): Typed.uttyp =
@@ -86,9 +132,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                  (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
 
-    | Fn_call((Iden((x,ipos)),_), [e]) when (match (find x g) with
-                                              | Some(x) -> isCastable x
-                                              | None -> false) ->
+   (* | Fn_call((Iden((x,ipos)),_), [e]) when defaulto isCastable false (find x g) ->*)
+    | Fn_call((Iden((x,ipos)),_),[e]) when defaulto isCastable false (get_type_instance x g)->
        let (_,(_,t)) as te = tExpr g e in
        if (isCastable t)
        then
@@ -166,18 +211,31 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   let rec tStmt frt g ((p, pos): Untyped.annotated_utstmt) : Typed.annotated_utstmt = match p with 
     | Assign(xs,es) -> 
-       let txs = List.map (tExpr g) xs in
+       (* let txs = List.map (tExpr g) xs in *)
        let tes = List.map (tExpr g) es in
-       List.iter
-         (fun ((_,(pos,tx)),(_,(_,ty))) ->
-           if not (same_type tx ty)
-           then typecheck_error pos "Type mismatch in assign")
-         (zip txs tes);
+       let zipped = zip xs tes in
+       let check_assign = function
+         | ((Iden(("_",p)),_), (e,(ep,et) as te)) -> (Iden("_"),(p,et))
+         | (lhs, (e,(ep,et) as te)) ->
+              let (_,(_,t)) as tlhs = (tExpr g lhs) in
+              if not (same_type t et)
+              then typecheck_error pos "Type mismatch in assign"
+              else tlhs
+       in
+       let txs = List.map check_assign zipped in
        (Assign(txs, tes), pos)
     | Print(es) -> 
-      (Print(List.map (tExpr g) es), pos)
+      let texps = List.map (tExpr g) es in
+      (List.iter (fun (_,(p,t)) ->
+                   if not (isBaseType t)
+                   then typecheck_error p "Print argument not of base type") texps);
+      (Print(texps), pos)
     | Println(es) ->
-      (Println(List.map (tExpr g) es), pos)
+      let texps = List.map (tExpr g) es in
+      (List.iter (fun (_,(p,t)) ->
+                   if not (isBaseType t)
+                   then typecheck_error p "Print argument not of base type") texps);
+      (Println(texps), pos)
     | If_stmt(po,e,ps,pso) ->
        let tinit = mapo (tStmt frt g) po in
        let (_,(_,typ)) as tcond = tExpr g e in
@@ -244,7 +302,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tc_vardecl ((i,ipos) as id, e, t) =
          if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
          
-         let te = mapmatch e with
+         let te = match e with
            | None -> None
            | Some(e) -> Some(tExpr g e)
          in
@@ -387,6 +445,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
          in
 
          let tstmts = List.map (tStmt rtntyp ng) stmts in
+         (match typ with
+          | TVoid -> ()
+          | _ -> if not (valid_return_path tstmts)
+                 then typecheck_error pos ("Execution paths with no returns in function"));
 
          unscope ng;
 

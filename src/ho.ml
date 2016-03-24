@@ -4,6 +4,10 @@ let sure = function
   | Some(x) -> x
   | None -> failwith "So sure?\n" 
 
+let defaulto f v = function 
+  | Some(x) -> f x
+  | None -> v
+
 let mapo f = function
   | Some(x) -> Some(f x)
   | None -> None

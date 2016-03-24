@@ -124,9 +124,9 @@ let rec isBool = function
     | _ -> false
 
 let rec isCastable = function
-    | TSimp(("bool", _)) -> true
-    | TSimp(("int", _)) -> true
-    | TSimp(("rune", _)) -> true
+    | TSimp(("bool", _))
+    | TSimp(("int", _))
+    | TSimp(("rune", _))
     | TSimp(("float64", _)) -> true
     | TSimp(("#", _)) -> false
     | TSimp((x,g)) ->
@@ -139,7 +139,7 @@ let rec isCastable = function
 let isBaseType = function
     | TSimp((x, g)) ->
         (match find x g with
-          | Some(TSimp(("#", _))) -> true
+          | Some(TKind(TSimp("#", _))) -> true
           | _ -> false)
     | _ -> false
 
