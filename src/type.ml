@@ -111,12 +111,17 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
       end
     | AValue(r,e) ->
-       let (_,(_,typ1)) as tr = tExpr g r in
-       let (_,(_,typ2)) as te = tExpr g e in
+       let (_,(p1,typ1)) as tr = tExpr g r in
+       let (_,(p2,typ2)) as te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
+       let ot = (match typ1 with
+         | TArray(t,_) -> t
+         | TSlice(t) -> t
+         | _ -> typecheck_error p1 "Non-array value");
+       in
        (match typ2 with
-         | _ -> typecheck_error pos "Array index must have type int"
-         | TSimp "int" -> (AValue(tr,te), (pos, typ1)));
+         | TSimp "int" -> (AValue(tr,te), (pos, ot))
+         | _ -> typecheck_error p2 "Array index must have type int");
 
     | SValue(r, id) ->
        let (i,_) = id in
@@ -241,10 +246,17 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
        (SDecl_stmt(tds), pos)
 
-(*
-    | Type_stmt(id_typ_ls) -> 
-       (Type_stmt(id_typ_ls),pos)
-*) 
+    | Type_stmt(typId_typ_ls) -> 
+       let tl = List.map
+                  (fun ((i,ipos), t) ->
+                    let t = tTyp g t in
+                    if in_scope i g
+                    then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
+                    else (add i t g; (i,t)))
+                  typId_typ_ls
+       in
+       (Type_stmt(tl), pos)
+
     | Expr_stmt e ->
        let te = tExpr g e in
        (Expr_stmt(te),pos)
