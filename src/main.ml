@@ -1,4 +1,5 @@
 open Tokens
+open Context
 
 (* utilities *)
 let write f obj name suff = f obj (open_out (name^suff))
@@ -34,7 +35,9 @@ let pretty lexbuf =
 *)
 
 let typecheck lexbuf =
-  let name = Filename.chop_suffix !file ".go" in
+  let name = (Filename.chop_extension !file) in
+  if !dumpsymtab
+  then Context.symout := Some(open_out (name^".sym"));
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
   let typedTree = Type.typeAST untypedTree in
@@ -51,8 +54,12 @@ let compile lexbuf =
 let main =
   (* command line arguments with flags: reference [8] *)
   let speclist =
-    [("-dumpsymtab", Arg.Set dumpsymtab, "Enables top-most frame of the symbol table to be dumped each time a scope is exited");
-     ("-pptype", Arg.Set pptype, "Enables pretty print of the program, with the type of each expression printed in some legible format")]
+    [("-dumpsymtab",
+        Arg.Set dumpsymtab,
+        "Enables top-most frame of the symbol table to be dumped each time a scope is exited");
+     ("-pptype",
+        Arg.Set pptype,
+        "Enables pretty print of the program, with the type of each expression printed in some legible format")]
   in
   let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|type] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
   (*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)

@@ -7,7 +7,7 @@ let at_most cond lst n =
 let weed ast = 
 
   let weed_reserved_words (w,pos) = match w with
-      | "int" | "float64" | "string" | "rune" | "bool" ->
+      | "int" | "float64" | "string" | "rune" | "bool" | "println" | "print" ->
           Error.print_error pos "Invalid use of reserved word"
       | _ -> ()
   in

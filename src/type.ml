@@ -1,17 +1,15 @@
 (* module Ctx = Map.Make(String) *)
 open Ast
 open Context
+open Ho 
 open AuxFunctions
-
-let sure x = match x with
-  | Some(x) -> x
-  | _ -> failwith "So sure?"
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   let rec tTyp g (t:Untyped.uttyp): Typed.uttyp =
+   Printf.printf "gen type\n";
    match t with
     | TSimp((i,p)) -> if in_context i g
                       then TSimp(i, get_scope i g)
@@ -25,11 +23,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
   in
 
   (* let rec tExpr gamma = function *)
-  let rec tExpr g (e,pos) : Typed.annotated_texpr = match e with
-    | ILit(d) -> (ILit d, (pos, sure (find "int" g)))
-    | FLit(f) -> (FLit f, (pos, sure (find "float64" g)))
-    | RLit(c) -> (RLit c, (pos, sure (find "rune" g)))
-    | SLit(s) -> (SLit s, (pos, sure (find "string" g)))
+  let rec tExpr g (e,pos) : Typed.annotated_texpr =
+   Printf.printf "gen expr\n";
+  match e with
+    | ILit(d) -> (ILit d, (pos, sure (get_type_instance "int" g)))
+    | FLit(f) -> (FLit f, (pos, sure (get_type_instance "float64" g)))
+    | RLit(c) -> (RLit c, (pos, sure (get_type_instance "rune" g)))
+    | SLit(s) -> (SLit s, (pos, sure (get_type_instance "string" g)))
     | Parens(e) -> 
        let (_,(_,typ)) as te = tExpr g e in
        (Parens te, (pos, typ))
@@ -44,13 +44,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let t = 
          (match op with
           | Boolor
-            | Booland   when isBool base  -> sure (find "bool" g)
+            | Booland   when isBool base  -> sure (get_type_instance "bool" g)
           | Equals
-            | Notequals	when isComparable base -> sure (find "bool" g)
+            | Notequals	when isComparable base -> sure (get_type_instance "bool" g)
           | Lt
             | Lteq	
             | Gt
-            | Gteq 	when isOrdered base -> sure (find "bool" g)
+            | Gteq 	when isOrdered base -> sure (get_type_instance "bool" g)
           | Plus        when isString base  -> base
           | Plus
             | Minus	
@@ -63,7 +63,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
             | Rshift
             | Bitand
             | Bitnand 	when isInteger base -> base
-          | _ -> typecheck_error pos ("Mismatch with '" ^ bop_to_str op ^ "' operation"))
+          | _ -> typecheck_error pos
+                 (Printf.sprintf
+                  "Mismatch with '%s' operation: %s %s %s"
+                  (bop_to_str op)
+                  (typ_to_str typ1)
+                  (bop_to_str op)
+                  (typ_to_str typ2)))
 
        in (Bexp(op,te1,te2), (pos, t))
 
@@ -86,32 +92,38 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,t)) as te = tExpr g e in
        if (isCastable t)
        then
-         let tx = sure (find x g) in 
+         let tx = sure (get_type_instance x g) in 
          (Fn_call((Iden(x), (ipos, TKind(tx))), [te]), (pos, tx))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
-    | Fn_call(fun_id, es) -> 
-       typecheck_error pos ("Function type unimplemented")
-      (* let tf = tExpr g f in
-       let (fargs,ft) = find f g in
-       let tes = List.map (tExpr g) es in
-       List.iter (fun (arg,te) ->
-           if arg != te.typ
-           then raise (TypeError ("Function argument mistmatch between "^typ_to_str arg^" and "^typ_to_str te.typ))
-           else ()) (zip fargs tes);
-       (Fn_call(tf,tes), (pos, ft)) *)
-    (* why does the pdf say that the arguments have to be well typed (they're lvals, ids, or something else?? *)
+    | Fn_call(fid, es) -> 
+       let (_,(_,t)) as tfid = tExpr g fid in
+       let (fargs,ft) = begin
+         match t with
+          | TFn(fargs,ft) -> (fargs,ft)
+          | _ -> ([TVoid], TVoid)
+       end in
+       let texps = List.map (tExpr g) es in
+       let tes = List.map (fun e -> snd (snd e)) texps in
+       let typecheck_args ta te = begin
+         if not (same_type ta te) 
+         then typecheck_error pos ("Function argument mistmatch between "^typ_to_str ta^" and "^typ_to_str te)
+         else ()
+       end in
+       List.iter2 typecheck_args fargs tes;
+       (Fn_call(tfid,texps), (pos, ft))
 
-    | Append((i,ipos) as id, e) ->
-(* add (Iden id) (Typ,typ) g *)
+    | Append((i,ipos), e) ->
        let t = (match find i g with
-         | Some(TSlice t) -> t
+         | Some(TSlice(t)) -> t
          | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
-         | _    -> typecheck_error pos  ("\"" ^ i ^ "\" must have type slice"))
+         | _    -> typecheck_error pos  ("`" ^ i ^ "` must have be a slice"))
        in
        let (_,(_,typ)) as te = tExpr g e in
-       if t = typ then (Append(i,te), (pos, TSlice t))
-       else typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
+       if same_type t typ then begin
+          (Append(i,te), (pos, TSlice t))
+       end else
+          typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
 
     | Iden((i, ipos) as id) -> begin
         match find i g with
@@ -127,23 +139,28 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
          | TSlice(t) -> t
          | _ -> typecheck_error p1 "Non-indexable value");
        in
-       (if same_type typ2 (sure (find "int" g))
+       (if same_type typ2 (sure (get_type_instance "int" g))
         then (AValue(tr,te), (pos, ot))
         else typecheck_error p2 "Array index must have type int");
 
-    | SValue(r, id) ->
-       let (i,_) = id in
-       try
-       match tExpr g r with
-         | (_,(_, TStruct(tl))) as tr ->
-            let (_,field_typ) = List.find (function
-                                            | (_,i) -> true
-                                            | _ -> false)
-                                      tl
-            in (SValue(tr,i), (pos, field_typ))
-         | _ -> typecheck_error pos "Something very wrong"
-       with 
-         | Not_found -> typecheck_error pos "Invalid struct field"
+    | SValue(e, (i,ip)) ->
+       let te = tExpr g e in
+       let etyp = snd (snd te) in
+       let btyp = sure (get_base_type etyp) in
+       
+       let (_,ftyp) = (match btyp with
+         | TStruct(tl) as tr -> begin
+             try
+               List.find (function | (_,i) -> true
+                                   | _ -> false)
+                         tl
+             with 
+              |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
+           end
+         | TKind(_) -> typecheck_error pos "Expression of type kind"
+         | _ -> typecheck_error pos "Expression not of type struct")
+       in
+       (SValue(te,i), (pos, ftyp))
   in
 
 
@@ -162,17 +179,21 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | Println(es) ->
       (Println(List.map (tExpr g) es), pos)
     | If_stmt(po,e,ps,pso) ->
-       let tpo = mapo (tStmt frt g) po in
-       let (_,(_,typ)) as te = tExpr g e in
-       if not (same_type typ (sure (find "bool" g)))
+       let tinit = mapo (tStmt frt g) po in
+       let (_,(_,typ)) as tcond = tExpr g e in
+       if not (same_type typ (sure (get_type_instance "bool" g)))
        then typecheck_error pos "If condition must have type bool";
        let gthen = scope g in
-       let tps = List.map (tStmt frt gthen) ps in
-       (match pso with
-         | Some(ps) ->
-             let gesle = scope g in
-             (If_stmt(tpo, te, tps, Some((List.map (tStmt frt gesle)) ps)), pos)
-         | None -> (If_stmt(tpo, te, tps, None), pos));
+       let tthen = List.map (tStmt frt gthen) ps in
+       unscope gthen;
+       let gelse = scope g in
+       let telse = (match pso with
+           | Some(ps) -> Some((List.map (tStmt frt gelse)) ps)
+           | None -> None)
+       in
+       unscope gelse;
+       (If_stmt(tinit, tcond, tthen, telse), pos)
+
     | Switch_stmt(po, eo, ps) -> 
        let tpo = mapo (fun p -> tStmt frt g p) po in
        let teo = mapo (fun e -> tExpr g e) eo in
@@ -208,7 +229,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
        (match teo with 
          | None -> ()
-         | Some(_,(_,t)) when (same_type t (sure (find "bool" g))) -> ()
+         | Some(_,(_,t)) when (same_type t (sure (get_type_instance "bool" g))) -> ()
          | _ -> typecheck_error pos "Condition is not a boolean expression");
 
        let tpo2 = (match po2 with
@@ -223,7 +244,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tc_vardecl ((i,ipos) as id, e, t) =
          if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
          
-         let te = match e with
+         let te = mapmatch e with
            | None -> None
            | Some(e) -> Some(tExpr g e)
          in
@@ -267,17 +288,16 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
        (SDecl_stmt(tds), pos)
 
-    | Type_stmt(typId_typ_ls) -> 
+    | Type_stmt(typ_decls) -> 
+       let tl = List.map (fun (i, t) -> (i,TKind(tTyp g t))) typ_decls in
        let tl = List.map
                   (fun ((i,ipos), t) ->
-                    let t = tTyp g t in
                     if in_scope i g
                     then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
                     else (add i t g; (i,t)))
-                  typId_typ_ls
+                  tl
        in
        (Type_stmt(tl), pos)
-
     | Expr_stmt e ->
        let te = tExpr g e in
        (Expr_stmt(te),pos)
@@ -291,10 +311,11 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        then (Return(Some(te)), pos)
        else typecheck_error pos "Unexpected return type"
     | Break -> (Break, pos)
-    | Block(s) -> 
-       let ts = List.map (tStmt frt (scope g)) s in
-       let out = (Block(ts), pos) in
-       out;
+    | Block(stmts) ->
+       let ng = scope g in 
+       let tstmts = List.map (tStmt frt ng) stmts in
+       unscope ng;
+       (Block(tstmts), pos)
     | Continue -> (Continue, pos)
     | Empty_stmt -> (Empty_stmt,pos)
     | _ -> (Continue, pos)
@@ -333,46 +354,47 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
 
 
-    | Type_decl(typId_typ_ls) -> 
+    | Type_decl(typ_decls) -> 
+       let tl = List.map (fun (i, t) -> (i,TKind(tTyp g t))) typ_decls in
        let tl = List.map
                   (fun ((i,ipos), t) ->
-                    let t = tTyp g t in
                     if in_scope i g
                     then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
                     else (add i t g; (i,t)))
-                  typId_typ_ls
-                  (* (i, tTyp g t)) *)
-                  
+                  tl
        in
-       (* (List.iter (fun (num,typ) -> if in_scope num g *)
-       (*                              then typecheck_error pos ("Type `" ^ num ^ "` already declared in scope") *)
-       (*                              else add num (TKind(typ)) g) *)
-       (*            tl); *)
-       
        (Type_decl(tl), pos)
 
-    | Func_decl((fId,_), id_typ_ls, typ, ps) -> (* start by creating a new frame?? *)
+    | Func_decl((fId,_), args, typ, stmts) ->
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
+
+         let targs = List.map (fun((i,ipos), t) -> ((i,ipos), tTyp g t)) args in
+         let tl = List.map snd targs in
+         let rtntyp = tTyp g typ in
+
+         add fId (TFn(tl, rtntyp)) g;
+
          let ng = scope g in  
-         let itl = List.map (fun((i,ipos), t) ->
-                               let t = tTyp g t in
+         let targs = List.map (fun((i,ipos),t) ->
                                if in_scope i ng
                                then typecheck_error
                                       ipos
                                       ("Parameter name `" ^ i ^ "` use twice")
                                else (add i t ng; (i, t)))
-                            id_typ_ls in
-         let tl = List.map (fun(_, t) -> t) itl in
-         let rtntyp = tTyp g typ in
+                              targs
+         in
 
-         add fId (TFn(tl, rtntyp)) g;
-         let tps = List.map (tStmt rtntyp ng) ps in
-         (Func_decl(fId, itl, rtntyp, tps), pos)
+         let tstmts = List.map (tStmt rtntyp ng) stmts in
+
+         unscope ng;
+
+         (Func_decl(fId, targs, rtntyp, tstmts), pos)
        end
-    |_ ->
+(*    |_ ->
        typecheck_error pos "Oups";
+*)
 
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
@@ -382,8 +404,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     add "string"  (TKind (TSimp("#",ctx))) ctx;
     add "rune"    (TKind (TSimp("#",ctx))) ctx;
     add "float64" (TKind (TSimp("#",ctx))) ctx;
-    add "true"    (sure (find "bool" ctx)) ctx;
-    add "false"   (sure (find "bool" ctx)) ctx;
-    Prog(pkg, (tDecls ctx) decls)
+    add "true"    (sure (get_type_instance "bool" ctx)) ctx;
+    add "false"   (sure (get_type_instance "bool" ctx)) ctx;
+    let decls = tDecls ctx decls in
+    Prog(pkg, decls)
   end
 

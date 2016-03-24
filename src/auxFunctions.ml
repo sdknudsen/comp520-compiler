@@ -48,7 +48,7 @@ let typ_to_str = function
 
 let all_same f = function
   | [] -> true
-  | x::xs -> List.for_all (fun y -> f y = f x) xs
+  | x::xs -> List.for_all (fun y -> f y == f x) xs
 
 let mapo f o = match o with
   | None -> None
@@ -96,6 +96,13 @@ let unify g ta tb =
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 *)
 
+let rec get_base_type = function
+   | TSimp((x,g)) ->
+       (match find x g with
+         | Some(TKind(x)) -> get_base_type x
+         | _ -> None)
+   | t -> Some(t)
+
 let rec same_type t1 t2 = 
    match t1, t2 with
     | TVoid, TVoid -> true
@@ -103,7 +110,8 @@ let rec same_type t1 t2 =
     | TKind(t), TKind(t') -> same_type t t'
     | TArray(t, i), TArray(t', i') -> same_type t t' && i = i'
     | TSlice(t), TSlice(t') -> same_type t t'
-    | TStruct(tl), TStruct(tl') -> false
+    | TStruct(tl), TStruct(tl') ->
+        List.exists2 (fun (i,t) (i',t') -> not (i = i' && (same_type t t'))) tl tl'
     | _, _ -> false
 
 let rec isBool = function

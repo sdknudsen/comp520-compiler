@@ -1,0 +1,11 @@
+package main
+
+type (
+   b a
+   a int
+)
+
+func main () {
+    var i b = 10;
+    print(i)
+}
