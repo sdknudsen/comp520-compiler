@@ -109,8 +109,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let (_,(_,typ2)) as te = tExpr g e in
        (* do we allow e to be empty if this is a slice?? *)
        (match typ2 with
-         | _ -> typecheck_error pos "Array index must have type int"
-         | TSimp "int" -> (AValue(tr,te), (pos, typ1)));
+         | TSimp "int" -> (AValue(tr,te), (pos, typ1))
+         | _ -> typecheck_error pos "Array index must have type int");
 
     | SValue(r, id) ->
        let (i,_) = id in
