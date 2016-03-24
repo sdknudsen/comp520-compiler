@@ -30,7 +30,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
     | x::xs -> f x; List.iter (fun y -> pstr ", "; f y) xs
   in
   (* let plns f = in *)
-  let rec pTyp (at:Ast.Untyped.id annotated_typ) = match at with
+  let rec pTyp (at:Untyped.uttyp) = match at with
     (* | Struct_type((typ_id, typ)s) ->  *)
     | TSimp(typ_id) -> pstr (fst typ_id) (* snd is lexing positon *)
     | TStruct(x_typ_ls) ->
@@ -38,7 +38,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                       (fun c -> pssl "; " (fun (x,typ) -> pstr (fst x^" "); pTyp typ) x_typ_ls)
     | TArray(typ,d) -> Printf.fprintf outc "[%d]%t" d (fun c -> pTyp typ)
     | TSlice(typ) -> Printf.fprintf outc "[]%t" (fun c -> pTyp typ)
-    | Void -> ()
+    | TVoid -> ()
   in
   (* let rec pExpr = function *)
   let rec pExpr (ue:Ast.Untyped.annotated_utexpr) = match fst ue with
@@ -66,7 +66,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
 
 
   in
-  let rec pStmt (us:Ast.Untyped.annotated_utstmt) = match fst us with
+  let rec pStmt ((us, pos): Untyped.annotated_utstmt) = match us with
     | Assign(xs, es) ->
        Printf.fprintf outc "%t = %t"
                       (fun c -> pcsl pExpr xs)
@@ -114,22 +114,21 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                       (fun c -> may pStmt po2)
                       (fun c -> pssl ";\n" pStmt ps)
 
-    | Var_stmt(ids_eso_typo_ls) ->
-       pstr "var(\n"; incr tabc;
-       List.iter (fun (ids,eso,typo) ->
-           Printf.fprintf outc "%t %t%t;\n"
-                          (* (fun c -> pcsl pstr ids) *)
-                          (* (fun c -> may pTyp typo) *)
-                          (* (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso) *)
-                          (fun c -> pcsl pid ids)
-                          (fun c -> may pTyp typo)
-                          (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
-         ) ids_eso_typo_ls; pstr ")"; decr tabc
+    (* | Var_stmt(ids_eso_typo_ls) -> *)
+       (* (\* let (ids,eo,) =  *\) *)
+       (* pstr "var(\n"; incr tabc; *)
+       (* List.iter (fun (ids,eso,typo) -> *)
+       (*     Printf.fprintf outc "%t %t%t;\n" *)
+       (*                    (fun c -> pcsl pid ids) *)
+       (*                    (fun c -> may pTyp typo) *)
+       (*                    (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso) *)
+       (*   ) ids_eso_typo_ls; pstr ")"; decr tabc *)
 
-    | SDecl_stmt(ids, eso) ->
+    | SDecl_stmt(id_e_ls) ->
+       let (ids,es) = unzip id_e_ls in
        Printf.fprintf outc "%t%t"
                       (fun c -> pcsl pid ids)
-                      (fun c -> may (fun es -> pstr " := "; pcsl pExpr es) eso)
+                      (fun c -> pstr " := "; pcsl pExpr es)
 
     | Type_stmt(id_typ_ls) ->
        List.iter (fun (id,typ) ->
@@ -149,9 +148,10 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                       (* | SDecl_stmt((ids, eso))   *)
                       (* | Type_stmt((id, typ)s)   *)
   in
-  let rec pDecl (ud:Ast.Untyped.annotated_utdecl) = 
-    tab(); match fst ud with
+  let rec pDecl ((ud,pos): Untyped.annotated_utdecl) = 
+    tab(); match ud with
            | Var_decl(ids_eso_typo_ls) -> 
+              List.iter (fun this ->
               pstr "var(\n"; incr tabc;
               List.iter (fun (id_pos_ls,eso,typo) ->
                   let ids = List.map (fun (x,y) -> x) id_pos_ls in
@@ -161,7 +161,8 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                                  (fun c -> pcsl pstr ids)
                                  (fun c -> may pTyp typo)
                                  (fun c -> may (fun es -> pstr " = "; pcsl pExpr es) eso)
-                ) ids_eso_typo_ls; pstr ")\n"; decr tabc
+                ) this; pstr ")\n"; decr tabc
+                ) ids_eso_typo_ls
 
            | Type_decl(id_atyp_ls) -> 
               pstr "type(\n"; incr tabc;
@@ -224,7 +225,7 @@ let ptTree (Prog(id,decls) : Ast.Typed.ast) outc =
   (* let rec pExpr = function *)
   let rec pExpr (e:Ast.Typed.annotated_texpr) =
     let nodeTyp = snd (snd e) in
-    Printf.fprintf outc "(%t : %t)"
+    Printf.fprintf outc "%t // %t\n"
                    (fun c -> match fst e with
                     | Iden(id) -> pstr (fst id)
                     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)

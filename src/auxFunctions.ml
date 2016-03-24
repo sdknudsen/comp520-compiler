@@ -46,6 +46,10 @@ let typ_to_str = function
   | Void -> failwith "not done"
 *)
 
+let all_same f = function
+  | [] -> true
+  | x::xs -> List.for_all (fun y -> f y = f x) xs
+
 let mapo f o = match o with
   | None -> None
   | Some x -> Some (f x)
