@@ -4,7 +4,7 @@ open Ast
 type context =
   | Root of (string, info) Hashtbl.t
   | Frame of (string, info) Hashtbl.t * context
-and info = (string annotated_typ)
+and info = (string, string) annotated_typ
 
 let rec typ_to_str = function
   | TSimp(x) -> x

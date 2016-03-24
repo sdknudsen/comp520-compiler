@@ -96,6 +96,13 @@ let unify g ta tb =
     raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
 *)
 
+let isBaseType t = 
+   t = TSimp "int" 
+|| t = TSimp "rune"
+|| t = TSimp "float64"
+|| t = TSimp "string"
+|| t = TSimp "bool"
+
 let rec same_type t1 t2 = match t1, t2 with
     | TVoid, TVoid -> true
     | TSimp(a), TSimp(a') -> a = a'
@@ -144,8 +151,6 @@ let isInteger t =
            t = TSimp "int" || t = TSimp "rune"
 
 
-let isBool t =
-  t = TSimp "bool"
 
 let isString t =
   t = TSimp "string"

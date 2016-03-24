@@ -8,7 +8,7 @@ let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
-  let rec tTyp g (t:(string * Lexing.position) annotated_typ): string annotated_typ = match t with
+  let rec tTyp g (t:Untyped.uttyp): Typed.uttyp = match t with
     | TSimp((i,p)) -> if in_context i g
                       then TSimp(i)
                       else typecheck_error p "Use of undefined type"
@@ -75,6 +75,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                  (* change to allow for new types *)
                  (* let te = typeExpr gamma e *)
        in (Uexp(op,te), (pos, t))
+
+    | Fn_call((Iden((x,ipos)),_), [e]) when List.mem x ["rune"; "int"; "float64"; "bool"] ->
+       let (_,(_,t)) as te = tExpr g e in
+       if (isBaseType t) && not (isString t)
+       then (Fn_call((Iden(x), (ipos, TKind(TSimp(x)))), [te]), (pos, TSimp x))
+       else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
     | Fn_call(fun_id, es) -> 
        typecheck_error pos ("Function type unimplemented")
