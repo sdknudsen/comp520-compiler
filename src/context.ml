@@ -108,20 +108,6 @@ let unscope g = begin
          Printf.fprintf o "}\n")
       !symout
 end
-(*
-  | Frame(tbl, parent_ctx) ->
-      let kind_to_str = function
-        | Var -> "var"
-        | Typ -> "type"
-        | Fun -> "func"
-      in
-      in
-      if dumpsymtab then
-        Printf.fprintf outc "Scope exited:\n%s\n"
-          (String.concat "\n" (print_symtab tbl));
-      parent_ctx
-  | Root -> raise (ContextError "Empty Context")
-*)
 
 let in_scope name = (function
   | Root(tbl,_,_) | Frame(tbl,_,_,_) -> 
