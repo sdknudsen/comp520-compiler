@@ -169,15 +169,28 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tpo = mapo (fun p -> tStmt frt g p) po in
        let teo = mapo (fun e -> tExpr g e) eo in
        let tps = List.map (tStmt frt g) ps in
+       (* check that parent has same type as children *)
+       let _ = (match teo,ps with
+                | Some pare, [Switch_clause(Some(exps), ps),pos1] ->
+                   let g' = scope g in
+                   let teso = pare::(List.map (tExpr g') exps) in
+                   let _ = if all_same (fun x -> snd (snd x)) teso then ()
+                           else typecheck_error pos1 "Type mismatch in switch" in
+                   ()
+                | _ -> ()) in
        (Switch_stmt(tpo, teo, tps),pos)
+    (* at some point, we don't need to have the the following two cases, leaving them here for now *)
     | Switch_clause(Some(exps), ps) ->
        let g' = scope g in
        let teso = (List.map (tExpr g') exps) in
+       let _ = if all_same (fun x -> snd (snd x)) teso then ()
+               else typecheck_error pos "Type mismatch in switch" in
        let tps = List.map (tStmt frt g') ps in
        (Switch_clause(Some(teso), tps),pos)
     | Switch_clause(None, ps) ->
        let tps = List.map (tStmt frt g) ps in
        (Switch_clause(None, tps),pos)
+
     | For_stmt(po1, eo, po2, ps) -> 
        let tpo1 = match po1 with
                    | Some(p) -> Some(tStmt frt g p)
