@@ -160,8 +160,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tps = List.map (tStmt frt g) ps in
        (Switch_stmt(tpo, teo, tps),pos)
     | Switch_clause(Some(exps), ps) ->
-       let teso = (List.map (tExpr g) exps) in
-       let tps = List.map (tStmt frt g) ps in
+       let g' = scope g in
+       let teso = (List.map (tExpr g') exps) in
+       let tps = List.map (tStmt frt g') ps in
        (Switch_clause(Some(teso), tps),pos)
     | Switch_clause(None, ps) ->
        let tps = List.map (tStmt frt g) ps in
@@ -225,7 +226,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                    then match find i g with
                      | None -> () (* Impossible *)
                      | Some(t) -> begin
-                        if t != te
+                        if not (same_type t te)
                         then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`")
                        end
                    else
@@ -298,10 +299,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                   (fun ((i,ipos), t) ->
                     let t = tTyp g t in
                     if in_scope i g
-                    then (add i t g; (i,t))
-                    else typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope"))
+                    then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
+                    else (add i t g; (i,t)))
+                  typId_typ_ls
                   (* (i, tTyp g t)) *)
-typId_typ_ls
                   
        in
        (* (List.iter (fun (num,typ) -> if in_scope num g *)
