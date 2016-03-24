@@ -54,7 +54,7 @@ let main =
     [("-dumpsymtab", Arg.Set dumpsymtab, "Enables top-most frame of the symbol table to be dumped each time a scope is exited");
      ("-pptype", Arg.Set pptype, "Enables pretty print of the program, with the type of each expression printed in some legible format")]
   in
-  let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|typecheck] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
+  let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|type] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
   (*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)
   let action = ref compile in
   let in_channel = ref stdin in
