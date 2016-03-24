@@ -58,7 +58,9 @@ We decided that we needed to modify the AST to include annotations. This require
 	\item \verb|programs/invalid/types/11_typeRedeclaration.go| checks for binary operations between two variables that share the same type alias, but then one of the variable had a type alias redeclared to another type in an inner scope.
 \end{enumerate}
 
-The remaining valid and invalid test programs for type checking are located in \verb|programs/type/|
+One thing we noticed about the reference GoLite compiler is that the \verb|init| statements for the \verb|if| and \verb|switch| statements can shadow variables declared in the same scope, but the \verb|init| statement for the three-part \verb|for| loop does not. For our compiler, the \verb|init| statements for \verb|if|, \verb|switch|, and \verb|for| do shadow variables declared in the same scope.
+
+* The remaining valid and invalid test programs for type checking are located in \verb|programs/type/|
 \hfill
 
 \section*{Contributions}
