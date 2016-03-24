@@ -1,0 +1,15 @@
+package main
+
+
+type g float64
+type f g
+
+
+func main() {
+  var a f = f(1)
+  var b float64 = float64(a)
+  var c bool = bool(a)
+  var d rune = rune(a)
+  type num int
+  var e num = num(a)
+}

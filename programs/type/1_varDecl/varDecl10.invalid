@@ -1,0 +1,9 @@
+package main
+
+func main() {
+  var (
+    a int = 1
+    b int = a
+  )
+  print(a);
+}

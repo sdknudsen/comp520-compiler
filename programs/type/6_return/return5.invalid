@@ -1,0 +1,11 @@
+package a
+
+func f () string {
+  if true {
+    return "lol"
+  }
+}
+
+func main() {
+  print(f())
+}

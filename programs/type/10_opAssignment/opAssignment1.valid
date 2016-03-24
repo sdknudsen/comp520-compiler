@@ -2,5 +2,5 @@ package main
 
 func main() {
   a := "Hello"
-  a += " world"
+  a = a + " world"
 }

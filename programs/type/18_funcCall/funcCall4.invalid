@@ -1,0 +1,9 @@
+package main
+
+func f(_) {
+  print(1);
+}
+
+func main() {
+  f(1);
+}

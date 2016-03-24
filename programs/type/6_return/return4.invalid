@@ -1,0 +1,14 @@
+package a
+
+func f () string {
+  switch 1 {
+   case 1:
+     return "lol"
+   default:
+     break
+  }
+}
+
+func main() {
+  print(f())
+}

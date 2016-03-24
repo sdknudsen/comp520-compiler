@@ -1,8 +1,8 @@
 package main
 
 type (
-   a int
-   b a
+   a b
+   b int
 )
 
 func main () {
