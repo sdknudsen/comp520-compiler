@@ -17,16 +17,16 @@ type binop = Boolor | Booland |
 type unop = Positive | Negative | Boolnot | Bitnot
 
 (* Annotated tree *)
-type 'i annotated_typ =
-  | TSimp   of 'i
-  | TStruct of ('i * 'i annotated_typ) list
-  | TArray  of 'i annotated_typ * int
-  | TSlice  of 'i annotated_typ
-  | TFn     of 'i annotated_typ list * 'i annotated_typ
-  | TKind   of 'i annotated_typ
+type ('i, 't) annotated_typ =
+  | TSimp   of 't
+  | TStruct of ('i * ('i, 't) annotated_typ) list
+  | TArray  of ('i, 't) annotated_typ * int
+  | TSlice  of ('i, 't) annotated_typ
+  | TFn     of ('i, 't) annotated_typ list * ('i, 't) annotated_typ
+  | TKind   of ('i, 't) annotated_typ
   | TVoid
 
-type ('e, 'i) annotated_expr =
+type ('e, 'i, 't) annotated_expr =
   | Iden    of 'i
   | Parens  of 'e
   | AValue  of 'e * 'e
@@ -40,15 +40,15 @@ type ('e, 'i) annotated_expr =
   | Uexp    of unop * 'e
   | Bexp    of binop * 'e * 'e
 
-type ('s, 'e, 'i) annotated_stmt =
+type ('s, 'e, 'i, 't) annotated_stmt =
   | Assign      of 'e list * 'e list
   | If_stmt     of 's option * 'e * 's list * 's list option
   | Switch_stmt of 's option * 'e option * 's list
   | For_stmt    of 's option * 'e option * 's option * 's list
   | Switch_clause of 'e list option * 's list
-  | Var_stmt    of ('i * 'e option * 'i annotated_typ option) list list
+  | Var_stmt    of ('i * 'e option * 't option) list list
   | SDecl_stmt  of ('i * 'e) list
-  | Type_stmt   of ('i * 'i annotated_typ) list
+  | Type_stmt   of ('i * 't) list
   | Return      of 'e option
   | Block       of 's list
   | Print       of 'e list
@@ -58,10 +58,10 @@ type ('s, 'e, 'i) annotated_stmt =
   | Continue
   | Empty_stmt
 
-type ('s, 'e, 'i) annotated_decl =
-  | Var_decl  of ('i * 'e option * 'i annotated_typ option) list list
-  | Type_decl of ('i * 'i annotated_typ) list
-  | Func_decl of 'i * ('i * 'i annotated_typ) list * 'i annotated_typ * 's list
+type ('s, 'e, 'i, 't) annotated_decl =
+  | Var_decl  of ('i * 'e option * 't option) list list
+  | Type_decl of ('i * 't) list
+  | Func_decl of 'i * ('i * 't) list * 't * 's list
 
 type ('d, 'i) annotated_ast = Prog of 'i * 'd list
 
@@ -69,22 +69,25 @@ type ('d, 'i) annotated_ast = Prog of 'i * 'd list
 (* Untyped *)
 module Untyped = struct
   type id = string * Lexing.position
-  type utexpr = (annotated_utexpr, id) annotated_expr
+  type uttyp = (id, id) annotated_typ
+  type utexpr = (annotated_utexpr, id, uttyp) annotated_expr
   and annotated_utexpr =  (utexpr * Lexing.position)
-  type utstmt = (annotated_utstmt, annotated_utexpr, id) annotated_stmt
+  type utstmt = (annotated_utstmt, annotated_utexpr, id, uttyp) annotated_stmt
   and annotated_utstmt = utstmt * Lexing.position
-  type utdecl = (annotated_utstmt, annotated_utexpr, id) annotated_decl
+  type utdecl = (annotated_utstmt, annotated_utexpr, id, uttyp) annotated_decl
   type annotated_utdecl = utdecl * Lexing.position
   type ast  = (annotated_utdecl, id) annotated_ast
 end
 
 module Typed = struct
   type id = string
-  type texpr = (annotated_texpr, id) annotated_expr
-  and annotated_texpr =  (texpr * (Lexing.position * string annotated_typ))
-  type utstmt = (annotated_utstmt, annotated_texpr, id) annotated_stmt
+  (*type uttyp '= (string * Context.context) annotated_typ*)
+  type uttyp = (string, string) annotated_typ
+  type texpr = (annotated_texpr, id, uttyp) annotated_expr
+  and annotated_texpr =  (texpr * (Lexing.position * uttyp))
+  type utstmt = (annotated_utstmt, annotated_texpr, id, uttyp) annotated_stmt
   and annotated_utstmt = utstmt * Lexing.position
-  type utdecl = (annotated_utstmt, annotated_texpr, id) annotated_decl
+  type utdecl = (annotated_utstmt, annotated_texpr, id, uttyp) annotated_decl
   type annotated_utdecl = utdecl * Lexing.position
   type ast  = (annotated_utdecl, id) annotated_ast
 end
