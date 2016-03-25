@@ -70,7 +70,7 @@ let main =
   in
   let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|type] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
   (*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)
-  let action = ref compile in
+  let action = ref typecheck in
   let in_channel = ref stdin in
   (*let file = ref "foo/bar.go" in*)
   let anon_fun = function
