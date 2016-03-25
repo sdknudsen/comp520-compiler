@@ -23,6 +23,9 @@ programs/*/*/*/*.pptype.go
 programs/*/*/*/*.symtab
 
 
+# output files
+*.symtab
+*.pptype.go
 
 # misc
 .DS_Store
