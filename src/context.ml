@@ -1,10 +1,8 @@
 open Ast
 open Ho
 
-let symout = ref None
-
-let set_outfile oc = 
-  symout := Some(oc)
+let dumbout = ref None
+let smartout = ref None
 
 (* Cactus stack of hash tables *)
 type context =
@@ -49,10 +47,11 @@ let add name kind ctx =
              (String.init ((scope_depth ctx) * 4 + 2) (fun x -> ' '))
              name
              (typ_to_str kind))
-      !symout
+      !smartout
   
 let init () = let r = Root(Hashtbl.create 1337, 0, "a") in
-  may (fun o -> Printf.fprintf o "Symbol table\n================\n\n") !symout;
+  may (fun o -> Printf.fprintf o "{\n")
+      !smartout;
   r
 
 let rec get_scope name g = match g with
@@ -67,7 +66,7 @@ let indent n =
   may (fun o -> Printf.fprintf o
                   "%s"
                   (String.init (n * 4) (fun x -> ' ')))
-      !symout
+      !smartout
 
 let scope parent_ctx =
   let new_ctx = Frame(Hashtbl.create 1337,
@@ -79,34 +78,36 @@ let scope parent_ctx =
          let depth = scope_depth new_ctx in
          indent depth;
          Printf.fprintf o "{\n")
-      !symout;
+      !smartout;
   new_ctx
 
-(*
-let print_scope ctx = (match (!symout,ctx) with
-  | Some(outf), Frame(tbl,_,_,_)
-  | Some(outf), Root(tbl,_,_) ->
-      let depth = scope_depth ctx in
+
+let print_scope o ctx = (match ctx with
+  | Frame(tbl,_,_,_)
+  | Root(tbl,_,_) ->
+      Printf.fprintf o "{\n";
       Hashtbl.iter
         (fun key value ->
            let typ = value in
            Printf.fprintf
-             outf
-             "%s%s -> %s\n"
-             (String.init (depth * 4 + 2) (fun x -> ' '))
+             o
+             "%s -> %s\n"
              key
              (typ_to_str typ))
         tbl
       ;
+      Printf.fprintf o "}\n";
   | _ -> ())
-*)
+
 
 let unscope g = begin
+  may (fun o -> print_scope o g)
+      !dumbout;
   may (fun o ->
          let depth = scope_depth g in
          indent depth;
          Printf.fprintf o "}\n")
-      !symout
+      !smartout
 end
 
 let in_scope name = (function

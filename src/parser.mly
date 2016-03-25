@@ -407,7 +407,7 @@ expr:
 | e=expr DOT structs_id=id
     { (SValue(e, structs_id), $startpos) }
 | LPAREN e=expr RPAREN
-    { (Parens(e), $startpos) }
+    { e (*(Parens(e), $startpos)*) }
 | n=INT
     { (ILit(n), $startpos) }
 | f=FLOAT64

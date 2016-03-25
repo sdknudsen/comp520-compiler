@@ -389,17 +389,16 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let rec pDecl ((ud,pos): Typed.annotated_utdecl) = 
     tab(); match ud with
            | Var_decl(xss) -> 
-       plsl (fun xs ->
-           pstr "var(\n"; incr tabc;
-           List.iter (fun (s,eso,typo) ->
-               Printf.fprintf outc "%t %t%t;\n"
+             plsl (fun xs ->
+             pstr "var(\n"; incr tabc;
+             List.iter (fun (s,eso,typo) ->
+                 Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
-                              (fun c -> may (fun t -> pstr " "; pExpr t) eso)
-                              (fun c -> may (fun t -> pstr " = "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " = "; pExpr t) eso)
              ) xs; pstr ")"; decr tabc) xss
 
            | Type_decl(id_atyp_ls) -> 
-
               pstr "type(\n"; incr tabc;
               List.iter (fun (id,atyp) ->
                   Printf.fprintf outc "%t %t;\n"
@@ -408,7 +407,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
                 ) id_atyp_ls; pstr ")\n"; decr tabc
 
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
-              Printf.fprintf outc "func %t(%t) %t {\n%t}\n"
+              Printf.fprintf outc "func %t(%t) %t {\n%t}"
                              (fun c -> pstr fId)
                              (* not sure using fst is the right thing to do: *)
                              (fun c -> pcsl (fun (id,typ) -> pstr (id^" "); pTyp typ) id_typ_ls)
@@ -417,5 +416,5 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
                              (* change this !! *)
                              (fun c -> pssl ";\n" pStmt ps)
   in
-  pstr ("package "^id); pln(); pln(); List.iter pDecl decls
+  pstr ("package "^id); pln(); pln(); pssl "\n" pDecl decls
 

@@ -55,7 +55,6 @@ let rec valid_return_path stmts =
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   let rec tTyp g (t:Untyped.uttyp): Typed.uttyp =
-   Printf.printf "gen type\n";
    match t with
     | TSimp((i,p)) -> if in_context i g
                       then TSimp(i, get_scope i g)
@@ -70,7 +69,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
   (* let rec tExpr gamma = function *)
   let rec tExpr g (e,pos) : Typed.annotated_texpr =
-   Printf.printf "gen expr\n";
   match e with
     | ILit(d) -> (ILit d, (pos, sure (get_type_instance "int" g)))
     | FLit(f) -> (FLit f, (pos, sure (get_type_instance "float64" g)))
@@ -252,20 +250,61 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        unscope gelse;
        (If_stmt(tinit, tcond, tthen, telse), pos)
 
-    | Switch_stmt(po, eo, ps) -> 
+    | Switch_stmt(po, None, ps) -> 
        let tpo = mapo (fun p -> tStmt frt g p) po in
-       let teo = mapo (fun e -> tExpr g e) eo in
+       let check_clause = function
+         | (Switch_clause(Some(exps), ps),p) ->
+             let es = List.map (tExpr g) exps in
+             List.iter
+              (fun (_,(p,t)) ->
+                 if not (same_type t (sure (get_type_instance "bool" g)))
+                 then typecheck_error p "Cases expression does not match switch")
+               es;
+             let g' = scope g in
+             (Switch_clause(Some(es), List.map (tStmt frt g') ps), p)
+         | (Switch_clause(None, ps),p) ->
+             let g' = scope g in
+             (Switch_clause(None, List.map (tStmt frt g') ps), p)
+         | (_,p) -> typecheck_error p "Unexpected statement in switch clause"
+       in
+
+       let clauses = List.map check_clause ps in
+       (Switch_stmt(tpo, None, clauses),pos)
+
+    | Switch_stmt(po, Some(exp), ps) -> 
+       let tpo = mapo (fun p -> tStmt frt g p) po in
+       let (_,(_,et)) as teo = (fun e -> tExpr g e) exp in
+
+       let check_clause = function
+         | (Switch_clause(Some(exps), ps),p) ->
+             let es = List.map (tExpr g) exps in
+             List.iter
+              (fun (_,(p,t)) ->
+                 if not (same_type t et)
+                 then typecheck_error p "Cases expression does not match switch")
+               es;
+             let g' = scope g in
+             (Switch_clause(Some(es), List.map (tStmt frt g') ps), p)
+         | (Switch_clause(None, ps),p) ->
+             let g' = scope g in
+             (Switch_clause(None, List.map (tStmt frt g') ps), p)
+         | (_,p) -> typecheck_error p "Unexpected statement in switch clause"
+       in
+
+       let clauses = List.map check_clause ps in
+       (Switch_stmt(tpo, Some(teo), clauses),pos)
+(*
        let tps = List.map (tStmt frt g) ps in
        (* check that parent has same type as children *)
        let _ = (match teo,ps with
-                | Some pare, [Switch_clause(Some(exps), ps),pos1] ->
+                | Some(pare), [Switch_clause(Some(exps), ps),pos1] ->
                    let g' = scope g in
                    let teso = pare::(List.map (tExpr g') exps) in
                    let _ = if all_same (fun x -> snd (snd x)) teso then ()
                            else typecheck_error pos1 "Type mismatch in switch" in
                    ()
                 | _ -> ()) in
-       (Switch_stmt(tpo, teo, tps),pos)
+*)
     (* at some point, we don't need to have the the following two cases, leaving them here for now *)
     | Switch_clause(Some(exps), ps) ->
        let g' = scope g in
@@ -469,6 +508,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     add "true"    (sure (get_type_instance "bool" ctx)) ctx;
     add "false"   (sure (get_type_instance "bool" ctx)) ctx;
     let decls = tDecls ctx decls in
+    unscope ctx;
     Prog(pkg, decls)
   end
 

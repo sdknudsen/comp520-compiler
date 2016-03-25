@@ -4,6 +4,7 @@ open Context
 (* utilities *)
 let write f obj name suff = f obj (open_out (name^suff))
 let dumpsymtab = ref false
+let smartsymtab = ref false
 let pptype = ref false
 let file = ref "out.go"
 
@@ -37,15 +38,18 @@ let pretty lexbuf =
 let typecheck lexbuf =
   let name = (Filename.chop_extension !file) in
   if !dumpsymtab
-  then Context.symout := Some(open_out (name^".sym"));
+  then Context.dumbout := Some(open_out (name^".symtab"));
+  if !smartsymtab
+  then Context.smartout := Some(open_out (name^".smartsymtab"));
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
   let typedTree = Type.typeAST untypedTree in
-(*
-  if !pptype then
-    write Pprint.pTree typedTree name ".pptype.go"
-  else*)
-  ignore (typedTree);
+
+  (if !pptype then
+    write Pprint.ptTree typedTree name ".pptype.go"
+  else
+    ignore(typedTree));
+
   print_endline "Valid"
 
 let compile lexbuf =
@@ -57,6 +61,9 @@ let main =
     [("-dumpsymtab",
         Arg.Set dumpsymtab,
         "Enables top-most frame of the symbol table to be dumped each time a scope is exited");
+     ("-smartsymtab",
+        Arg.Set smartsymtab,
+        "Enables a smarter symbol table with lexical based indentation");
      ("-pptype",
         Arg.Set pptype,
         "Enables pretty print of the program, with the type of each expression printed in some legible format")]
