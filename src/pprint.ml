@@ -150,15 +150,6 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
                       (fun c -> may pStmt po2)
                       (fun c -> pssl ";\n" pStmt ps)
 
-    | Var_stmt(xss) ->
-       plsl (fun xs ->
-           pstr "var(\n"; incr tabc;
-           List.iter (fun ((s,_),eso,typo) ->
-               Printf.fprintf outc "%t %t%t;\n"
-                              (fun c -> pstr s)
-                              (fun c -> may (fun t -> pstr " "; pExpr t) eso)
-                              (fun c -> may (fun t -> pstr " = "; pTyp t) typo)
-             ) xs; pstr ")"; decr tabc) xss
     | SDecl_stmt(id_e_ls) ->
        let (ids,es) = unzip id_e_ls in
        Printf.fprintf outc "%t%t"
@@ -234,7 +225,6 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let tabc = ref 0 in (* tab count *)
   let pln() = Printf.fprintf outc "\n" in (* print line *)
   let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
-  let pid id = pstr (fst id) in
   let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let pssl s f = (* print string separated list *)
@@ -357,15 +347,6 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
                       (fun c -> may pStmt po2)
                       (fun c -> pssl ";\n" pStmt ps)
 
-    | Var_stmt(xss) ->
-       plsl (fun xs ->
-           pstr "var(\n"; incr tabc;
-           List.iter (fun (s,eso,typo) ->
-               Printf.fprintf outc "%t %t%t;\n"
-                              (fun c -> pstr s)
-                              (fun c -> may (fun t -> pstr " "; pExpr t) eso)
-                              (fun c -> may (fun t -> pstr " = "; pTyp t) typo)
-             ) xs; pstr ")"; decr tabc) xss
     | SDecl_stmt(id_e_ls) ->
        let (ids,es) = unzip id_e_ls in
        Printf.fprintf outc "%t%t"

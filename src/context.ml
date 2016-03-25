@@ -96,8 +96,7 @@ let print_scope o ctx = (match ctx with
              (typ_to_str typ))
         tbl
       ;
-      Printf.fprintf o "}\n";
-  | _ -> ())
+      Printf.fprintf o "}\n";)
 
 
 let unscope g = begin
