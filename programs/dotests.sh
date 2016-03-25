@@ -9,20 +9,21 @@ total=0
 echo "== Testing $1 ================================"
 
 case $1 in
+
 "lex"|"parse")
 files=$(find $1 | egrep  "\.invalid$|\.valid$" | sort)
-
 ;;
 "pretty")
 files=$(ls $1/*.go $1/*.valid)
-
 ;;
 "weed")
 files=$(find "parse" | egrep  "\.invalid$|\.valid$" | sort)
 ;;
 "type")
 files=$(find "type" | egrep  "\.invalid$|\.valid$" | sort)
-
+;;
+"pptype")
+files=$(find "parse/valid"  | egrep  "\.valid$" | sort)
 
 esac
 
@@ -36,6 +37,11 @@ for f in $files; do
   then
       $GOC $1 < $f > "$fname.pretty"
       $GOC $1 "$fname.pretty" |  diff $fname.pretty - > /dev/null 2>&1
+  elif [ $1 = "pptype" ]
+  then
+      $GOC -pptype type "$f" > /dev/null
+      $GOC -pptype type "$fname.pptype.go" > /dev/null
+      diff $fname.pptype.go $fname.pptype.pptype.go > /dev/null 2>&1
   else
     if [ -f "$fname.expected" ]
     then

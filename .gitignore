@@ -9,7 +9,19 @@ doc/*
 !*.pdf
 
 # tests temporary files
-programs/pretty/*.pretty
+programs/*/*.sym
+programs/*/*.pretty
+programs/*/*.pptype.go
+programs/*/*.symtab
+programs/*/*/*.sym
+programs/*/*/*.pretty
+programs/*/*/*.pptype.go
+programs/*/*/*.symtab
+programs/*/*/*/*.sym
+programs/*/*/*/*.pretty
+programs/*/*/*/*.pptype.go
+programs/*/*/*/*.symtab
+
 
 
 # misc
