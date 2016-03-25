@@ -22,7 +22,7 @@ Initially, the symbol table consisted of a list of maps (as in dictionaries). We
 
 The way we design the symbol table is to implement a cactus stack of hash tables, as had been presented in class. The root represents the global scope with a hash table which stores the information for top-level declarations. Whenever a block is entered, a new frame is generated. This frame (\verb|F|) has a new hash table associated with the new scope, and also has a pointer to the parent frame. This allows for the lookup of a declaration starting from the innermost scope that \verb|F| resides, and recursively traverse towards the root node through the parent frame, but not the neighboring nodes as the scopes of these nodes and \verb|F| are disjoint.
 
-We went a little of what was suggested to handle some of the primitives.
+We went a little off of what was suggested to handle some of the primitives.
 This can be seen with our extended type system which includes \verb|TKind| types.
 We use \verb|TKind| as the type of variables. So all base types have type \verb|TKind(TSimp("#"))| where \verb|"#"| is the type at the top of the type hierarchy. The use of \verb|TKind| allowed us to handle type checking as the function call of a \verb|TKind| identifier.
 Accordingly, \verb|type| statements add a symbol of type \verb|TKind| to the symbol
