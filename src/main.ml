@@ -37,7 +37,7 @@ let pretty lexbuf =
 let typecheck lexbuf =
   let name = (Filename.chop_extension !file) in
   if !dumpsymtab
-  then Context.symout := Some(open_out (name^".sym"));
+  then Context.symout := Some(open_out (name^".symtab"));
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
   let typedTree = Type.typeAST untypedTree in
