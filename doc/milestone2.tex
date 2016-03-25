@@ -22,6 +22,18 @@ Initially, the symbol table consisted of a list of maps (as in dictionaries). We
 
 The way we design the symbol table is to implement a cactus stack of hash tables, as had been presented in class. The root represents the global scope with a hash table which stores the information for top-level declarations. Whenever a block is entered, a new frame is generated. This frame (\verb|F|) has a new hash table associated with the new scope, and also has a pointer to the parent frame. This allows for the lookup of a declaration starting from the innermost scope that \verb|F| resides, and recursively traverse towards the root node through the parent frame, but not the neighboring nodes as the scopes of these nodes and \verb|F| are disjoint.
 
+We went a little of what was suggested to handle some of the primitives.
+This can be seen with our extended type system which includes \verb|TKind| types.
+We use \verb|TKind| as the type of variables. So all base types have type \verb|TKind(TSimp("#"))| where \verb|"#"| is the type at the top of the type hierarchy. The use of \verb|TKind| allowed us to handle type checking as the function call of a \verb|TKind| identifier.
+Accordingly, \verb|type| statements add a symbol of type \verb|TKind| to the symbol
+table.
+
+Since our ast doesn't encode the last position of a node, it was difficult to
+print the last line of a scope. Instead we provide an alternative view of the
+symbol table with the \verb|-smartsymtab| which gives a better view of how
+some symbols shadow others.
+
+
 \subsection*{Type checker}
 Type-checking closely followed the \verb|typechecker.pdf|. New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped. At variable, type, and function declarations, a check is made to see if the \verb|id| has been declared in the current scope. A type error is raised if it's already been declared.
 
@@ -41,7 +53,7 @@ The weeder checks for invalid programs that we deferred from milestone 1. In par
 \end{itemize}
 
 \subsection*{Pretty printer}
-We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the AST, only minor modifications were then needed to allow type printing of the typed AST.
+We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the AST, only minor modifications were then needed to allow type printing of the typed AST. Types are printed as block comment right after the expression it is associated with.
 
 \subsection*{Testing}
 \begin{enumerate}
@@ -59,6 +71,9 @@ We decided that we needed to modify the AST to include annotations. This require
 \end{enumerate}
 
 One thing we noticed about the reference GoLite compiler is that the \verb|init| statements for the \verb|if| and \verb|switch| statements can shadow variables declared in the same scope, but the \verb|init| statement for the three-part \verb|for| loop does not. For our compiler, the \verb|init| statements for \verb|if|, \verb|switch|, and \verb|for| do shadow variables declared in the same scope.
+This is in accordance with the Golang compiler and the Golang spec that mentions
+that \verb|if|, \verb|for|, and \verb|switch| are enclosed in an implicit \verb|block|
+statement.
 
 * The remaining valid and invalid test programs for type checking are located in \verb|programs/type/|
 \hfill
