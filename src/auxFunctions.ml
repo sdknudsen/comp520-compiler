@@ -1,5 +1,4 @@
 open Ast
-open Errors
 open Context
 
 let uop_to_str = function
@@ -29,23 +28,6 @@ let bop_to_str = function
   | Lshift -> "<<"
   | Rshift -> ">>"
 
-(* let rec lv_to_str (tlv:t_lvalue) = match tlv with *)
-(*
-let rec lv_to_str = function
-  | Iden(id) -> id
-  | AValue(t_lvalue, t_expr) -> lv_to_str t_lvalue
-  | SValue(t_lvalue, id) -> lv_to_str t_lvalue
-*)
-
-(*
-let typ_to_str = function
-  | TSimp(x) -> x
-  | TStruct(id_typ_ls) -> failwith "not done"
-  | TArray(t,d) -> failwith "not done"
-  | TSlice(t) -> failwith "not done"
-  | Void -> failwith "not done"
-*)
-
 let all_same f = function
   | [] -> true
   | x::xs -> List.for_all (fun y -> f y == f x) xs
@@ -58,7 +40,7 @@ let rec list_type = function
   | [] -> failwith "empty list"
   | [x] -> x
   | x::y::tl -> if x = y then list_type (y::tl)
-                else raise (TypeError ("Multiple types in single assignment"))
+                else failwith "Multiple types in single assignment"
 
 let rec zip l1 l2 = match (l1,l2) with
   | (x::xs, y::ys) -> (x,y)::zip xs ys
@@ -68,33 +50,6 @@ let rec zip l1 l2 = match (l1,l2) with
 let rec unzip l = match l with
   | (x,y)::tl -> let (xs,ys) = unzip tl in (x::xs,y::ys)
   | [] -> ([],[])
-
-(*
-let rec getBaseTyp g t =
-  match t with
-   | TSimp x -> 
-      match g with
-        | Root(tbl) ->
-           match Hashtable.find tbl x with
-             | 
-             | _ -> 
-        | Frame(tbl, ctx) 
-
-  match g with
-
-  try
-    match find t g with
-     | (Context.Typ,t') -> getBaseTyp g t'
-     | _ -> t'
-  with
-  | _ -> t
-
-let unify g ta tb = 
-  let t1 = getBaseTyp g ta in
-  let t2 = getBaseTyp g tb in
-  if t1 == t2 then t1 else 
-    raise (TypeError ("Types " ^ typ_to_str t1 ^ " and " ^ typ_to_str t2 ^ " do not unify"))
-*)
 
 let rec get_base_type = function
    | TSimp((x,g)) ->
@@ -134,7 +89,6 @@ let rec isCastable = function
          | Some(TKind(x)) -> isCastable x
          | _ -> false)
     | _ -> false
-
 
 let isBaseType = function
     | TSimp((x, g)) ->
