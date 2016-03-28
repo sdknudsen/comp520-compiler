@@ -86,7 +86,6 @@
   let print_token t = match t with
 | INT(i)     -> "INT(" ^ (string_of_int i) ^ ")"
 | FLOAT64(f) -> "FLOAT(" ^ (string_of_float f) ^ ")"
-| BOOL(b)    -> "BOOL(" ^ (string_of_bool b) ^ ")"
 | RUNE(r)    -> "RUNE(" ^ (String.make 1 r) ^ ")"
 | STRING(s)  -> "STRING(" ^ s ^ ")"
 | IDEN(i)    -> "IDEN(" ^ i ^ ")"

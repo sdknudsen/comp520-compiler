@@ -1,4 +1,3 @@
-(* module Ctx = Map.Make(String) *)
 open Ast
 open Context
 open Ho 
@@ -48,9 +47,6 @@ let rec valid_return_path stmts =
   in
   let (tc,tr) = List.fold_left (inner (false,false)) (false,false) (List.rev stmts) in
   tr
-
-
-
 
 let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
@@ -168,7 +164,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        end else
           typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
 
-    | Iden((i, ipos) as id) -> begin
+    | Iden(i, ipos) -> begin
         match find i g with
           | Some(t) -> (Iden(i), (pos, t))
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
@@ -192,10 +188,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let btyp = sure (get_base_type etyp) in
        
        let (_,ftyp) = (match btyp with
-         | TStruct(tl) as tr -> begin
+         | TStruct(tl) -> begin
              try
-               List.find (function | (_,i) -> true
-                                   | _ -> false)
+               List.find (function | (_,i) -> true)
                          tl
              with 
               |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
@@ -213,8 +208,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        let tes = List.map (tExpr g) es in
        let zipped = zip xs tes in
        let check_assign = function
-         | ((Iden(("_",p)),_), (e,(ep,et) as te)) -> (Iden("_"),(p,et))
-         | (lhs, (e,(ep,et) as te)) ->
+         | ((Iden(("_",p)),_), (e,(ep,et))) -> (Iden("_"),(p,et))
+         | (lhs, (e,(ep,et))) ->
               let (_,(_,t)) as tlhs = (tExpr g lhs) in
               if not (same_type t et)
               then typecheck_error pos "Type mismatch in assign"
@@ -338,7 +333,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (For_stmt(tpo1, teo, tpo2, tps), pos)
 
     | Var_stmt(decls) ->
-       let tc_vardecl ((i,ipos) as id, e, t) =
+       let tc_vardecl ((i,ipos), e, t) =
          if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
          
          let te = match e with
@@ -415,7 +410,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Block(tstmts), pos)
     | Continue -> (Continue, pos)
     | Empty_stmt -> (Empty_stmt,pos)
-    | _ -> (Continue, pos)
 
   in
 
@@ -423,7 +417,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
   let rec tDecl g ((d,pos): Untyped.annotated_utdecl) : Typed.annotated_utdecl = match d with
 
     | Var_decl(decls) -> 
-       let tc_vardecl ((i,ipos) as id, e, t) =
+       let tc_vardecl ((i,ipos), e, t) =
          let te = match e with
            | None -> None
            | Some(e) -> Some(tExpr g e)
@@ -493,9 +487,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
 
          (Func_decl(fId, targs, rtntyp, tstmts), pos)
        end
-(*    |_ ->
-       typecheck_error pos "Oups";
-*)
 
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in

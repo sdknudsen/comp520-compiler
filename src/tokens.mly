@@ -1,6 +1,5 @@
 %token <int>    INT
 %token <float>  FLOAT64
-%token <bool>   BOOL
 %token <char>   RUNE
 %token <string> STRING
 %token <string> IDEN
