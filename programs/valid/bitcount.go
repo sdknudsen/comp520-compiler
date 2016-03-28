@@ -1,4 +1,4 @@
-package bit_manipulation
+package main
 
 var m16 = 0x0000ffff
 var m8  = 0x00ff00ff
