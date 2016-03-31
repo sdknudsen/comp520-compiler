@@ -4,7 +4,7 @@ open Ho
 open AuxFunctions
 
 let generate (Prog(id,decls) : Typed.ast) =
-  let rec pTyp (at:Typed.uttyp) = match at with
+  let rec gTyp (at:Typed.uttyp) = match at with
     | TSimp(typ_id) -> ()
     | TStruct(x_typ_ls) -> ()
     | TArray(typ,d) -> ()
@@ -13,7 +13,7 @@ let generate (Prog(id,decls) : Typed.ast) =
     | TFn(a,b) -> ()
     | TKind(a) -> ()
   in
-  let rec pExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
+  let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) = match ue with
     | Iden(id) -> ()
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
@@ -28,7 +28,7 @@ let generate (Prog(id,decls) : Typed.ast) =
     | Fn_call(fun_id, es) -> ()
     | Append(x, e) -> ()
   in
-  let rec pStmt ((us, pos): Typed.annotated_utstmt) = match us with
+  let rec gStmt ((us, pos): Typed.annotated_utstmt) = match us with
     | Assign(xs, es) -> ()
     | Var_stmt(xss) -> ()
     | Print(es) -> ()
@@ -46,10 +46,11 @@ let generate (Prog(id,decls) : Typed.ast) =
     | Continue -> ()
     | Empty_stmt -> ()
   in
-  let rec pDecl ((ud,pos): Typed.annotated_utdecl) = 
+  let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) -> ()
            | Type_decl(id_atyp_ls) -> ()
            | Func_decl(fId, id_typ_ls, typ, ps) -> ()
   in
-  pstr ("package "^id); pln(); pln(); pssl "\n" pDecl decls
+  (* add header *)
+  pln(); pln(); pssl "\n" pDecl decls
 
