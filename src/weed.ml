@@ -140,7 +140,7 @@ let weed ast =
       | Var_stmt(l) -> begin
           List.iter
             (List.iter
-              (fun (i, e, t) ->
+              (fun (i, e, t, _) ->
                 weed_reserved_words i;
                 match t with
                   | None -> ()

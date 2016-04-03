@@ -2,11 +2,12 @@ open Ast
 open Context
 open Ho 
 open AuxFunctions
+open Printf
 
-let generate (Prog(id,decls) : Typed.ast) outc =
+let generate (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
-  let pln() = Printf.fprintf outc "\n" in (* print line *)
-  let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
+  let pln() = fprintf oc "\n" in (* print line *)
+  let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   let pid id = pstr (fst id) in
   let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabc in
@@ -22,10 +23,16 @@ let generate (Prog(id,decls) : Typed.ast) outc =
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
 
+  let gUOp op =
+    let s = match op with
+      | Negative -> "neg"
+      | Positive -> failwith "+"
+      | Boolnot -> failwith "!"
+      | Bitnot -> failwith "^"
+    in pstr s
+  in
   let gBOp op =
     let s = match op with
-    | Boolor -> failwith "||"
-    | Booland -> failwith "&&"
     | Equals -> "eq"
     | Notequals -> "ne"
     | Lt -> "lt_s"
@@ -36,13 +43,15 @@ let generate (Prog(id,decls) : Typed.ast) outc =
     | Minus -> "sub"
     | Bitor -> "or"
     | Bitand -> "and"
-    | Bitnand -> failwith "&^"
     | Bitxor -> "xor"
     | Times -> "mul"
     | Div -> "div_s"
-    | Modulo -> failwith "%"
     | Lshift -> "shl_s"
     | Rshift -> "shr_s"
+    | Boolor -> failwith "||"
+    | Booland -> failwith "&&"
+    | Bitnand -> failwith "&^"
+    | Modulo -> failwith "%"
     in pstr s
   in
   
@@ -61,22 +70,26 @@ let generate (Prog(id,decls) : Typed.ast) outc =
   let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
     pstr "\n";
     match ue with
-    | Iden(id) -> ()
+    | Iden(id) -> () (* look up in symbol table *)
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
-    | Parens(e)  -> ()
-    | ILit(d) -> ()
-    | FLit(f) -> ()
-    | RLit(c) -> ()
-    | SLit(s) -> ()
+    (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
+    | ILit(d) -> fprintf oc "%d" d
+    | FLit(f) -> fprintf oc "%f" f
+    | RLit(c) -> fprintf oc "%d" (int_of_char c)
+    | SLit(s) -> fprintf oc "\"%s\"" s
     | Bexp(op,e1,e2) ->
-       Printf.fprintf outc "(%t.%t %t %t)"
+       fprintf oc "(%t.%t %t %t)"
                       (fun c -> gTyp typ)
                       (fun c -> gBOp op)
                       (fun c -> gExpr e1)
                       (fun c -> gExpr e2)
        
-    | Uexp(op,e) -> ()
+    | Uexp(op,e) -> 
+       fprintf oc "(%t.%t %t)"
+                      (fun c -> gTyp typ)
+                      (fun c -> gUOp op)
+                      (fun c -> gExpr e)
     | Fn_call((Iden(i),_), k) -> ()
     | Fn_call(fun_id, es) -> ()
   (* ( call <var> <expr>* ) *)
@@ -85,6 +98,11 @@ let generate (Prog(id,decls) : Typed.ast) outc =
   in
   let rec gStmt ((us, pos): Typed.annotated_utstmt) = match us with
     | Assign(xs, es) -> ()
+       (* plsl *)
+       (*   (fun (v,e) -> fprintf oc "(set_local %t %t)" *)
+                               (* (fun c -> getIndex v) *)
+         (* ) *)
+         (* (zip xs es) *)
     | Var_stmt(xss) -> ()
     | Print(es) -> ()
     | Println(es) -> ()
@@ -95,7 +113,7 @@ let generate (Prog(id,decls) : Typed.ast) outc =
                            )),pos)
                           (* don't need the block any more becuase of our renaming scheme, leving them here because it doesn't make a difference *)
         | None -> 
-          Printf.fprintf outc "(if %t\n(then %t)%t)\n"
+          fprintf oc "(if %t\n(then %t)%t)\n"
                          (fun c -> gExpr e; tab())
                          (fun c -> incr tabc;
                                    (* tab(); *)
@@ -126,7 +144,7 @@ let generate (Prog(id,decls) : Typed.ast) outc =
              (* plsl (fun xs -> *)
              (* pstr "var(\n"; incr tabc; *)
              (* List.iter (fun (s,eso,typo) -> *)
-             (*     Printf.fprintf outc "%t %t%t\n" *)
+             (*     fprintf oc "%t %t%t\n" *)
              (*                  (fun c -> pstr s) *)
              (*                  (fun c -> may (fun t -> pstr " "; gTyp t) typo) *)
              (*                  (fun c -> may (fun t -> pstr " = "; gExpr t) eso) *)
@@ -136,7 +154,7 @@ let generate (Prog(id,decls) : Typed.ast) outc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              Printf.fprintf outc "(func $%t %t (result %t)\n%t)\n"
+              fprintf oc "(func $%t %t (result %t)\n%t)\n"
                              (fun c -> pstr fId)
                              (fun c -> pssl " " (fun (id,typ) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)
                              (fun c -> gTyp typ)
@@ -149,7 +167,7 @@ let generate (Prog(id,decls) : Typed.ast) outc =
 (* result: ( result <type> ) *)
   in
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
-       Printf.fprintf outc "(module\n%t\n)"
+       fprintf oc "(module\n%t\n)"
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)

@@ -3,6 +3,9 @@ open Context
 open Ho 
 open AuxFunctions
 
+let indexCount = ref 0
+let getIndex() = let n = !indexCount in incr indexCount; n
+
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
 let rec valid_return_path stmts =
@@ -333,7 +336,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (For_stmt(tpo1, teo, tpo2, tps), pos)
 
     | Var_stmt(decls) ->
-       let tc_vardecl ((i,ipos), e, t) =
+       let tc_vardecl ((i,ipos), e, t, _) =
          if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
          
          let te = match e with
@@ -351,7 +354,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
            | Some((_,(_,etyp))), None -> etyp
          in
          add i tt g;
-         (i, te, Some(tt))
+         (i, te, Some(tt), getIndex())
        in
 
        let ls = List.map (List.map tc_vardecl) decls in

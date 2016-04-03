@@ -204,7 +204,8 @@ stmt:
 | s=stmt_no_decl
     { s }
 | vs=var_decl SEMICOLON
-    { (Var_stmt(vs), $startpos) }
+              {let vs1 = List.map (List.map (fun (x,y,z) -> (x,y,z,()))) vs in
+                (Var_stmt(vs1), $startpos) }
 | ts=type_decl SEMICOLON
     { (Type_stmt(ts), $startpos) }
 | SEMICOLON 

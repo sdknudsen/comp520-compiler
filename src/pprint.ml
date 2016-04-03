@@ -87,7 +87,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
     | Var_stmt(xss) ->
        plsl (fun xs ->
            pstr "var(\n"; incr tabc;
-           List.iter (fun ((s,_),eso,typo) ->
+           List.iter (fun ((s,_),eso,typo,_) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
                               (fun c -> may (fun t -> pstr " "; pExpr t) eso)
@@ -297,7 +297,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
     | Var_stmt(xss) ->
        plsl (fun xs ->
            pstr "var(\n"; incr tabc;
-           List.iter (fun (s,eso,typo) ->
+           List.iter (fun (s,eso,typo,_) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
                               (fun c -> may (fun t -> pstr " "; pExpr t) eso)
