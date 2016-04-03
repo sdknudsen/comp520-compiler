@@ -4,8 +4,50 @@ open Ho
 open AuxFunctions
 
 let generate (Prog(id,decls) : Typed.ast) outc =
+  let tabc = ref 0 in (* tab count *)
+  let pln() = Printf.fprintf outc "\n" in (* print line *)
   let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
+  let pid id = pstr (fst id) in
+  let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
+  let tab() = tabWith !tabc in
+  let pssl s f = (* print string separated list *)
+    List.iter (fun y -> f y; pstr s)
+  in
+  let pcsl f = function (* print comma separated list *)
+    | [] -> ()
+    | x::xs -> f x; List.iter (fun y -> pstr ", "; f y) xs
+  in
+  let plsl f = function (* print comma separated list *)
+    | [] -> ()
+    | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
+  in
+
+  let gBOp op =
+    let s = match op with
+    | Boolor -> failwith "||"
+    | Booland -> failwith "&&"
+    | Equals -> "eq"
+    | Notequals -> "ne"
+    | Lt -> "lt_s"
+    | Lteq -> "le_s"
+    | Gt -> "gt_s"
+    | Gteq -> "ge_s"
+    | Plus -> "add"
+    | Minus -> "sub"
+    | Bitor -> "or"
+    | Bitand -> "and"
+    | Bitnand -> failwith "&^"
+    | Bitxor -> "xor"
+    | Times -> "mul"
+    | Div -> "div_s"
+    | Modulo -> failwith "%"
+    | Lshift -> "shl_s"
+    | Rshift -> "shr_s"
+    in pstr s
+  in
+  
   let rec gTyp (at:Typed.uttyp) = match at with
+    (* get base type before printing !! *)
     | TSimp(typ_id) -> ()
     | TStruct(x_typ_ls) -> ()
     | TArray(typ,d) -> ()
@@ -16,7 +58,9 @@ let generate (Prog(id,decls) : Typed.ast) outc =
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
-  let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) = match ue with
+  let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
+    pstr "\n";
+    match ue with
     | Iden(id) -> ()
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
@@ -25,7 +69,13 @@ let generate (Prog(id,decls) : Typed.ast) outc =
     | FLit(f) -> ()
     | RLit(c) -> ()
     | SLit(s) -> ()
-    | Bexp(op,e1,e2) -> ()
+    | Bexp(op,e1,e2) ->
+       Printf.fprintf outc "(%t.%t %t %t)"
+                      (fun c -> gTyp typ)
+                      (fun c -> gBOp op)
+                      (fun c -> gExpr e1)
+                      (fun c -> gExpr e2)
+       
     | Uexp(op,e) -> ()
     | Fn_call((Iden(i),_), k) -> ()
     | Fn_call(fun_id, es) -> ()
@@ -38,10 +88,25 @@ let generate (Prog(id,decls) : Typed.ast) outc =
     | Var_stmt(xss) -> ()
     | Print(es) -> ()
     | Println(es) -> ()
-    | If_stmt(po,e,ps,pso) -> ()
-  (* ( if <expr> ( then <name>? <expr>* ) ( else <name>? <expr>* )? ) *)
-  (* ( if <expr1> <expr2> <expr3>? ) *)
-    | Block(stmts) -> ()
+    | If_stmt(po,e,ps,pso) ->
+       (match po with
+        | Some p -> gStmt ((Block(
+                                [p; (Block([(If_stmt(None,e,ps,pso),pos)]),pos)]
+                           )),pos)
+                          (* don't need the block any more becuase of our renaming scheme, leving them here because it doesn't make a difference *)
+        | None -> 
+          Printf.fprintf outc "(if %t\n(then %t)%t)\n"
+                         (fun c -> gExpr e; tab())
+                         (fun c -> incr tabc;
+                                   (* tab(); *)
+                                   plsl gStmt ps;
+                                   decr tabc)
+                         (fun c -> incr tabc;
+                                   may (fun ps -> pstr "\n(else";
+                                                   plsl gStmt ps;
+                                                   pstr ")");
+                                   decr tabc))
+    | Block(stmts) -> plsl gStmt stmts
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
@@ -54,18 +119,43 @@ let generate (Prog(id,decls) : Typed.ast) outc =
   (* ( return <expr>? ) *)
     | Break -> ()
     | Continue -> ()
-    | Empty_stmt -> ()
+    | Empty_stmt -> pstr "nop" (* or should we not do anything? *)
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) -> ()
+             (* plsl (fun xs -> *)
+             (* pstr "var(\n"; incr tabc; *)
+             (* List.iter (fun (s,eso,typo) -> *)
+             (*     Printf.fprintf outc "%t %t%t\n" *)
+             (*                  (fun c -> pstr s) *)
+             (*                  (fun c -> may (fun t -> pstr " "; gTyp t) typo) *)
+             (*                  (fun c -> may (fun t -> pstr " = "; gExpr t) eso) *)
+             (* ) xs; pstr ")"; decr tabc) xss *)
+
            | Type_decl(id_atyp_ls) -> ()
-           | Func_decl(fId, id_typ_ls, typ, ps) -> ()
+           | Func_decl(fId, id_typ_ls, typ, ps) -> 
+              (* local variables must be declared at the function declaration *)
+              (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
+              Printf.fprintf outc "(func $%t %t (result %t)\n%t)\n"
+                             (fun c -> pstr fId)
+                             (fun c -> pssl " " (fun (id,typ) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)
+                             (fun c -> gTyp typ)
+                             (fun c -> incr tabc;
+                                       (* tab(); *)
+                                       pssl "\n" gStmt ps;
+                                       decr tabc)
+
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
 (* result: ( result <type> ) *)
   in
-  (* add header *)
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
-  pln(); pln(); pssl "\n" pDecl decls
+       Printf.fprintf outc "(module\n%t\n)"
+       (fun c -> incr tabc;
+                 plsl gDecl decls;
+                 decr tabc)
+
+(* fix tabbing *)
+
 
 
 (* more about webassembly: *)
