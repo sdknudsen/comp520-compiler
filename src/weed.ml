@@ -61,8 +61,8 @@ let weed ast =
       | (Uexp(_,_),true,_) ->
           Error.print_error pos "Unexpected expression as lvalue";
 
-      | (Parens(e), _, _) ->
-          weed_expression e in_lhs false;
+      (* | (Parens(e), _, _) ->
+          weed_expression e in_lhs false; *)
       | (Fn_call((Iden(("int",_)),_), args), _, _)
       | (Fn_call((Iden(("bool",_)),_), args), _, _)
       | (Fn_call((Iden(("float64",_)),_), args), _, _)
@@ -168,11 +168,12 @@ let weed ast =
       | Return(Some(expr)) ->
           weed_expression expr false false;
       | Expr_stmt(expr) -> begin
-          let rec no_parens x = match x with
+          (* let rec no_parens x = match x with
            | (Parens(x),_) -> (no_parens x)
            | _ -> x
           in
-          match (no_parens expr) with
+          match (no_parens expr) with *)
+          match expr with
            | (Fn_call(_,_),_) as expr -> weed_expression expr false true
            | _ -> Error.print_error pos "invalid expression statement"
         end

@@ -23,7 +23,7 @@ type ('i, 't) annotated_typ =
 
 type ('e, 'i, 't) annotated_expr =
   | Iden    of 'i
-  | Parens  of 'e
+  (* | Parens  of 'e *)
   | AValue  of 'e * 'e
   | SValue  of 'e * 'i
   | Append  of 'i * 'e

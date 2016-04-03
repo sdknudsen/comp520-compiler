@@ -70,9 +70,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     | FLit(f) -> (FLit f, (pos, sure (get_type_instance "float64" g)))
     | RLit(c) -> (RLit c, (pos, sure (get_type_instance "rune" g)))
     | SLit(s) -> (SLit s, (pos, sure (get_type_instance "string" g)))
-    | Parens(e) -> 
+    (* | Parens(e) -> 
        let (_,(_,typ)) as te = tExpr g e in
-       (Parens te, (pos, typ))
+       (Parens te, (pos, typ)) *)
     | Bexp(op,e1,e2) -> 
        let (_,(_,typ1)) as te1 = tExpr g e1 in
        let (_,(_,typ2)) as te2 = tExpr g e2 in       

@@ -58,8 +58,8 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
     | Iden(id) -> pstr (fst id)
     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)
     | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pstr (fst id))
-    | Parens(e)  -> Printf.fprintf outc "(%t)"
-                                   (fun c -> pExpr e)
+    (* | Parens(e)  -> Printf.fprintf outc "(%t)"
+                                   (fun c -> pExpr e) *)
     | ILit(d) -> Printf.fprintf outc "%d" d
     | FLit(f) -> Printf.fprintf outc "%f" f
     (* | BLit(b) -> Printf.fprintf outc "%b" b *)
@@ -264,8 +264,8 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
     | Iden(id) -> pstr id
     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)
     | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pstr id)
-    | Parens(e)  -> Printf.fprintf outc "(%t)"
-                                   (fun c -> pExpr e)
+    (* | Parens(e)  -> Printf.fprintf outc "(%t)"
+                                   (fun c -> pExpr e) *)
     | ILit(d) -> Printf.fprintf outc "%d" d
     | FLit(f) -> Printf.fprintf outc "%f" f
     (* | BLit(b) -> Printf.fprintf outc "%b" b *)
