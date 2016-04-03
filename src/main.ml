@@ -53,7 +53,11 @@ let typecheck lexbuf =
   print_endline "Valid"
 
 let compile lexbuf =
-  print_endline "Compiling is complicated"
+  let name = (Filename.chop_extension !file) in
+  let untypedTree = Parser.program Lexer.token lexbuf in
+  let _ = Weed.weed untypedTree in
+  let typedTree = Type.typeAST untypedTree in
+  write Gen.generate typedTree name ".wast"
 
 let main =
   (* command line arguments with flags: reference [8] *)
