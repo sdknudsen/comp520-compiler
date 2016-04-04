@@ -15,8 +15,9 @@ let tadd name kind ctx =
   in
   add name kind ctx;
   let depth = scope_depth ctx in
-  let wastTyp = "i64" in (* change this to get wast type!! *)
-  Hashtbl.add auxTable !currFName (fList@[(name,depth,wastTyp)])
+  (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
+  (* let typ = find name ctx in *)
+  Hashtbl.add auxTable !currFName (fList@[(name,depth,kind)])
   (* optimize this later? *)
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)

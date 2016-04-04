@@ -150,12 +150,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                   (fun c -> gExpr e))
          (zip xs es)
     | Var_stmt(xss) -> 
-       plsl (List.iter (fun (s,eo,typo) ->
+       List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)\n"
                          (fun c -> (match (typo,eo) with
-                                   | (Some typ,_) -> pstr ("$"^s^getSuffix typ^" "); gTyp typ
+                                   | (Some typ,_) -> pstr (s^getSuffix typ^" "); gTyp typ
                                    | (_,Some e) -> let t = snd (snd e) in
-                                                   pstr ("$"^s^getSuffix t^" "); gTyp t
+                                                   pstr (s^getSuffix t^" "); gTyp t
                                    | _ -> failwith "weeding error"
                          )))) xss
 

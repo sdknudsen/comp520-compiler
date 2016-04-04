@@ -179,11 +179,11 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
            | Var_decl(xss) -> 
        plsl (fun xs ->
            pstr "var(\n"; incr tabc;
-           List.iter (fun ((s,_),eso,typo) ->
+           List.iter (fun ((s,_),eo,typo) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
-                              (fun c -> may (fun t -> pstr " "; pExpr t) eso)
-                              (fun c -> may (fun t -> pstr " = "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " = "; pExpr t) eo)
              ) xs; pstr ")"; decr tabc) xss
               (* List.iter (fun this -> *)
               (* pstr "var(\n"; incr tabc; *)
