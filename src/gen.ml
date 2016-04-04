@@ -56,14 +56,14 @@ let generate (Prog(id,decls) : Typed.ast) oc =
   in
   
   let rec gTyp (at:Typed.uttyp) = match at with
-    (* get base type before printing !! *)
+    (* get wast type before printing !! *)
     | TSimp(typ_id) -> ()
     | TStruct(x_typ_ls) -> ()
     | TArray(typ,d) -> ()
     | TSlice(typ) -> ()
     | TVoid -> ()
     | TFn(a,b) -> ()
-    | TKind(a) -> ()
+    | TKind(a) -> gTyp a
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
