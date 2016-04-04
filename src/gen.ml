@@ -87,7 +87,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec getSuffix (at:Typed.uttyp) : string = match at with
     (* get wast type before printing !! *)
-    | TSimp(t, c) -> t^string_of_int (scope_depth c)
+    | TSimp(t, c) -> "_"^t^"_"^string_of_int (scope_depth c)
     | TArray(_,_)
     | TStruct(_)
     | TFn(_,_)
@@ -197,13 +197,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              fprintf oc "(func $%t %t %t\n%t)\n"
+              fprintf oc "(func $%t %t %t\n%t\n%t)\n"
                               (fun c -> pstr fId)
                               (fun c -> pssl " "
                                              (fun (id,typ) ->
-                                                  pstr ("(param $"^id^
-                                                               "_"^(string_of_int 1)^
-                                                               "_"^(name_typ typ)^" ");
+                                                  pstr ("(param $"^id^getSuffix typ^" ");
                                                   gTyp typ;
                                                   pstr ")")
                                              id_typ_ls)
@@ -213,7 +211,14 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                                     gTyp typ;
                                                     pstr ")")
                               (fun c -> incr tabc;
-                                        (* tab(); *)
+                                        let locals = Hashtbl.find table fId in
+                                        plsl (fun (v,d,t) ->
+                                            fprintf oc "(local $%t %t)\n"
+                                                    (fun c -> pstr (v^string_of_int d^t))
+                                                    (fun c -> pstr t)
+
+                                          ) locals)
+                              (fun c -> (* tab(); *)
                                         pssl "\n" gStmt ps;
                                         decr tabc)
               (* failwith "no" *)
