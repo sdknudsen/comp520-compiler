@@ -250,11 +250,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   gTyp typ;
                   pstr ")\n");
               let locals = Hashtbl.find table fId in
-                plsl (fun (v,d,t) ->
+                plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
-                               (fun c -> pstr t))
+                               (fun c -> pstr (v^getSuffix t2)))
                      locals;
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
