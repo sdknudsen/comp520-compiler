@@ -8,24 +8,12 @@ doc/*
 !*.tex
 !*.pdf
 
-# tests temporary files
-programs/*/*.sym
-programs/*/*.pretty
-programs/*/*.pptype.go
-programs/*/*.symtab
-programs/*/*/*.sym
-programs/*/*/*.pretty
-programs/*/*/*.pptype.go
-programs/*/*/*.symtab
-programs/*/*/*/*.sym
-programs/*/*/*/*.pretty
-programs/*/*/*/*.pptype.go
-programs/*/*/*/*.symtab
-
-
 # output files
+*.pretty
+*.smartsymtab
 *.symtab
 *.pptype.go
+*.wast
 
 # misc
 .DS_Store
