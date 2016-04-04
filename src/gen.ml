@@ -100,7 +100,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
     pstr "\n";
     match ue with
-    | Iden(id) -> () (* look up in symbol table *)
+    | Iden(id) -> fprintf oc "(get_local $%t)"
+                      (fun c -> pstr (id^getSuffix typ))
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
