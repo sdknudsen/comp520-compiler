@@ -151,7 +151,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po;
-       pstr "(if\n";
+       pstr "(if ";
+       gExpr e;
+       pstr "\n";
        incr tabc;
        tab();
        pstr "(then\n";
@@ -167,7 +169,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
              incr tabc;
              pssl "\n" (fun st -> tab(); gStmt st) ps;
              decr tabc;
-             tab(); pstr ")")
+             tab(); pstr ")\n")
             pso;
        decr tabc;
        tab(); pstr ")"
@@ -242,7 +244,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                      locals;
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
-              pstr ")\n";
+              tab(); pstr ")";
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
 (* result: ( result <type> ) *)
