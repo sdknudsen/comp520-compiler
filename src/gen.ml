@@ -249,7 +249,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr "(result ";
                   gTyp typ;
                   pstr ")\n");
-              let locals = Hashtbl.find table fId in
+              let locals = try Hashtbl.find table fId
+                           with | _ -> failwith ("Locals for function " ^ fId ^ " not found")
+              in
                 plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
