@@ -55,12 +55,28 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     in pstr s
   in
   
+  let rec name_typ (at:Typed.uttyp) = match at with
+    (* get wast type before printing !! *)
+    | TSimp("bool", _)    -> "bool"
+    | TSimp("int", _)     -> "int"
+    | TSimp("float64", _) -> "float64"
+    | TSimp("rune", _)    -> "rune"
+    | TSimp("string", _)  -> "string"
+
+    | TSimp(_, _)    -> failwith "Named types not yet supported"
+    | TStruct(_)
+    | TArray(_,_)
+    | TSlice(_)
+    | TFn(_,_) -> failwith "Structured types not yet supported"
+    | TVoid -> ""
+    | TKind(a) -> ""
+  in
   let rec gTyp (at:Typed.uttyp) = match at with
     (* get wast type before printing !! *)
     | TSimp("bool", _)    -> pstr "i32"
     | TSimp("int", _)     -> pstr "i32"
     | TSimp("float64", _) -> pstr "f64"
-    | TSimp("char", _)    -> pstr "i32"
+    | TSimp("rune", _)    -> pstr "i8"
     | TSimp(_, _)    -> failwith "Named types not yet supported"
     | TStruct(_)
     | TArray(_,_)
@@ -131,12 +147,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       (match po with
+       (*(match po with
         | Some p -> gStmt ((Block(
                                 [p; (Block([(If_stmt(None,e,ps,pso),pos)]),pos)]
                            )),pos)
                           (* don't need the block any more becuase of our renaming scheme, leving them here because it doesn't make a difference *)
-        | None -> 
+        | None -> *)
           fprintf oc "(if %t\n(then %t)%t)\n"
                          (fun c -> gExpr e; tab())
                          (fun c -> incr tabc;
@@ -144,10 +160,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                    plsl gStmt ps;
                                    decr tabc)
                          (fun c -> incr tabc;
-                                   may (fun ps -> pstr "\n(else";
+                                   (match pso with
+                                     Some qs ->
+                                       pstr "\n(else ";
+                                       plsl gStmt ps;
+                                       pstr ")"
+                                   | None -> ()); decr tabc)
+                                   (* (may (fun ps -> pstr "\n(else";
                                                    plsl gStmt ps;
                                                    pstr ")");
-                                   decr tabc))
+                                   decr tabc)) *)
     | Block(stmts) ->
         fprintf oc "(block %t)\n"
                 (fun c-> plsl gStmt stmts)
@@ -182,8 +204,14 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
               fprintf oc "(func $%t %t %t\n%t)\n"
                               (fun c -> pstr fId)
-                              (fun c -> pstr "")
-                              (*(fun c -> pssl " " (fun (id,typ,ind) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)*)
+                              (fun c -> pssl " "
+                                             (fun (id,typ) ->
+                                                  pstr ("(param $"^id^
+                                                               "_"^(string_of_int 1)^
+                                                               "_"^(name_typ typ)^" ");
+                                                  gTyp typ;
+                                                  pstr ")")
+                                             id_typ_ls)
                               (fun c -> match typ with
                                          | TVoid -> pstr "";
                                          | _     -> pstr "(result ";
