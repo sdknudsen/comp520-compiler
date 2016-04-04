@@ -56,7 +56,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   
   let rec name_typ (at:Typed.uttyp) = match at with
-    (* get wast type before printing !! *)
     | TSimp("bool", _)    -> "bool"
     | TSimp("int", _)     -> "int"
     | TSimp("float64", _) -> "float64"

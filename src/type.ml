@@ -16,8 +16,11 @@ let tadd name kind ctx =
   add name kind ctx;
   let depth = scope_depth ctx in
   (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
-  (* let typ = find name ctx in *)
-  Hashtbl.add auxTable !currFName (fList@[(name,depth,kind)])
+  let typ = match find name ctx with
+    | Some(TSimp(x,_)) -> x
+    | _ -> failwith "not found/supported"
+  in
+  Hashtbl.add auxTable !currFName (fList@[(name,depth,typ)])
   (* optimize this later? *)
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
