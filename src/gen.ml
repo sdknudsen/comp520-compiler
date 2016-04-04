@@ -96,7 +96,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
-  let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
+  let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
     | Iden(id) -> fprintf oc "(get_local $%t)"
                       (fun c -> pstr (id^getSuffix typ))
@@ -127,7 +127,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
     | Append(x, e) -> ()
   in
-  let rec getId (ue,(pos,typ):Typed.annotated_texpr):string =
+  let rec getId (ue,(pos,typ,ctx):Typed.annotated_texpr):string =
     match ue with
     | Iden(id) -> id^getSuffix typ
     | AValue(r,e) -> failwith "getId not implemented for AValue"
@@ -148,7 +148,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                   (fun c -> pstr (getId v))
                                   (fun c -> gExpr e))
          (zip xs es)
-    | Var_stmt(xss) -> 
+    | Var_stmt(xss) ->  ()
+(*
        List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)\n"
                          (fun c -> (match (typo,eo) with
@@ -157,7 +158,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                                    pstr (s^getSuffix t^" "); gTyp t
                                    | _ -> failwith "weeding error"
                          )))) xss
-
+*)
        (* let ls = List.map (fun () -> ) (List.concat xss) in *)
        (* plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)" *)
        (*                            (fun c -> pstr (getId v)) *)

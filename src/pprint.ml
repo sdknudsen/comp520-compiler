@@ -258,7 +258,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
 
   in
   (* let rec pExpr = function *)
-  let rec pExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
+  let rec pExpr ((ue,(pos,typ,_)):Typed.annotated_texpr) =
     Printf.fprintf outc "%t /*:%t*/"
     (fun c -> match ue with
     | Iden(id) -> pstr id

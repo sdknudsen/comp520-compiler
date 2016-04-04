@@ -1,9 +1,9 @@
   type id = string
   type uttyp = (string, (string * Context.context)) Ast.annotated_typ
   type texpr = (annotated_texpr, id, uttyp) Ast.annotated_expr
-  and annotated_texpr =  (texpr * (Lexing.position * uttyp))
+  and annotated_texpr =  (texpr * (Lexing.position * uttyp * Context.context))
   type utstmt = (annotated_utstmt, annotated_texpr, id, uttyp) Ast.annotated_stmt
-  and annotated_utstmt = utstmt * Lexing.position
+  and annotated_utstmt = utstmt * (Lexing.position * Context.context)
   type utdecl = (annotated_utstmt, annotated_texpr, id, uttyp) Ast.annotated_decl
   type annotated_utdecl = utdecl * Lexing.position
   type ast  = (annotated_utdecl, id) Ast.annotated_ast
