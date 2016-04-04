@@ -254,7 +254,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
-                               (fun c -> pstr (v^getSuffix t2)))
+                               (fun c -> gTyp t2))
                      locals;
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
