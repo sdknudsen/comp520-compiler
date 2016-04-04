@@ -213,12 +213,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                               (fun c -> incr tabc;
                                         let locals = Hashtbl.find table fId in
                                         plsl (fun (v,d,t) ->
-                                            fprintf oc "(local $%t %t)\n"
-                                                    (fun c -> pstr (v^string_of_int d^t))
+                                            tab();
+                                            fprintf oc "(local $%t %t)"
+                                                    (fun c -> pstr (v^"_"^string_of_int d^"_"^t))
                                                     (fun c -> pstr t)
 
                                           ) locals)
-                              (fun c -> (* tab(); *)
+                              (fun c -> tab();
                                         pssl "\n" gStmt ps;
                                         decr tabc)
               (* failwith "no" *)
