@@ -137,7 +137,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        if (isCastable t)
        then
          let tx = sure (get_type_instance x g) in 
-         (Fn_call((Iden(x,-1), (ipos, TKind(tx))), [te]), (pos, tx))
+         (Fn_call((Iden(x), (ipos, TKind(tx))), [te]), (pos, tx))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
     | Fn_call(fid, es) -> 
@@ -165,7 +165,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        in
        let (_,(_,typ)) as te = tExpr g e in
        if same_type t typ then begin
-          (Append((i,-1),te), (pos, TSlice t))
+          (Append((i),te), (pos, TSlice t))
        end else
           typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
 
@@ -173,7 +173,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
         (* let (typo,ind) = find i g in *)
         (* match typo with !!!*)
         match find i g with
-          | Some(t) -> (Iden(i,-1), (pos, t))
+          | Some(t) -> (Iden(i), (pos, t))
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
       end
     | AValue(r,e) ->
@@ -205,7 +205,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
          | TKind(_) -> typecheck_error pos "Expression of type kind"
          | _ -> typecheck_error pos "Expression not of type struct")
        in
-       (SValue(te,(i,-1)), (pos, ftyp))
+       (SValue(te,(i)), (pos, ftyp))
   in
 
 
@@ -215,7 +215,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let tes = List.map (tExpr g) es in
        let zipped = zip xs tes in
        let check_assign = function
-         | ((Iden(("_",p)),_), (e,(ep,et))) -> (Iden("_",-1),(p,et))
+         | ((Iden(("_",p)),_), (e,(ep,et))) -> (Iden("_"),(p,et))
          | (lhs, (e,(ep,et))) ->
               let (_,(_,t)) as tlhs = (tExpr g lhs) in
               if not (same_type t et)

@@ -1,4 +1,3 @@
-
 type id = string
 type var_id = id
 type typ_id = id

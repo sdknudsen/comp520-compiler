@@ -2,7 +2,7 @@ open Ast
 open Parser
 open Tokens
 open AuxFunctions
-       (* for typed tree: *)
+(* for typed tree: *)
 
 (* let ppTable gamma outc =
   let str_of_typ = function
@@ -225,7 +225,6 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let tabc = ref 0 in (* tab count *)
   let pln() = Printf.fprintf outc "\n" in (* print line *)
   let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
-  let pid id = pstr (fst id) in
   let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let pssl s f = (* print string separated list *)
@@ -262,9 +261,9 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let rec pExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
     Printf.fprintf outc "%t /*:%t*/"
     (fun c -> match ue with
-    | Iden(id) -> pid id
+    | Iden(id) -> pstr id
     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)
-    | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pid id)
+    | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pstr id)
     (* | Parens(e)  -> Printf.fprintf outc "(%t)"
                                    (fun c -> pExpr e) *)
     | ILit(d) -> Printf.fprintf outc "%d" d
@@ -280,11 +279,11 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
                                    (uop_to_str op)
                                    (fun c -> pExpr e)
     | Fn_call((Iden(i),_), k) -> Printf.fprintf outc "%t(%t)"
-                                                (fun c -> pid i)
+                                                (fun c -> pstr i)
                                                 (fun c -> pcsl pExpr k)
     | Fn_call(fun_id, es) -> Printf.fprintf outc "%t(%t)" (fun c -> pExpr fun_id) (fun c -> pcsl pExpr es)
     | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
-                                     (fun c -> pid x) 
+                                     (fun c -> pstr x) 
                                      (fun c -> pExpr e)
     )
     (fun c -> pTyp typ)
