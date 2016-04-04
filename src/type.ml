@@ -3,10 +3,18 @@ open Context
 open Ho 
 open AuxFunctions
 
-type auxVal = (string * int * Typed.uttyp) list (* use the webassmebly type instead?? *)
-(* key: fName, val: name * depth * type *)
+type auxVal = (string * int * string) list
+(* key: fName, val: name * depth * webassembly type *)
 let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
-let currFName = ref ""
+let currFName = ref "_base_" (* change name? *)
+
+let tadd name kind ctx =
+  let fList = Hashtbl.find auxTable !currFName in
+  add name kind ctx;
+  let depth = scope_depth ctx in
+  let wastTyp = "i64" in (* change this to get wast type!! *)
+  Hashtbl.add auxTable !currFName (fList@[(name,depth,wastTyp)])
+  (* optimize this later? *)
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
@@ -357,7 +365,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                else typecheck_error ipos ("Conflicting type for variable declaration `" ^ i ^ "`")
            | Some((_,(_,etyp))), None -> etyp
          in
-         add i tt g;
+         tadd i tt g;
          (* (i, te, Some(tt), newIndex()) *)
          (i, te, Some(tt))
        in
@@ -383,7 +391,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                         then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`")
                        end
                    else
-                     add i te g)
+                     tadd i te g)
                  tds;
 
        (SDecl_stmt(tds), pos)
@@ -394,7 +402,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                   (fun ((i,ipos), t) ->
                     if in_scope i g
                     then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
-                    else (add i t g; (i,t)))
+                    else (tadd i t g; (i,t)))
                   tl
        in
        (Type_stmt(tl), pos)
@@ -443,7 +451,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
            | Some((_,(_,etyp))), None -> etyp
          in
-         add i tt g;
+         tadd i tt g;
          (i, te, Some(tt))
        in
 
@@ -459,7 +467,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                   (fun ((i,ipos), t) ->
                     if in_scope i g
                     then typecheck_error ipos ("Type `" ^ i ^ "` already declared in scope")
-                    else (add i t g; (i,t)))
+                    else (tadd i t g; (i,t)))
                   tl
        in
        (Type_decl(tl), pos)
@@ -477,7 +485,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
            let tl = List.map snd targs in
            let rtntyp = tTyp g typ in
            
-           add fId (TFn(tl, rtntyp)) g;
+           tadd fId (TFn(tl, rtntyp)) g;
 
            let ng = scope g in  
            let targs1 = List.map (fun((i,ipos),t) ->
@@ -485,7 +493,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                            then typecheck_error
                                   ipos
                                   ("Parameter name `" ^ i ^ "` use twice")
-                           else (add i t ng; (i, t)))
+                           else (tadd i t ng; (i, t)))
                                 targs
            in
 
@@ -502,13 +510,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
   let ctx = (init ()) in begin
-    add "int"     (TKind (TSimp("#",ctx))) ctx;
-    add "bool"    (TKind (TSimp("#",ctx))) ctx;
-    add "string"  (TKind (TSimp("#",ctx))) ctx;
-    add "rune"    (TKind (TSimp("#",ctx))) ctx;
-    add "float64" (TKind (TSimp("#",ctx))) ctx;
-    add "true"    (sure (get_type_instance "bool" ctx)) ctx;
-    add "false"   (sure (get_type_instance "bool" ctx)) ctx;
+    tadd "int"     (TKind (TSimp("#",ctx))) ctx;
+    tadd "bool"    (TKind (TSimp("#",ctx))) ctx;
+    tadd "string"  (TKind (TSimp("#",ctx))) ctx;
+    tadd "rune"    (TKind (TSimp("#",ctx))) ctx;
+    tadd "float64" (TKind (TSimp("#",ctx))) ctx;
+    tadd "true"    (sure (get_type_instance "bool" ctx)) ctx;
+    tadd "false"   (sure (get_type_instance "bool" ctx)) ctx;
     let decls = tDecls ctx decls in
     unscope ctx;
     (Prog(pkg, decls), auxTable)
