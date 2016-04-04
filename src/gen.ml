@@ -61,11 +61,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TSimp("int", _)     -> pstr "i32"
     | TSimp("float64", _) -> pstr "f64"
     | TSimp("char", _)    -> pstr "i8"
-    | TStruct(x_typ_ls) -> ()
-    | TArray(typ,d) -> ()
-    | TSlice(typ) -> ()
+    | TSimp(_, _)    -> failwith "Named types not yet supported"
+    | TStruct(_)
+    | TArray(_,_)
+    | TSlice(_)
+    | TFn(_,_) -> failwith "Structured types not yet supported"
     | TVoid -> ()
-    | TFn(a,b) -> ()
     | TKind(a) -> gTyp a
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
