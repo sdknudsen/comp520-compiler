@@ -238,9 +238,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               pssl "\n"
                 (fun (id,typ) ->
                   tab();
-                  pstr ("(param $"^id^
-                               "_"^(string_of_int 1)^
-                               "_"^(name_typ typ)^" ");
+                  pstr ("(param $"^id^getSuffix typ^" ");
                   gTyp typ;
                   pstr ")")
                 id_typ_ls;
@@ -255,7 +253,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 plsl (fun (v,d,t) ->
                        tab();
                        fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (v^"_"^string_of_int d^"_"^t))
+                               (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
                                (fun c -> pstr t))
                      locals;
               pssl "\n" (fun st -> tab(); gStmt st) ps;
