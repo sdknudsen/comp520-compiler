@@ -9,7 +9,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let pln() = fprintf oc "\n" in (* print line *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   let pid id = pstr (fst id) in
-  let rec tabWith n = if n <= 0 then () else (pstr "    "; tabWith (n-1)) in
+  let rec tabWith n = if n <= 0 then () else (pstr "  "; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let pssl s f = (* print string separated list *)
     List.iter (fun y -> f y; pstr s)
@@ -98,7 +98,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
   let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
-    pstr "\n";
     match ue with
     | Iden(id) -> () (* look up in symbol table *)
     | AValue(r,e) -> ()
@@ -135,7 +134,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | SValue(r,id) -> failwith "not implemented"
     | _ -> failwith "Error"
   in
-  let rec gStmt ((us, pos): Typed.annotated_utstmt) = match us with
+  let rec gStmt ((us, pos): Typed.annotated_utstmt) =
+   match us with
     | Assign(xs, es) -> 
        plsl
          (fun (v,e) -> fprintf oc "(set_local $%t %t)"
@@ -149,22 +149,34 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       may gStmt po;
-       fprintf oc "(if %t\n(then %t)%t)\n"
-                  (fun c -> gExpr e; tab())
-                  (fun c -> incr tabc;
-                            (* tab(); *)
-                            plsl gStmt ps;
-                            decr tabc)
-                  (fun c -> incr tabc;
-                            may (fun ps -> pstr "\n(else ";
-                                           plsl gStmt ps;
-                                           pstr ")")
-                                pso;
-                            decr tabc)
+       may (fun s -> gStmt s; pstr "\n"; tab()) po;
+       pstr "(if\n";
+       incr tabc;
+       tab();
+       pstr "(then\n";
+       incr tabc;
+       pssl "\n" (fun st -> tab(); gStmt st) ps;
+       decr tabc;
+       tab(); pstr ")";
+
+       may (fun ps ->
+             pstr "\n";
+             tab();
+             pstr "(else\n";
+             incr tabc;
+             pssl "\n" (fun st -> tab(); gStmt st) ps;
+             decr tabc;
+             tab(); pstr ")")
+            pso;
+       decr tabc;
+       tab(); pstr ")"
     | Block(stmts) ->
-        fprintf oc "(block %t)\n"
-                (fun c-> plsl gStmt stmts)
+        pstr "(block\n";
+        incr tabc;
+        pssl "\n" (fun st -> tab(); gStmt st) stmts;
+        decr tabc;
+        tab(); pstr ")"
+       
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
@@ -196,25 +208,27 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              fprintf oc "(func $%t %t %t\n%t)\n"
-                              (fun c -> pstr fId)
-                              (fun c -> pssl " "
-                                             (fun (id,typ) ->
-                                                  pstr ("(param $"^id^
-                                                               "_"^(string_of_int 1)^
-                                                               "_"^(name_typ typ)^" ");
-                                                  gTyp typ;
-                                                  pstr ")")
-                                             id_typ_ls)
-                              (fun c -> match typ with
-                                         | TVoid -> pstr "";
-                                         | _     -> pstr "(result ";
-                                                    gTyp typ;
-                                                    pstr ")")
-                              (fun c -> incr tabc;
-                                        (* tab(); *)
-                                        pssl "\n" gStmt ps;
-                                        decr tabc)
+              pstr "(func "; pstr fId;
+              incr tabc; pstr "\n";
+              pssl "\n"
+                (fun (id,typ) ->
+                  tab();
+                  pstr ("(param $"^id^
+                               "_"^(string_of_int 1)^
+                               "_"^(name_typ typ)^" ");
+                  gTyp typ;
+                  pstr ")")
+                id_typ_ls;
+              (match typ with
+                | TVoid -> ()
+                | _     ->
+                  tab();
+                  pstr "(result ";
+                  gTyp typ;
+                  pstr ")\n");
+              pssl "\n" (fun st -> tab(); gStmt st) ps;
+              decr tabc;
+              pstr ")\n";
               (* failwith "no" *)
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
