@@ -201,7 +201,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Switch_clause(eso, ps) -> ()
     | For_stmt(po1, eo, po2, ps) -> ()
   (* ( loop <name1>? <name2>? <expr>* ) *)
-    | SDecl_stmt(id_e_ls) -> ()
+    | SDecl_stmt(id_e_ls) ->
+      List.iter (fun (id,e) ->
+        let typ = snd (snd e) in
+        fprintf oc "(set_local $%t %t)\n"
+        (fun c -> pstr (id^getSuffix typ))
+        (fun c -> gExpr e)) id_e_ls;
     | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> ()
     | Return(eo) -> 
