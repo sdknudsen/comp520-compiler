@@ -87,7 +87,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec getSuffix (at:Typed.uttyp) : string = match at with
     (* get wast type before printing !! *)
-    | TSimp(t, c) -> t^string_of_int (scope_depth c)
+    | TSimp(t, c) -> "_"^t^"_"^string_of_int (scope_depth c)
     | TArray(_,_)
     | TStruct(_)
     | TFn(_,_)
@@ -99,7 +99,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec gExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
     match ue with
-    | Iden(id) -> () (* look up in symbol table *)
+    | Iden(id) -> fprintf oc "(get_local $%t)"
+                      (fun c -> pstr (id^getSuffix typ))
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
@@ -211,6 +212,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               pstr "(func "; pstr fId;
               incr tabc; pstr "\n";
               pssl "\n"
+                   (fun (id,typ) ->
+                         pstr ("(param $"^id^getSuffix typ^" ");
+                         gTyp typ;
+                         pstr ")")
+                   id_typ_ls;
+              pssl "\n"
                 (fun (id,typ) ->
                   tab();
                   pstr ("(param $"^id^
@@ -226,10 +233,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr "(result ";
                   gTyp typ;
                   pstr ")\n");
+              let locals = Hashtbl.find table fId in
+                plsl (fun (v,d,t) ->
+                       tab();
+                       fprintf oc "(local $%t %t)"
+                               (fun c -> pstr (v^"_"^string_of_int d^"_"^t))
+                               (fun c -> pstr t))
+                     locals;
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
               pstr ")\n";
-              (* failwith "no" *)
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
 (* result: ( result <type> ) *)
