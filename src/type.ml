@@ -485,7 +485,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
            let tl = List.map snd targs in
            let rtntyp = tTyp g typ in
            
-           tadd fId (TFn(tl, rtntyp)) g;
+           add fId (TFn(tl, rtntyp)) g;
 
            let ng = scope g in  
            let targs1 = List.map (fun((i,ipos),t) ->
@@ -493,7 +493,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                            then typecheck_error
                                   ipos
                                   ("Parameter name `" ^ i ^ "` use twice")
-                           else (tadd i t ng; (i, t)))
+                           else (add i t ng; (i, t)))
                                 targs
            in
 
