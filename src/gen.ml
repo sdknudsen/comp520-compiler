@@ -26,7 +26,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let gUOp op =
     let s = match op with
       | Negative -> "neg"
-      | Positive -> failwith "+"
+      | Positive -> ""
       | Boolnot -> failwith "!"
       | Bitnot -> failwith "^"
     in pstr s
@@ -46,12 +46,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Bitxor -> "xor"
     | Times -> "mul"
     | Div -> "div_s"
+    | Modulo -> "rem_s"
     | Lshift -> "shl_s"
     | Rshift -> "shr_s"
     | Boolor -> failwith "||"
     | Booland -> failwith "&&"
     | Bitnand -> failwith "&^"
-    | Modulo -> failwith "%"
     in pstr s
   in
   
