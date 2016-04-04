@@ -127,12 +127,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       (match po with
+       (*(match po with
         | Some p -> gStmt ((Block(
                                 [p; (Block([(If_stmt(None,e,ps,pso),pos)]),pos)]
                            )),pos)
                           (* don't need the block any more becuase of our renaming scheme, leving them here because it doesn't make a difference *)
-        | None -> 
+        | None -> *)
           fprintf oc "(if %t\n(then %t)%t)\n"
                          (fun c -> gExpr e; tab())
                          (fun c -> incr tabc;
@@ -140,10 +140,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                    plsl gStmt ps;
                                    decr tabc)
                          (fun c -> incr tabc;
-                                   may (fun ps -> pstr "\n(else";
+                                   (match pso with
+                                     Some qs ->
+                                       pstr "\n(else ";
+                                       plsl gStmt ps;
+                                       pstr ")"
+                                   | None -> ()); decr tabc)
+                                   (* (may (fun ps -> pstr "\n(else";
                                                    plsl gStmt ps;
                                                    pstr ")");
-                                   decr tabc))
+                                   decr tabc)) *)
     | Block(stmts) ->
         fprintf oc "(block %t)\n"
                 (fun c-> plsl gStmt stmts)
