@@ -131,9 +131,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec getId (ue,(pos,typ):Typed.annotated_texpr):string =
     match ue with
     | Iden(id) -> id^getSuffix typ
-    | AValue(r,e) -> failwith "not implemented"
-    | SValue(r,id) -> failwith "not implemented"
-    | _ -> failwith "Error"
+    | AValue(r,e) -> failwith "getId not implemented for AValue"
+    | SValue(r,id) -> failwith "getId not implemented for SValue"
+    | ILit(d) -> failwith "getId not implemented for ILit"
+    | FLit(f) -> failwith "getId not implemented for FLit"
+    | RLit(c) -> failwith "getId not implemented for RLit"
+    | SLit(s) -> failwith "getId not implemented for SLit"
+    | Bexp(op,e1,e2) -> failwith "getId not implemented for BExp"
+    | Uexp(op,e) -> failwith "getId not implemented for UExp"
+    | Fn_call(fun_id, es) -> failwith "getId not implemented for Fn_call"
+    | Append(x, e) -> failwith "getId not implemented for Append"
   in
   let rec gStmt ((us, pos): Typed.annotated_utstmt) =
    match us with
@@ -147,8 +154,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                  fprintf oc "(set_local $%t %t)\n"
                          (fun c -> pstr s)
                          (fun c -> (match (typo,eo) with
-                                   | (_,Some e) -> pstr (getId e)
                                    | (Some typ,_) -> gTyp typ
+                                   | (_,Some e) -> gTyp (snd (snd e))
                                    | _ -> failwith "weeding error"
                          )))) xss
 
