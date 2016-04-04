@@ -9,7 +9,9 @@ let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
 let currFName = ref "_main_" (* change name? *)
 
 let tadd name kind ctx =
-  let fList = Hashtbl.find auxTable !currFName in
+  let fList = try Hashtbl.find auxTable !currFName with
+               | Not_found -> []
+  in
   add name kind ctx;
   let depth = scope_depth ctx in
   let wastTyp = "i64" in (* change this to get wast type!! *)
