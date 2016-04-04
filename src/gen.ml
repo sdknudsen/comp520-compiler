@@ -124,7 +124,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                                    plsl gStmt ps;
                                                    pstr ")");
                                    decr tabc))
-    | Block(stmts) -> plsl gStmt stmts
+    | Block(stmts) ->
+        fprintf oc "(block %t)\n"
+                (fun c-> plsl gStmt stmts)
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
