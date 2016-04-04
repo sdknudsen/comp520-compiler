@@ -137,7 +137,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                             plsl gStmt ps;
                             decr tabc)
                   (fun c -> incr tabc;
-                            may (fun ps -> pstr "\n(else";
+                            may (fun ps -> pstr "\n(else ";
                                            plsl gStmt ps;
                                            pstr ")")
                                 pso;
