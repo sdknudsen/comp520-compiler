@@ -43,7 +43,7 @@ let typecheck lexbuf =
   then Context.smartout := Some(open_out (name^".smartsymtab"));
   let untypedTree = Parser.program Lexer.token lexbuf in
   Weed.weed untypedTree;
-  let typedTree,_ = Type.typeAST untypedTree in
+  let typedTree = Type.typeAST untypedTree in
 
   (if !pptype then
     write Pprint.ptTree typedTree name ".pptype.go"
@@ -56,8 +56,8 @@ let compile lexbuf =
   let name = (Filename.chop_extension !file) in
   let untypedTree = Parser.program Lexer.token lexbuf in
   let _ = Weed.weed untypedTree in
-  let (typedTree,indexTable) = Type.typeAST untypedTree in
-  write (Gen.generate indexTable) typedTree name ".wast"
+  let typedTree = Type.typeAST untypedTree in
+  write Gen.generate typedTree name ".wast"
 
 let main =
   (* command line arguments with flags: reference [8] *)

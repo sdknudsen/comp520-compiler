@@ -87,7 +87,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
     | Var_stmt(xss) ->
        plsl (fun xs ->
            pstr "var(\n"; incr tabc;
-           List.iter (fun ((s,_),eso,typo,_) ->
+           List.iter (fun ((s,_),eso,typo) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
                               (fun c -> may (fun t -> pstr " "; pExpr t) eso)
@@ -210,7 +210,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
               Printf.fprintf outc "func %t(%t) %t {\n%t}\n"
                              (fun c -> pid fId)
                              (* not sure using fst is the right thing to do: *)
-                             (fun c -> pcsl (fun (id,typ,ind) -> pstr (fst id^" "); pTyp typ) id_typ_ls)
+                             (fun c -> pcsl (fun (id,typ) -> pstr (fst id^" "); pTyp typ) id_typ_ls)
                              (fun c -> pTyp typ)
                              (* (fun c -> List.iter (fun x -> ()) ps); *)
                              (* change this !! *)
@@ -225,6 +225,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let tabc = ref 0 in (* tab count *)
   let pln() = Printf.fprintf outc "\n" in (* print line *)
   let pstr s = Printf.fprintf outc "%s" s in (* print ocaml string *)
+  let pid id = pstr (fst id) in
   let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let pssl s f = (* print string separated list *)
@@ -261,9 +262,9 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
   let rec pExpr ((ue,(pos,typ)):Typed.annotated_texpr) =
     Printf.fprintf outc "%t /*:%t*/"
     (fun c -> match ue with
-    | Iden(id) -> pstr id
+    | Iden(id) -> pid id
     | AValue(r,e) -> Printf.fprintf outc "%t[%t]" (fun c -> pExpr r) (fun c -> pExpr e)
-    | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pstr id)
+    | SValue(r,id) -> Printf.fprintf outc "%t.%t" (fun c -> pExpr r) (fun c -> pid id)
     (* | Parens(e)  -> Printf.fprintf outc "(%t)"
                                    (fun c -> pExpr e) *)
     | ILit(d) -> Printf.fprintf outc "%d" d
@@ -279,11 +280,11 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
                                    (uop_to_str op)
                                    (fun c -> pExpr e)
     | Fn_call((Iden(i),_), k) -> Printf.fprintf outc "%t(%t)"
-                                                (fun c -> pstr i)
+                                                (fun c -> pid i)
                                                 (fun c -> pcsl pExpr k)
     | Fn_call(fun_id, es) -> Printf.fprintf outc "%t(%t)" (fun c -> pExpr fun_id) (fun c -> pcsl pExpr es)
     | Append(x, e) -> Printf.fprintf outc "append(%t,%t)"
-                                     (fun c -> pstr (x)) 
+                                     (fun c -> pid x) 
                                      (fun c -> pExpr e)
     )
     (fun c -> pTyp typ)
@@ -297,7 +298,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
     | Var_stmt(xss) ->
        plsl (fun xs ->
            pstr "var(\n"; incr tabc;
-           List.iter (fun (s,eso,typo,_) ->
+           List.iter (fun (s,eso,typo) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
                               (fun c -> may (fun t -> pstr " "; pExpr t) eso)
@@ -391,7 +392,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
               Printf.fprintf outc "func %t(%t) %t {\n%t}"
                              (fun c -> pstr fId)
                              (* not sure using fst is the right thing to do: *)
-                             (fun c -> pcsl (fun (id,typ,ind) -> pstr (id^" "); pTyp typ) id_typ_ls)
+                             (fun c -> pcsl (fun (id,typ) -> pstr (id^" "); pTyp typ) id_typ_ls)
                              (fun c -> pTyp typ)
                              (* (fun c -> List.iter (fun x -> ()) ps); *)
                              (* change this !! *)

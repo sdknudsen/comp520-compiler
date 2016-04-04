@@ -1,3 +1,4 @@
+
 type id = string
 type var_id = id
 type typ_id = id
@@ -34,13 +35,13 @@ type ('e, 'i, 't) annotated_expr =
   | Uexp    of unop * 'e
   | Bexp    of binop * 'e * 'e
 
-type ('s, 'e, 'i, 't, 'ind) annotated_stmt =
+type ('s, 'e, 'i, 't) annotated_stmt =
   | Assign      of 'e list * 'e list
   | If_stmt     of 's option * 'e * 's list * 's list option
   | Switch_stmt of 's option * 'e option * 's list
   | For_stmt    of 's option * 'e option * 's option * 's list
   | Switch_clause of 'e list option * 's list
-  | Var_stmt    of ('i * 'e option * 't option * 'ind) list list
+  | Var_stmt    of ('i * 'e option * 't option) list list
   | SDecl_stmt  of ('i * 'e) list
   | Type_stmt   of ('i * 't) list
   | Return      of 'e option
@@ -52,9 +53,9 @@ type ('s, 'e, 'i, 't, 'ind) annotated_stmt =
   | Continue
   | Empty_stmt
 
-type ('s, 'e, 'i, 't, 'ind) annotated_decl =
+type ('s, 'e, 'i, 't) annotated_decl =
   | Var_decl  of ('i * 'e option * 't option) list list
   | Type_decl of ('i * 't) list
-  | Func_decl of 'i * ('i * 't * 'ind) list * 't * 's list
+  | Func_decl of 'i * ('i * 't) list * 't * 's list
 
 type ('d, 'i) annotated_ast = Prog of 'i * 'd list
