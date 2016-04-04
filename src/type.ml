@@ -17,8 +17,8 @@ let tadd name kind ctx =
   let depth = scope_depth ctx in
   (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
   let typ = match find name ctx with
-    | Some(TKind(TSimp(x,_))) -> x
-    | _ -> failwith "not found/supported"
+    | Some(x) -> Context.typ_to_str x
+    | _ -> failwith "not found"
   in
   Hashtbl.add auxTable !currFName (fList@[(name,depth,typ)])
   (* optimize this later? *)
