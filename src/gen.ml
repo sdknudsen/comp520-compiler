@@ -9,7 +9,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let pln() = fprintf oc "\n" in (* print line *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   let pid id = pstr (fst id) in
-  let rec tabWith n = if n <= 0 then () else (pstr "\t"; tabWith (n-1)) in
+  let rec tabWith n = if n <= 0 then () else (pstr "    "; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let pssl s f = (* print string separated list *)
     List.iter (fun y -> f y; pstr s)
@@ -121,7 +121,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       (fun c -> gTyp typ)
                       (fun c -> gUOp op)
                       (fun c -> gExpr e)
-    | Fn_call((Iden(i),_), k) -> ()
+    | Fn_call((Iden(i),_), k) -> fprintf oc "(call %t %t)"
+                                            (fun c -> pstr i)
+                                            (fun c -> ())
     | Fn_call(fun_id, es) -> ()
   (* ( call <var> <expr>* ) *)
   (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
@@ -148,29 +150,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       (*(match po with
-        | Some p -> gStmt ((Block(
-                                [p; (Block([(If_stmt(None,e,ps,pso),pos)]),pos)]
-                           )),pos)
-                          (* don't need the block any more becuase of our renaming scheme, leving them here because it doesn't make a difference *)
-        | None -> *)
-          fprintf oc "(if %t\n(then %t)%t)\n"
-                         (fun c -> gExpr e; tab())
-                         (fun c -> incr tabc;
-                                   (* tab(); *)
-                                   plsl gStmt ps;
-                                   decr tabc)
-                         (fun c -> incr tabc;
-                                   (match pso with
-                                     Some qs ->
-                                       pstr "\n(else ";
-                                       plsl gStmt ps;
-                                       pstr ")"
-                                   | None -> ()); decr tabc)
-                                   (* (may (fun ps -> pstr "\n(else";
-                                                   plsl gStmt ps;
-                                                   pstr ")");
-                                   decr tabc)) *)
+       may gStmt po;
+       fprintf oc "(if %t\n(then %t)%t)\n"
+                  (fun c -> gExpr e; tab())
+                  (fun c -> incr tabc;
+                            (* tab(); *)
+                            plsl gStmt ps;
+                            decr tabc)
+                  (fun c -> incr tabc;
+                            may (fun ps -> pstr "\n(else ";
+                                           plsl gStmt ps;
+                                           pstr ")")
+                                pso;
+                            decr tabc)
     | Block(stmts) ->
         fprintf oc "(block %t)\n"
                 (fun c-> plsl gStmt stmts)
@@ -182,7 +174,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | SDecl_stmt(id_e_ls) -> ()
     | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> ()
-    | Return(eo) -> ()
+    | Return(eo) -> 
+        fprintf oc "(return %t)\n"
+                (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
     | Break -> ()
     | Continue -> ()
@@ -218,11 +212,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                          | _     -> pstr "(result ";
                                                     gTyp typ;
                                                     pstr ")")
-                              (fun c -> pstr "")
-                              (*(fun c -> incr tabc;
+                              (fun c -> incr tabc;
                                         (* tab(); *)
                                         pssl "\n" gStmt ps;
-                                        decr tabc)*)
+                                        decr tabc)
               (* failwith "no" *)
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
