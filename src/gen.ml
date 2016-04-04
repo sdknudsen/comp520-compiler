@@ -60,7 +60,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TSimp("bool", _)    -> pstr "i32"
     | TSimp("int", _)     -> pstr "i32"
     | TSimp("float64", _) -> pstr "f64"
-    | TSimp("char", _)    -> pstr "i8"
+    | TSimp("char", _)    -> pstr "i32"
     | TSimp(_, _)    -> failwith "Named types not yet supported"
     | TStruct(_)
     | TArray(_,_)
@@ -78,9 +78,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
-    | ILit(d) -> fprintf oc "%d" d
-    | FLit(f) -> fprintf oc "%f" f
-    | RLit(c) -> fprintf oc "%d" (int_of_char c)
+    | ILit(d) -> fprintf oc "(i32.const %d)" d
+    | FLit(f) -> fprintf oc "(f64.const %f)" f
+    | RLit(c) -> fprintf oc "(i32.const %d)" (int_of_char c)
     | SLit(s) -> fprintf oc "\"%s\"" s
     | Bexp(op,e1,e2) ->
        fprintf oc "(%t.%t %t %t)"
