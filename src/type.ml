@@ -3,14 +3,10 @@ open Context
 open Ho 
 open AuxFunctions
 
-type indexKey = string * int
-let indexTable : (indexKey, Typed.uttyp) Hashtbl.t = Hashtbl.create 1337
 let indexCount = ref 0
-let currFName = ref ""
-let getIndex typ = let n = !indexCount in
-                   Hashtbl.add indexTable (!currFName,n) typ;
-                   incr indexCount;
-                   n
+let newIndex() = let n = !indexCount in
+                 incr indexCount;
+                 n
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
@@ -141,7 +137,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        if (isCastable t)
        then
          let tx = sure (get_type_instance x g) in 
-         (Fn_call((Iden(x), (ipos, TKind(tx))), [te]), (pos, tx))
+         (Fn_call((Iden(x,-1), (ipos, TKind(tx))), [te]), (pos, tx))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
     | Fn_call(fid, es) -> 
@@ -169,13 +165,15 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        in
        let (_,(_,typ)) as te = tExpr g e in
        if same_type t typ then begin
-          (Append(i,te), (pos, TSlice t))
+          (Append((i,-1),te), (pos, TSlice t))
        end else
           typecheck_error pos ("Mismatch in slice between \"" ^ typ_to_str t ^ "\" and \"" ^ typ_to_str typ)
 
     | Iden(i, ipos) -> begin
+        (* let (typo,ind) = find i g in *)
+        (* match typo with !!!*)
         match find i g with
-          | Some(t) -> (Iden(i), (pos, t))
+          | Some(t) -> (Iden(i,-1), (pos, t))
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
       end
     | AValue(r,e) ->
@@ -207,7 +205,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
          | TKind(_) -> typecheck_error pos "Expression of type kind"
          | _ -> typecheck_error pos "Expression not of type struct")
        in
-       (SValue(te,i), (pos, ftyp))
+       (SValue(te,(i,-1)), (pos, ftyp))
   in
 
 
@@ -217,7 +215,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let tes = List.map (tExpr g) es in
        let zipped = zip xs tes in
        let check_assign = function
-         | ((Iden(("_",p)),_), (e,(ep,et))) -> (Iden("_"),(p,et))
+         | ((Iden(("_",p)),_), (e,(ep,et))) -> (Iden("_",-1),(p,et))
          | (lhs, (e,(ep,et))) ->
               let (_,(_,t)) as tlhs = (tExpr g lhs) in
               if not (same_type t et)
@@ -342,7 +340,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        (For_stmt(tpo1, teo, tpo2, tps), pos)
 
     | Var_stmt(decls) ->
-       let tc_vardecl ((i,ipos), e, t, _) =
+       let tc_vardecl ((i,ipos), e, t) =
          if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
          
          let te = match e with
@@ -360,7 +358,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
            | Some((_,(_,etyp))), None -> etyp
          in
          add i tt g;
-         (i, te, Some(tt), getIndex tt)
+         (* (i, te, Some(tt), newIndex()) *)
+         (i, te, Some(tt))
        in
 
        let ls = List.map (List.map tc_vardecl) decls in
@@ -466,27 +465,27 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        (Type_decl(tl), pos)
 
     | Func_decl((fId,_), args, typ, stmts) ->
-       currFName := fId;
        indexCount := 0;
        (* indexCount := List.length args; *)
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
            
-           let targs = List.map (fun((i,ipos), t, ()) -> let vt = tTyp g t in
-                                                         ((i,ipos), vt, getIndex vt)) args in
-           let tl = List.map (fun (x,y,z) -> y) targs in
+           let targs = List.map (fun((i,ipos), t) -> let vt = tTyp g t in
+                                                         (* ((i,ipos), vt, newIndex ())) args in *)
+                                                         ((i,ipos), vt)) args in
+           let tl = List.map snd targs in
            let rtntyp = tTyp g typ in
            
            add fId (TFn(tl, rtntyp)) g;
 
            let ng = scope g in  
-           let targs1 = List.map (fun((i,ipos),t,ind) ->
+           let targs1 = List.map (fun((i,ipos),t) ->
                            if in_scope i ng
                            then typecheck_error
                                   ipos
                                   ("Parameter name `" ^ i ^ "` use twice")
-                           else (add i t ng; (i, t, ind)))
+                           else (add i t ng; (i, t)))
                                 targs
            in
 
@@ -512,6 +511,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     add "false"   (sure (get_type_instance "bool" ctx)) ctx;
     let decls = tDecls ctx decls in
     unscope ctx;
-    (Prog(pkg, decls), indexTable)
+    Prog(pkg, decls)
   end
 
