@@ -138,15 +138,25 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec gStmt ((us, pos): Typed.annotated_utstmt) = match us with
     | Assign(xs, es) -> 
-       plsl
-         (fun (v,e) -> fprintf oc "(set_local $%t %t)"
-                               (fun c -> pstr (getId v))
-                               (fun c -> gExpr e)
-         )
+       plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)"
+                                  (fun c -> pstr (getId v))
+                                  (fun c -> gExpr e))
          (zip xs es)
-    | Var_stmt(xss) -> ()
-       (* List.map (List.map (fun x -> *)
-       (*                          )) xss *)
+    | Var_stmt(xss) -> 
+       plsl (List.iter (fun (s,eo,typo) ->
+                 fprintf oc "(set_local $%t %t)\n"
+                         (fun c -> pstr s)
+                         (fun c -> (match (typo,eo) with
+                                   | (_,Some e) -> pstr (getId e)
+                                   | (Some typ,_) -> gTyp typ
+                                   | _ -> failwith "weeding error"
+                         )))) xss
+
+       (* let ls = List.map (fun () -> ) (List.concat xss) in *)
+       (* plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)" *)
+       (*                            (fun c -> pstr (getId v)) *)
+       (*                            (fun c -> gExpr e)) ls *)
+
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
