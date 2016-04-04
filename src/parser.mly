@@ -149,7 +149,7 @@ var_decl_line:
  *)
 param_expr:
 | var_ids=separated_nonempty_list(COMMA, id) t=typ
-    { List.map (function (id) -> (id,t)) var_ids }
+    { List.map (function (id) -> (id,t,())) var_ids }
 
 func_decl:
 | FUNC fun_id=id LPAREN params=parameters RPAREN t=typ?
@@ -162,6 +162,7 @@ func_decl:
 
 parameters:
 | params=separated_list(COMMA, param_expr)
+    (* { List.map (fun (x,y,z) -> (x,y,z,())) (List.concat params) } *)
     { List.concat params }
 
 

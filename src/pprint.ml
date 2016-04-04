@@ -210,7 +210,7 @@ let pTree (Prog(id,decls) : Untyped.ast) outc =
               Printf.fprintf outc "func %t(%t) %t {\n%t}\n"
                              (fun c -> pid fId)
                              (* not sure using fst is the right thing to do: *)
-                             (fun c -> pcsl (fun (id,typ) -> pstr (fst id^" "); pTyp typ) id_typ_ls)
+                             (fun c -> pcsl (fun (id,typ,ind) -> pstr (fst id^" "); pTyp typ) id_typ_ls)
                              (fun c -> pTyp typ)
                              (* (fun c -> List.iter (fun x -> ()) ps); *)
                              (* change this !! *)
@@ -391,7 +391,7 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
               Printf.fprintf outc "func %t(%t) %t {\n%t}"
                              (fun c -> pstr fId)
                              (* not sure using fst is the right thing to do: *)
-                             (fun c -> pcsl (fun (id,typ) -> pstr (id^" "); pTyp typ) id_typ_ls)
+                             (fun c -> pcsl (fun (id,typ,ind) -> pstr (id^" "); pTyp typ) id_typ_ls)
                              (fun c -> pTyp typ)
                              (* (fun c -> List.iter (fun x -> ()) ps); *)
                              (* change this !! *)

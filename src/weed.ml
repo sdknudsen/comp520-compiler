@@ -216,7 +216,7 @@ let weed ast =
           weed_blank id;
           weed_reserved_words id;
           weed_type return_type;
-          List.iter (fun (id, typ) -> weed_reserved_words id; weed_blank id) args; 
+          List.iter (fun (id, typ, _) -> weed_reserved_words id; weed_blank id) args; 
           List.iter (fun x -> weed_statement x false false) stmts
   in
 

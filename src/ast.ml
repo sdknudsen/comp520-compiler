@@ -1,4 +1,3 @@
-
 type id = string
 type var_id = id
 type typ_id = id
@@ -53,9 +52,9 @@ type ('s, 'e, 'i, 't, 'ind) annotated_stmt =
   | Continue
   | Empty_stmt
 
-type ('s, 'e, 'i, 't) annotated_decl =
+type ('s, 'e, 'i, 't, 'ind) annotated_decl =
   | Var_decl  of ('i * 'e option * 't option) list list
   | Type_decl of ('i * 't) list
-  | Func_decl of 'i * ('i * 't) list * 't * 's list
+  | Func_decl of 'i * ('i * 't * 'ind) list * 't * 's list
 
 type ('d, 'i) annotated_ast = Prog of 'i * 'd list

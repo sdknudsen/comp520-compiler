@@ -156,7 +156,7 @@ let generate (Prog(id,decls) : Typed.ast) oc =
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
               fprintf oc "(func $%t %t (result %t)\n%t)\n"
                              (fun c -> pstr fId)
-                             (fun c -> pssl " " (fun (id,typ) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)
+                             (fun c -> pssl " " (fun (id,typ,ind) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)
                              (fun c -> gTyp typ)
                              (fun c -> incr tabc;
                                        (* tab(); *)

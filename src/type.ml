@@ -3,8 +3,14 @@ open Context
 open Ho 
 open AuxFunctions
 
+type indexKey = string * int
+let indexTable : (indexKey, Typed.uttyp) Hashtbl.t = Hashtbl.create 1337
 let indexCount = ref 0
-let getIndex() = let n = !indexCount in incr indexCount; n
+let currFName = ref ""
+let getIndex typ = let n = !indexCount in
+                   Hashtbl.add indexTable (!currFName,n) typ;
+                   incr indexCount;
+                   n
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
@@ -354,7 +360,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
            | Some((_,(_,etyp))), None -> etyp
          in
          add i tt g;
-         (i, te, Some(tt), getIndex())
+         (i, te, Some(tt), getIndex tt)
        in
 
        let ls = List.map (List.map tc_vardecl) decls in
@@ -460,25 +466,29 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
        (Type_decl(tl), pos)
 
     | Func_decl((fId,_), args, typ, stmts) ->
+       currFName := fId;
+       indexCount := 0;
+       (* indexCount := List.length args; *)
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
+           
+           let targs = List.map (fun((i,ipos), t, ()) -> let vt = tTyp g t in
+                                                         ((i,ipos), vt, getIndex vt)) args in
+           let tl = List.map (fun (x,y,z) -> y) targs in
+           let rtntyp = tTyp g typ in
+           
+           add fId (TFn(tl, rtntyp)) g;
 
-         let targs = List.map (fun((i,ipos), t) -> ((i,ipos), tTyp g t)) args in
-         let tl = List.map snd targs in
-         let rtntyp = tTyp g typ in
-
-         add fId (TFn(tl, rtntyp)) g;
-
-         let ng = scope g in  
-         let targs = List.map (fun((i,ipos),t) ->
-                               if in_scope i ng
-                               then typecheck_error
-                                      ipos
-                                      ("Parameter name `" ^ i ^ "` use twice")
-                               else (add i t ng; (i, t)))
-                              targs
-         in
+           let ng = scope g in  
+           let targs1 = List.map (fun((i,ipos),t,ind) ->
+                           if in_scope i ng
+                           then typecheck_error
+                                  ipos
+                                  ("Parameter name `" ^ i ^ "` use twice")
+                           else (add i t ng; (i, t, ind)))
+                                targs
+           in
 
          let tstmts = List.map (tStmt rtntyp ng) stmts in
          (match typ with
@@ -487,8 +497,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
                  then typecheck_error pos ("Execution paths with no returns in function"));
 
          unscope ng;
-
-         (Func_decl(fId, targs, rtntyp, tstmts), pos)
+         (Func_decl(fId, targs1, rtntyp, tstmts), pos)
        end
 
   and tDecls gamma ds = List.map (tDecl gamma) ds
