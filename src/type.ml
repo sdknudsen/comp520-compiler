@@ -7,7 +7,7 @@ type auxVal = (string * int * string) list
 (* key: fName, val: name * depth * webassembly type *)
 let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
 let currFName = ref "_main_" (* change name? *)
-let mklist() = Hashtbl.add auxTable !currFName []
+(* let mklist() = Hashtbl.add auxTable !currFName [] *)
 
 let tadd name kind ctx =
   let fList = try Hashtbl.find auxTable !currFName with
@@ -477,7 +477,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
     | Func_decl((fId,_), args, typ, stmts) ->
        currFName := fId;
-       mklist();
+       (* mklist(); *)
        (* indexCount := List.length args; *)
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
