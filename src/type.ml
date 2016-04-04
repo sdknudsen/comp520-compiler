@@ -3,10 +3,10 @@ open Context
 open Ho 
 open AuxFunctions
 
-let indexCount = ref 0
-let newIndex() = let n = !indexCount in
-                 incr indexCount;
-                 n
+type auxVal = (string * int * Typed.uttyp) list (* use the webassmebly type instead?? *)
+(* key: fName, val: name * depth * type *)
+let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
+let currFName = ref ""
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
 
@@ -465,7 +465,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        (Type_decl(tl), pos)
 
     | Func_decl((fId,_), args, typ, stmts) ->
-       indexCount := 0;
+       currFName := fId;
        (* indexCount := List.length args; *)
        if in_scope fId g
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
@@ -511,6 +511,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     add "false"   (sure (get_type_instance "bool" ctx)) ctx;
     let decls = tDecls ctx decls in
     unscope ctx;
-    Prog(pkg, decls)
+    (Prog(pkg, decls), auxTable)
   end
 

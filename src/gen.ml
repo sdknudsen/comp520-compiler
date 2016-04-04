@@ -4,7 +4,7 @@ open Ho
 open AuxFunctions
 open Printf
 
-let generate (Prog(id,decls) : Typed.ast) oc =
+let generate table (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
   let pln() = fprintf oc "\n" in (* print line *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
