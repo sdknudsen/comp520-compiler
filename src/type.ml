@@ -57,7 +57,7 @@ let rec valid_return_path stmts =
   let (tc,tr) = List.fold_left (inner (false,false)) (false,false) (List.rev stmts) in
   tr
 
-let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
+let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
   let rec tTyp g (t:Untyped.uttyp): Typed.uttyp =
    match t with
@@ -512,6 +512,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) : Typed.ast =
     add "false"   (sure (get_type_instance "bool" ctx)) ctx;
     let decls = tDecls ctx decls in
     unscope ctx;
-    Prog(pkg, decls)
+    (Prog(pkg, decls), indexTable)
   end
 
