@@ -57,7 +57,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   
   let rec gTyp (at:Typed.uttyp) = match at with
     (* get wast type before printing !! *)
-    | TSimp(typ_id) -> ()
+    | TSimp("bool", _)    -> pstr "i32"
+    | TSimp("int", _)     -> pstr "i32"
+    | TSimp("float64", _) -> pstr "f64"
+    | TSimp("char", _)    -> pstr "i8"
     | TStruct(x_typ_ls) -> ()
     | TArray(typ,d) -> ()
     | TSlice(typ) -> ()
@@ -156,11 +159,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              fprintf oc "(func $%t %t (result %t)\n%t)\n"
+              fprintf oc "(func $%t %t %t\n%t)\n"
                               (fun c -> pstr fId)
                               (fun c -> pstr "")
                               (*(fun c -> pssl " " (fun (id,typ,ind) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)*)
-                              (fun c -> gTyp typ)
+                              (fun c -> match typ with
+                                         | TVoid -> pstr "";
+                                         | _     -> pstr "(result ";
+                                                    gTyp typ;
+                                                    pstr ")")
                               (fun c -> pstr "")
                               (*(fun c -> incr tabc;
                                         (* tab(); *)
