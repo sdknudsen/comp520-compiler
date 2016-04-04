@@ -54,10 +54,24 @@ let typecheck lexbuf =
 
 let compile lexbuf =
   let name = (Filename.chop_extension !file) in
+  if !dumpsymtab
+  then Context.dumbout := Some(open_out (name^".symtab"));
+  if !smartsymtab
+  then Context.smartout := Some(open_out (name^".smartsymtab"));
   let untypedTree = Parser.program Lexer.token lexbuf in
   let _ = Weed.weed untypedTree in
   let (typedTree,indexTable) = Type.typeAST untypedTree in
-  write (Gen.generate indexTable) typedTree name ".wast"
+  if !pptype
+  then write Pprint.ptTree typedTree name ".pptype.go";
+  write (Gen.generate indexTable) typedTree name ".wast";
+  
+  if !dumpsymtab
+  then Printf.printf "dumpsymtab generated: %s.symtab\n" name;
+  if !smartsymtab
+  then Printf.printf "smartsymtab generated: %s.smartsymtab\n" name;
+  if !pptype
+  then Printf.printf "pptype generated: %s.pptype.go\n" name;
+  Printf.printf "WebAssembly code generated: %s.wast\n" name
 
 let main =
   (* command line arguments with flags: reference [8] *)
@@ -72,9 +86,9 @@ let main =
         Arg.Set pptype,
         "Enables pretty print of the program, with the type of each expression printed in some legible format")]
   in
-  let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|type] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
+  let usage_msg = "<path_to_src>/main.native [lex|parse|weed|pretty|type|compile] [-dumpsymtab] [-pptype] [<path_to_programs>/foo/bar.go]" in
   (*[-dumpsymtab|-pptype]*)(* add -dumpsymtabll? *)
-  let action = ref typecheck in
+  let action = ref compile in
   let in_channel = ref stdin in
   (*let file = ref "foo/bar.go" in*)
   let anon_fun = function
