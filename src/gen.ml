@@ -154,15 +154,17 @@ let generate (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              (* fprintf oc "(func $%t %t (result %t)\n%t)\n" *)
-              (*                (fun c -> pstr fId) *)
-              (*                (fun c -> pssl " " (fun (id,typ,ind) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls) *)
-              (*                (fun c -> gTyp typ) *)
-              (*                (fun c -> incr tabc; *)
-              (*                          (\* tab(); *\) *)
-              (*                          pssl "\n" gStmt ps; *)
-              (*                          decr tabc) *)
-              failwith "no"
+              fprintf oc "(func $%t %t (result %t)\n%t)\n"
+                              (fun c -> pstr fId)
+                              (fun c -> pstr "")
+                              (*(fun c -> pssl " " (fun (id,typ,ind) -> pstr ("(param $"^id^" "); gTyp typ; pstr ")") id_typ_ls)*)
+                              (fun c -> gTyp typ)
+                              (fun c -> pstr "")
+                              (*(fun c -> incr tabc;
+                                        (* tab(); *)
+                                        pssl "\n" gStmt ps;
+                                        decr tabc)*)
+              (* failwith "no" *)
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
 (* result: ( result <type> ) *)
