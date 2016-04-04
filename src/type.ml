@@ -6,7 +6,7 @@ open AuxFunctions
 type auxVal = (string * int * string) list
 (* key: fName, val: name * depth * webassembly type *)
 let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
-let currFName = ref "_base_" (* change name? *)
+let currFName = ref "_main_" (* change name? *)
 
 let tadd name kind ctx =
   let fList = Hashtbl.find auxTable !currFName in
@@ -504,6 +504,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                  then typecheck_error pos ("Execution paths with no returns in function"));
 
          unscope ng;
+         currFName := "_main_";
          (Func_decl(fId, targs1, rtntyp, tstmts), pos)
        end
 
