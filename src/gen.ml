@@ -68,6 +68,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TFn(_,_) -> failwith "Structured types not yet supported"
     | TVoid -> ()
     | TKind(a) -> gTyp a
+  in
+  let rec getSuffix (at:Typed.uttyp) : string = match at with
+    (* get wast type before printing !! *)
+    | TSimp(t, c) -> t^string_of_int (scope_depth c)
+    | TArray(_,_)
+    | TStruct(_)
+    | TFn(_,_)
+    | TSlice(_)
+    | TVoid
+    | TKind(_) -> failwith "not yet supported"
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
@@ -100,14 +110,24 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
     | Append(x, e) -> ()
   in
+  let rec getId (ue,(pos,typ):Typed.annotated_texpr):string =
+    match ue with
+    | Iden(id) -> id^getSuffix typ
+    | AValue(r,e) -> failwith "not implemented"
+    | SValue(r,id) -> failwith "not implemented"
+    | _ -> failwith "Error"
+  in
   let rec gStmt ((us, pos): Typed.annotated_utstmt) = match us with
-    | Assign(xs, es) -> ()
-       (* plsl *)
-       (*   (fun (v,e) -> fprintf oc "(set_local %t %t)" *)
-                               (* (fun c -> getIndex v) *)
-         (* ) *)
-         (* (zip xs es) *)
+    | Assign(xs, es) -> 
+       plsl
+         (fun (v,e) -> fprintf oc "(set_local $%t %t)"
+                               (fun c -> pstr (getId v))
+                               (fun c -> gExpr e)
+         )
+         (zip xs es)
     | Var_stmt(xss) -> ()
+       (* List.map (List.map (fun x -> *)
+       (*                          )) xss *)
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
