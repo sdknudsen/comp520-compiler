@@ -241,7 +241,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              pstr "(func "; pstr fId;
+              pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
                 (fun (id,typ) ->
