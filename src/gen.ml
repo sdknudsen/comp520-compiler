@@ -260,7 +260,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               let locals = try Hashtbl.find table fId
                            with | _ -> []
               in
-                plsl (fun (v,t,t2) ->
+                plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (v^"_"^t))
