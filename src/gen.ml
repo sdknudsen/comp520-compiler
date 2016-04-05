@@ -117,12 +117,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       (fun c -> gExpr e1)
                       (fun c -> gExpr e2)
        
+    | Uexp(Negative, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+       fprintf oc "(i32.sub (i32.const 0) %t)"
+                  (fun c -> gExpr e)
     | Uexp(op,e) -> 
        fprintf oc "(%t.%t %t)"
                       (fun c -> gTyp typ)
                       (fun c -> gUOp op)
                       (fun c -> gExpr e)
-    | Fn_call((Iden(i),_), k) -> fprintf oc "(call %t %t)"
+    | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
                                             (fun c -> pstr i)
                                             (fun c -> pssl " " gExpr k)
     | Fn_call(fun_id, es) -> ()
@@ -301,16 +304,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"  (import $#print_f64 \"spectest\" \"print\" (param f64))\n"
            ^^"  (import $#println_i32 \"spectest\" \"println\" (param i32))\n"
            ^^"  (import $#println_f64 \"spectest\" \"println\" (param f64))\n"
-           ^^"  (func $#printlni32 (param $i i32)\n"
+           ^^"  (func $#printi32 (param $i i32)\n"
            ^^"    (call_import $#print_i32\n"
            ^^"                 (get_local $i)))\n"
-           ^^"  (func $#printf64 (param $i i64)\n"
+           ^^"  (func $#printf64 (param $i f64)\n"
            ^^"    (call_import $#print_f64\n"
            ^^"                 (get_local $i)))\n"
            ^^"  (func $#printlni32 (param $i i32)\n"
            ^^"    (call_import $#println_i32\n"
            ^^"                 (get_local $i)))\n"
-           ^^"  (func $#printlnf64 (param $i i64)\n"
+           ^^"  (func $#printlnf64 (param $i f64)\n"
            ^^"    (call_import $#println_f64\n"
            ^^"                 (get_local $i)))\n"
            ^^"%t)")
