@@ -300,8 +300,8 @@ let ptTree (Prog(id,decls) : Typed.ast) outc =
            List.iter (fun (s,eso,typo) ->
                Printf.fprintf outc "%t %t%t;\n"
                               (fun c -> pstr s)
-                              (fun c -> may (fun t -> pstr " "; pExpr t) eso)
-                              (fun c -> may (fun t -> pstr " = "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " "; pTyp t) typo)
+                              (fun c -> may (fun t -> pstr " = "; pExpr t) eso)
              ) xs; pstr ")"; decr tabc) xss
 
     | Print(es) -> Printf.fprintf outc "print(%t)" (fun c -> pcsl pExpr es)

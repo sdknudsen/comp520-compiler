@@ -151,11 +151,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Var_stmt(xss) ->  ()
 (*
        List.iter (plsl (fun (s,eo,typo) ->
-                 fprintf oc "(set_local $%t)\n"
+                 fprintf oc "(set_local $%t)"
                          (fun c -> (match (typo,eo) with
-                                   | (Some typ,_) -> pstr (s^getSuffix typ^" "); gTyp typ
-                                   | (_,Some e) -> let t = snd (snd e) in
-                                                   pstr (s^getSuffix t^" "); gTyp t
+                                   | (Some typ,Some e) -> pstr (s^getSuffix typ^" "); gExpr e
+                                   | (None,Some e) -> let t = snd (snd e) in
+                                                   pstr (s^getSuffix t^" "); gExpr e
+                                   | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
 *)
@@ -167,7 +168,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       may (fun s -> gStmt s; pstr "\n"; tab()) po;
+       may (fun s -> gStmt s) po;
+       tab();
        pstr "(if ";
        gExpr e;
        pstr "\n";
@@ -202,7 +204,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Switch_clause(eso, ps) -> ()
     | For_stmt(po1, eo, po2, ps) -> ()
   (* ( loop <name1>? <name2>? <expr>* ) *)
-    | SDecl_stmt(id_e_ls) -> ()
+    | SDecl_stmt(id_e_ls) ->
+      List.iter (fun (id,e) ->
+        let typ = snd (snd e) in
+        fprintf oc "(set_local $%t %t)\n"
+        (fun c -> pstr (id^getSuffix typ))
+        (fun c -> gExpr e)) id_e_ls
+        
     | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> ()
     | Return(eo) -> 
@@ -250,13 +258,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr "(result ";
                   gTyp typ;
                   pstr ")\n");
-              let locals = Hashtbl.find table fId in
-                plsl (fun (v,d,t) ->
+              let locals = try Hashtbl.find table fId
+                           with | _ -> failwith ("Locals for function " ^ fId ^ " not found")
+              in
+                plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
-                               (fun c -> pstr t))
-                     locals;
+                               (fun c -> gTyp t2))
+                     locals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
               tab(); pstr ")";
