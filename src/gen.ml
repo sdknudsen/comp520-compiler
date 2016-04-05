@@ -11,8 +11,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let pid id = pstr (fst id) in
   let rec tabWith n = if n <= 0 then () else (pstr "  "; tabWith (n-1)) in
   let tab() = tabWith !tabc in
-  let pssl s f = (* print string separated list *)
+  let psfl s f = (* print string followed list *)
     List.iter (fun y -> f y; pstr s)
+  in
+  let pssl s f = function (* print string separated list *)
+    | [] -> ()
+    | x::xs -> f x; List.iter (fun y -> pstr s; f y) xs
   in
   let pcsl f = function (* print comma separated list *)
     | [] -> ()
@@ -168,8 +172,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) -> ()
     | Println(es) -> ()
     | If_stmt(po,e,ps,pso) ->
-       may (fun s -> gStmt s) po;
-       tab();
+       may (fun s -> gStmt s; pstr "\n"; tab()) po;
        pstr "(if ";
        gExpr e;
        pstr "\n";
@@ -179,7 +182,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        incr tabc;
        pssl "\n" (fun st -> tab(); gStmt st) ps;
        decr tabc;
-       tab(); pstr ")";
+       pstr ")";
 
        may (fun ps ->
              pstr "\n";
@@ -188,18 +191,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
              incr tabc;
              pssl "\n" (fun st -> tab(); gStmt st) ps;
              decr tabc;
-             tab(); pstr ")\n")
+             pstr ")")
             pso;
        decr tabc;
-       tab(); pstr ")"
+       pstr ")"
     | Block(stmts) ->
-       pstr "\n";
-       tab();
        pstr "(block\n";
        incr tabc;
        pssl "\n" (fun st -> tab(); gStmt st) stmts;
        decr tabc;
-       tab(); pstr ")"
+       pstr ")"
                    
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
@@ -218,7 +219,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> ()
     | Return(eo) -> 
-        fprintf oc "(return %t)\n"
+        fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
     | Break -> ()
@@ -242,7 +243,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
               pstr "(func "; pstr fId;
               incr tabc; pstr "\n";
-              pssl "\n"
+              psfl "\n"
                 (fun (id,typ) ->
                   tab();
                   pstr ("(param $"^id^getSuffix typ^" ");
@@ -257,7 +258,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   gTyp typ;
                   pstr ")\n");
               let locals = try Hashtbl.find table fId
-                           with | _ -> failwith ("Locals for function " ^ fId ^ " not found")
+                           with | _ -> []
               in
                 plsl (fun (v,d,t,t2) ->
                        tab();
@@ -267,7 +268,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                      locals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
-              tab(); pstr ")";
+              pstr ")";
 
 (* func:   ( func <name>? <type>? <param>* <result>? <local>* <expr>* ) *)
 (* result: ( result <type> ) *)
