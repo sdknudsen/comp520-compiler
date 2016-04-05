@@ -198,20 +198,20 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
-    | For_stmt(po1, eo, po2, ps) -> ()
-     (*
-       may (fun s -> gStmt s; pstr "\n"; tab()) po1;
-       pstr "(loop\n";
-       incr tabc;
-       (fun c-> tab(); defaulto gExpr () eo)
-       pssl "\n" (fun st -> tab(); gStmt st) ps;
-       decr tabc;
-       pstr ")"
-                   
-        fprintf oc "(loop\n%t%t)"
-                (fun c -> incr tabc)
-                (fun c -> pssl "\n" (fun st -> tab(); gStmt st) ps)
-       *)
+    | For_stmt(po1, eo, po2, ps) -> 
+       ()
+     
+       (* may (fun s -> gStmt s; pstr "\n"; tab()) po1; *)
+       (* pstr "(loop\n"; *)
+       (* incr tabc; *)
+       (* (fun c -> tab(); defaulto gExpr () eo) *)
+       (* pssl "\n" (fun st -> tab(); gStmt st) ps; *)
+       (* decr tabc; *)
+       (* pstr ")" *)
+       (*  fprintf oc "(loop\n%t%t)" *)
+       (*          (fun c -> incr tabc) *)
+       (*          (fun c -> pssl "\n" (fun st -> tab(); gStmt st) ps) *)
+
   (* ( loop <name1>? <name2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
         pssl "\n"
@@ -230,6 +230,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
     | Break -> ()
+       (* pstr "(br 0)" *)
     | Continue -> ()
     | Empty_stmt -> pstr "nop" (* or should we not do anything? *)
   in
