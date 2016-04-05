@@ -20,7 +20,7 @@ Cheuk Chuen Siow (260660584)}
 
 \raggedright
 \section*{Implementation}
-We chose to generate WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax. For this milestone we have implemented function declarations, declaration statements, short declaration statements, if-else statements, assignment statements, post-op assignments, parenthesized expressions, unary operations, binary operations, and literals. 
+We chose to generate WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax. For this milestone we have implemented function declarations, declaration statements, short declaration statements, if-else statements, assignment statements, post-op assignments, parenthesized expressions, binary operations, and literals. 
 
 Note that some of the implementations mentioned above are partially implemented. For example, WebAssembly does not have \verb|string| as the base type, and certain GoLite operations are not found in the WebAssembly specification and design documentation [1,2]. We'll implement the rest in milestone4.
 
@@ -34,7 +34,7 @@ package main
 func main() {
   var x, y int = 2, 3
   if z := 1; z == 0 {
-    x = y * (-z + 4)
+    x = y * (z - 4)
   } else {
     y++
   }
@@ -56,11 +56,10 @@ func main() {
       (if (i32.eq (get_local $z_int_2) (i32.const 0))
         (then
           (set_local $x_int_1 (i32.mul (get_local $y_int_1) 
-            (i32.add (i32.neg (get_local $z_int_2)) 
-            (i32.const 4)))))
+            (i32.sub (get_local $z_int_2) (i32.const 4)))))
         (else
           (set_local $y_int_1 (i32.add (get_local $y_int_1) 
-          (i32.const 1))))))))
+            (i32.const 1))))))))
 \end{lstlisting}
 \end{minipage}
 
