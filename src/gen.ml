@@ -26,7 +26,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
-
   let gUOp op =
     let s = match op with
       | Negative -> "neg"
@@ -125,7 +124,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       (fun c -> gExpr e)
     | Fn_call((Iden(i),_), k) -> fprintf oc "(call %t %t)"
                                             (fun c -> pstr i)
-                                            (fun c -> ())
+                                            (fun c -> pssl " " gExpr k)
     | Fn_call(fun_id, es) -> ()
   (* ( call <var> <expr>* ) *)
   (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
@@ -162,8 +161,22 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (*                            (fun c -> pstr (getId v)) *)
        (*                            (fun c -> gExpr e)) ls *)
 
-    | Print(es) -> ()
+    | Print(es) ->
+       List.iter
+         (function
+           | (_, (_,TSimp("int",_),_)) as e -> 
+               pstr "(call $#printi32 ";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("float64",_),_)) as e -> 
+               pstr "(call $#printf64";
+               gExpr e;
+               pstr ")"
+           | _ -> failwith "Print of unimplemented type") 
+         es
+       
     | Println(es) -> ()
+
     | If_stmt(po,e,ps,pso) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po;
        pstr "(if ";
@@ -281,7 +294,26 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* result: ( result <type> ) *)
   in
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
-       fprintf oc "(module\n%t)"
+       fprintf oc
+           ("(module\n"
+           ^^"  (start $main)\n"
+           ^^"  (import $#print_i32 \"spectest\" \"print\" (param i32))\n"
+           ^^"  (import $#print_f64 \"spectest\" \"print\" (param f64))\n"
+           ^^"  (import $#println_i32 \"spectest\" \"println\" (param i32))\n"
+           ^^"  (import $#println_f64 \"spectest\" \"println\" (param f64))\n"
+           ^^"  (func $#printlni32 (param $i i32)\n"
+           ^^"    (call_import $#print_i32\n"
+           ^^"                 (get_local $i)))\n"
+           ^^"  (func $#printf64 (param $i i64)\n"
+           ^^"    (call_import $#print_f64\n"
+           ^^"                 (get_local $i)))\n"
+           ^^"  (func $#printlni32 (param $i i32)\n"
+           ^^"    (call_import $#println_i32\n"
+           ^^"                 (get_local $i)))\n"
+           ^^"  (func $#printlnf64 (param $i i64)\n"
+           ^^"    (call_import $#println_f64\n"
+           ^^"                 (get_local $i)))\n"
+           ^^"%t)")
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
