@@ -147,18 +147,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                   (fun c -> pstr (getId v))
                                   (fun c -> gExpr e))
          (zip xs es)
-    | Var_stmt(xss) ->  ()
-(*
+    | Var_stmt(xss) ->
        List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)"
                          (fun c -> (match (typo,eo) with
                                    | (Some typ,Some e) -> pstr (s^getSuffix typ^" "); gExpr e
-                                   | (None,Some e) -> let t = snd (snd e) in
-                                                   pstr (s^getSuffix t^" "); gExpr e
+                                   | (None,Some e) -> let (_,(_,typ,_)) = e in
+                                                   pstr (s^getSuffix typ^" "); gExpr e
                                    | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
-*)
        (* let ls = List.map (fun () -> ) (List.concat xss) in *)
        (* plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)" *)
        (*                            (fun c -> pstr (getId v)) *)
@@ -250,7 +248,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              pstr "(func "; pstr fId;
+              pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
                 (fun (id,typ) ->
