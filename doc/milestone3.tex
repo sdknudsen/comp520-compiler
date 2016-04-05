@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage{verbatim}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+
+\title{COMP 520 - Milestone 3}
+\author{
+Alexandre St-Louis Fortier (260720127)\\
+Stefan Knudsen (260678259)\\
+Cheuk Chuen Siow (260660584)}
+\maketitle
+
+\raggedright
+\section*{Implementation}
+We chose to generate WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax. For this milestone we have implemented function declarations, declaration statements, short declaration statements, if-else statements, assignment statements, post-op assignments, parenthesized expressions, unary operations, binary operations, and literals. 
+
+Note that some of the implementations mentioned above are partially implemented. For example, WebAssembly does not have \verb|string| as the base type, and certain GoLite operations are not found in the WebAssembly specification and design documentation [1,2]. We'll implement the rest in milestone4.
+
+The following is an example GoLite program (left) and the corresponding WebAssembly output (right). WebAssembly requires that variable declarations in a function to be defined at the top of the function body (\verb|local|) before they are used, so we append the GoLite type and scope level to the variable names.
+
+\begin{minipage}[t]{0.3\textwidth}
+\textbf{GoLite:}
+\begin{lstlisting}
+package main
+
+func main() {
+  var x, y int = 2, 3
+  if z := 1; z == 0 {
+    x = y * (-z + 4)
+  } else {
+    y++
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\begin{minipage}[t]{0.6\textwidth}
+\textbf{WebAssembly:}
+\begin{lstlisting}
+(module
+  (func $main
+    (local $x_int_1 i32)
+    (local $y_int_1 i32)
+    (local $z_int_2 i32)
+    (set_local $x_int_1(i32.const 2))
+    (set_local $y_int_1(i32.const 3))
+    (block
+      (set_local $z_int_2 (i32.const 1))
+      (if (i32.eq (get_local $z_int_2) (i32.const 0))
+        (then
+          (set_local $x_int_1 (i32.mul (get_local $y_int_1) 
+            (i32.add (i32.neg (get_local $z_int_2)) 
+            (i32.const 4)))))
+        (else
+          (set_local $y_int_1 (i32.add (get_local $y_int_1) 
+          (i32.const 1))))))))
+\end{lstlisting}
+\end{minipage}
+
+\section*{References}
+\begin{enumerate}
+	\item \url{https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md}
+	\item \url{https://github.com/WebAssembly/design/blob/master/AstSemantics.md}
+\end{enumerate}
+
+\end{document}
