@@ -153,7 +153,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                          (fun c -> (match (typo,eo) with
                                    | (Some typ,Some e) -> pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope s ctx)))); gExpr e
                                    | (None,Some e) -> let (_,(_,typ,_)) = e in
-                                                   pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))); gExpr e
+                                                   pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope s ctx)))); gExpr e
                                    | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
