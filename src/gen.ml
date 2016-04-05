@@ -224,7 +224,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
           id_e_ls
         
     | Type_stmt(id_typ_ls) -> ()
-    | Expr_stmt e -> ()
+    | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
@@ -253,7 +253,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               psfl "\n"
                 (fun (id,typ) ->
                   tab();
-                  pstr ("(param $"^id^getSuffix typ^" ");
+                  pstr ("(param $"^id^getSuffix typ^"_"^(string_of_int 1)^" ");
                   gTyp typ;
                   pstr ")")
                 id_typ_ls;
