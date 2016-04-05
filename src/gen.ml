@@ -6,9 +6,9 @@ open Printf
 
 let generate table (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
-  let pln() = fprintf oc "\n" in (* print line *)
+  (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
-  let pid id = pstr (fst id) in
+  (* let pid id = pstr (fst id) in *)
   let rec tabWith n = if n <= 0 then () else (pstr "  "; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let psfl s f = (* print string followed list *)
@@ -18,10 +18,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr s; f y) xs
   in
-  let pcsl f = function (* print comma separated list *)
+  (* let pcsl f = function (* print comma separated list *)
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr ", "; f y) xs
-  in
+  in *)
   let plsl f = function (* print comma separated list *)
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
@@ -59,7 +59,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     in pstr s
   in
   
-  let rec name_typ (at:Typed.uttyp) = match at with
+  (* let rec name_typ (at:Typed.uttyp) = match at with
     | TSimp("bool", _)    -> "bool"
     | TSimp("int", _)     -> "int"
     | TSimp("float64", _) -> "float64"
@@ -73,7 +73,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TFn(_,_) -> failwith "Structured types not yet supported"
     | TVoid -> ""
     | TKind(a) -> ""
-  in
+  in *)
   let rec gTyp (at:Typed.uttyp) = match at with
     (* get wast type before printing !! *)
     | TSimp("bool", _)    -> pstr "i32"
