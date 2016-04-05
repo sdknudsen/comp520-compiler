@@ -103,7 +103,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
     | Iden(id) -> fprintf oc "(get_local $%t)"
-                      (fun c -> pstr (id^getSuffix typ))
+                      (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
@@ -133,19 +133,14 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec getId (ue,(pos,typ,ctx):Typed.annotated_texpr):string =
     match ue with
-    | Iden(id) -> id^getSuffix typ
+    | Iden(id) -> id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))
+(*
     | AValue(r,e) -> failwith "getId not implemented for AValue"
     | SValue(r,id) -> failwith "getId not implemented for SValue"
-    | ILit(d) -> failwith "getId not implemented for ILit"
-    | FLit(f) -> failwith "getId not implemented for FLit"
-    | RLit(c) -> failwith "getId not implemented for RLit"
-    | SLit(s) -> failwith "getId not implemented for SLit"
-    | Bexp(op,e1,e2) -> failwith "getId not implemented for BExp"
-    | Uexp(op,e) -> failwith "getId not implemented for UExp"
-    | Fn_call(fun_id, es) -> failwith "getId not implemented for Fn_call"
-    | Append(x, e) -> failwith "getId not implemented for Append"
+*)
+    | _ -> failwith "Found non id in lhs of assignment"
   in
-  let rec gStmt ((us, pos): Typed.annotated_utstmt) =
+  let rec gStmt ((us, (pos,ctx)): Typed.annotated_utstmt) =
    match us with
     | Assign(xs, es) -> 
        plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)"
@@ -206,13 +201,26 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
     | For_stmt(po1, eo, po2, ps) -> ()
+     (*
+       may (fun s -> gStmt s; pstr "\n"; tab()) po1;
+       pstr "(loop\n";
+       incr tabc;
+       (fun c-> tab(); defaulto gExpr () eo)
+       pssl "\n" (fun st -> tab(); gStmt st) ps;
+       decr tabc;
+       pstr ")"
+                   
+        fprintf oc "(loop\n%t%t)"
+                (fun c -> incr tabc)
+                (fun c -> pssl "\n" (fun st -> tab(); gStmt st) ps)
+       *)
   (* ( loop <name1>? <name2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
         List.iter
           (fun (id,e) ->
             let (_,(_,typ,_)) = e in
             fprintf oc "(set_local $%t %t)\n"
-              (fun c -> pstr (id^getSuffix typ))
+              (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
               (fun c -> gExpr e))
           id_e_ls
         
@@ -274,7 +282,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* result: ( result <type> ) *)
   in
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
-       fprintf oc "(module\n%t\n)"
+       fprintf oc "(module\n%t)"
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
