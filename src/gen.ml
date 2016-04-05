@@ -216,12 +216,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        *)
   (* ( loop <name1>? <name2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
-        List.iter
-          (fun (id,e) ->
-            let (_,(_,typ,_)) = e in
-            fprintf oc "(set_local $%t %t)\n"
-              (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
-              (fun c -> gExpr e))
+        pssl "\n"
+             (fun (id, e) ->
+              let (_,(_,typ,_)) = e in
+              tab();
+              fprintf oc "(set_local $%t %t)"
+                (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
+                (fun c -> gExpr e))
           id_e_ls
         
     | Type_stmt(id_typ_ls) -> ()
