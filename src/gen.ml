@@ -151,9 +151,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)"
                          (fun c -> (match (typo,eo) with
-                                   | (Some typ,Some e) -> pstr (s^getSuffix typ^" "); gExpr e
+                                   | (Some typ,Some e) -> pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope s ctx)))); gExpr e
                                    | (None,Some e) -> let (_,(_,typ,_)) = e in
-                                                   pstr (s^getSuffix typ^" "); gExpr e
+                                                   pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))); gExpr e
                                    | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
@@ -267,10 +267,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               let locals = try Hashtbl.find table fId
                            with | _ -> []
               in
-                plsl (fun (v,d,t,t2) ->
+                pssl "\n" (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (v^"_"^t))
+                               (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
                                (fun c -> gTyp t2))
                      locals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;
