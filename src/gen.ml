@@ -86,7 +86,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec getSuffix (at:Typed.uttyp) : string = match at with
     (* get wast type before printing !! *)
-    | TSimp(t, c) -> "_"^t^"_"^string_of_int (scope_depth c)
+    | TSimp(t, c) -> "_"^t (* ^"_"^string_of_int (scope_depth c) *)
     | TArray(_,_)
     | TStruct(_)
     | TFn(_,_)
@@ -259,10 +259,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               let locals = try Hashtbl.find table fId
                            with | _ -> failwith ("Locals for function " ^ fId ^ " not found")
               in
-                plsl (fun (v,d,t,t2) ->
+                plsl (fun (v,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
+                               (fun c -> pstr (v^"_"^t))
                                (fun c -> gTyp t2))
                      locals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;

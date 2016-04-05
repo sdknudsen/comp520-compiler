@@ -3,8 +3,8 @@ open Context
 open Ho 
 open AuxFunctions
 
-type auxVal = (string * int * string * Context.info) list
-(* key: fName, val: name * depth * typName * typ *)
+type auxVal = (string * string * Context.info) list
+(* key: fName, val: name * typName * typ *)
 let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
 let currFName = ref "_main_" (* change name? *)
 (* let mklist() = Hashtbl.add auxTable !currFName [] *)
@@ -14,13 +14,12 @@ let tadd name kind ctx =
                | Not_found -> []
   in
   add name kind ctx;
-  let depth = scope_depth ctx in
   (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
   let t1,t2 = match find name ctx with
     | Some(typ) -> (Context.typ_to_str typ, typ)
     | _ -> failwith "not found"
   in
-  Hashtbl.add auxTable !currFName (fList@[(name,depth,t1,t2)])
+  Hashtbl.add auxTable !currFName (fList@[(name,t1,t2)])
   (* optimize this later? *)
 
 let typecheck_error pos msg = Error.print_error pos ("[typecheck] " ^ msg)
