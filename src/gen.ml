@@ -193,12 +193,14 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        decr tabc;
        tab(); pstr ")"
     | Block(stmts) ->
-        pstr "(block\n";
-        incr tabc;
-        pssl "\n" (fun st -> tab(); gStmt st) stmts;
-        decr tabc;
-        tab(); pstr ")"
-       
+       pstr "\n";
+       tab();
+       "(block\n";
+       incr tabc;
+       pssl "\n" (fun st -> tab(); gStmt st) stmts;
+       decr tabc;
+       tab(); pstr ")"
+                   
   (* ( block <name>? <expr>* ) *)
     | Switch_stmt(po, eo, ps) -> ()
     | Switch_clause(eso, ps) -> ()
@@ -238,12 +240,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
               pstr "(func "; pstr fId;
               incr tabc; pstr "\n";
-              pssl "\n"
-                   (fun (id,typ) ->
-                         pstr ("(param $"^id^getSuffix typ^" ");
-                         gTyp typ;
-                         pstr ")")
-                   id_typ_ls;
               pssl "\n"
                 (fun (id,typ) ->
                   tab();
