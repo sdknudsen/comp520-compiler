@@ -195,7 +195,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Block(stmts) ->
        pstr "\n";
        tab();
-       "(block\n";
+       pstr "(block\n";
        incr tabc;
        pssl "\n" (fun st -> tab(); gStmt st) stmts;
        decr tabc;
@@ -207,11 +207,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | For_stmt(po1, eo, po2, ps) -> ()
   (* ( loop <name1>? <name2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
-      List.iter (fun (id,e) ->
-        let typ = snd (snd e) in
-        fprintf oc "(set_local $%t %t)\n"
-        (fun c -> pstr (id^getSuffix typ))
-        (fun c -> gExpr e)) id_e_ls
+        List.iter
+          (fun (id,e) ->
+            let (_,(_,typ,_)) = e in
+            fprintf oc "(set_local $%t %t)\n"
+              (fun c -> pstr (id^getSuffix typ))
+              (fun c -> gExpr e))
+          id_e_ls
         
     | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> ()
