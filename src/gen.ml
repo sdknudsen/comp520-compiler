@@ -152,18 +152,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                   (fun c -> pstr (getId v))
                                   (fun c -> gExpr e))
          (zip xs es)
-    | Var_stmt(xss) ->  ()
-(*
+    | Var_stmt(xss) ->
        List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)"
                          (fun c -> (match (typo,eo) with
                                    | (Some typ,Some e) -> pstr (s^getSuffix typ^" "); gExpr e
-                                   | (None,Some e) -> let t = snd (snd e) in
-                                                   pstr (s^getSuffix t^" "); gExpr e
+                                   | (None,Some e) -> let (_,(_,typ,_)) = e in
+                                                   pstr (s^getSuffix typ^" "); gExpr e
                                    | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
-*)
        (* let ls = List.map (fun () -> ) (List.concat xss) in *)
        (* plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)" *)
        (*                            (fun c -> pstr (getId v)) *)
