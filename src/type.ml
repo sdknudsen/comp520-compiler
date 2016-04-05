@@ -14,7 +14,7 @@ let tadd name kind ctx =
                | Not_found -> []
   in
   add name kind ctx;
-  let depth = scope_depth ctx in
+  let depth = scope_depth (get_scope name ctx) in
   (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
   let t1,t2 = match find name ctx with
     | Some(typ) -> (Context.typ_to_str typ, typ)
