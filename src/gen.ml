@@ -87,9 +87,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TVoid -> ()
     | TKind(a) -> gTyp a
   in
-  let rec getSuffix (at:Typed.uttyp) : string = match at with
+  let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
     (* get wast type before printing !! *)
-    | TSimp(t, c) -> "_"^t (* ^"_"^string_of_int (scope_depth c) *)
+    | TSimp(t,_) -> sprintf "%s_%s_%d" id t d
     | TArray(_,_)
     | TStruct(_)
     | TFn(_,_)
@@ -102,7 +102,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
     | Iden(id) -> fprintf oc "(get_local $%t)"
-                      (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
+                      (fun c -> let depth = scope_depth (get_scope id ctx) in
+                                pstr (alphaRenaming id depth typ))
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
@@ -135,7 +136,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec getId (ue,(pos,typ,ctx):Typed.annotated_texpr):string =
     match ue with
-    | Iden(id) -> id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))
+    | Iden(id) -> let depth = scope_depth (get_scope id ctx) in
+                  alphaRenaming id depth typ
 (*
     | AValue(r,e) -> failwith "getId not implemented for AValue"
     | SValue(r,id) -> failwith "getId not implemented for SValue"
@@ -153,9 +155,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter (plsl (fun (s,eo,typo) ->
                  fprintf oc "(set_local $%t)"
                          (fun c -> (match (typo,eo) with
-                                   | (Some typ,Some e) -> pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope s ctx)))); gExpr e
+                                   | (Some typ,Some e) -> let depth = scope_depth (get_scope s ctx) in
+                                                          pstr (alphaRenaming s depth typ); gExpr e
                                    | (None,Some e) -> let (_,(_,typ,_)) = e in
-                                                   pstr (s^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope s ctx)))); gExpr e
+                                                      let depth = scope_depth (get_scope s ctx) in
+                                                      pstr (alphaRenaming s depth typ); gExpr e
                                    | (Some typ,None) -> pstr ""
                                    | _ -> failwith "weeding error"
                          )))) xss
@@ -235,7 +239,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               let (_,(_,typ,_)) = e in
               tab();
               fprintf oc "(set_local $%t %t)"
-                (fun c -> pstr (id^getSuffix typ^"_"^(string_of_int (scope_depth (get_scope id ctx)))))
+                (fun c -> let depth = scope_depth (get_scope id ctx) in
+                          pstr (alphaRenaming id depth typ))
                 (fun c -> gExpr e))
           id_e_ls
         
@@ -270,7 +275,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               psfl "\n"
                 (fun (id,typ) ->
                   tab();
-                  pstr ("(param $"^id^getSuffix typ^"_"^(string_of_int 1)^" ");
+                  pstr (sprintf "(param $%s " (alphaRenaming id 1 typ));
                   gTyp typ;
                   pstr ")")
                 id_typ_ls;
@@ -287,7 +292,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 pssl "\n" (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (v^"_"^t^"_"^string_of_int d))
+                               (fun c -> pstr (sprintf "%s_%s_%d" v t d))
                                (fun c -> gTyp t2))
                      locals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;
