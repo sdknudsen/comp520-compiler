@@ -153,16 +153,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
          (zip xs es)
     | Var_stmt(xss) ->
        List.iter (plsl (fun (s,eo,typo) ->
-                 fprintf oc "(set_local $%t)"
-                         (fun c -> (match (typo,eo) with
-                                   | (Some typ,Some e) -> let depth = scope_depth (get_scope s ctx) in
-                                                          pstr (alphaRenaming s depth typ); gExpr e
-                                   | (None,Some e) -> let (_,(_,typ,_)) = e in
-                                                      let depth = scope_depth (get_scope s ctx) in
-                                                      pstr (alphaRenaming s depth typ); gExpr e
-                                   | (Some typ,None) -> pstr ""
-                                   | _ -> failwith "weeding error"
-                         )))) xss
+        match (typo,eo) with
+        | (Some typ,Some e) -> let depth = scope_depth (get_scope s ctx) in
+                               fprintf oc "(set_local $%t %t)"
+                                 (fun c -> pstr (alphaRenaming s depth typ))
+                                 (fun c -> gExpr e)
+        | (None,Some e) -> let (_,(_,typ,_)) = e in
+                           let depth = scope_depth (get_scope s ctx) in
+                           fprintf oc "(set_local $%t %t)"
+                             (fun c -> pstr (alphaRenaming s depth typ))
+                             (fun c -> gExpr e)
+        | (Some typ,None) -> ()
+        | _ -> failwith "weeding error"
+       )) xss
        (* let ls = List.map (fun () -> ) (List.concat xss) in *)
        (* plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)" *)
        (*                            (fun c -> pstr (getId v)) *)
