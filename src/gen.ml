@@ -78,7 +78,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TSimp("bool", _)    -> pstr "i32"
     | TSimp("int", _)     -> pstr "i32"
     | TSimp("float64", _) -> pstr "f64"
-    | TSimp("rune", _)    -> pstr "i8"
+    | TSimp("rune", _)    -> pstr "i32"
     | TSimp(_, _)    -> failwith "Named types not yet supported"
     | TStruct(_)
     | TArray(_,_)
@@ -101,9 +101,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
-    | Iden(id) -> fprintf oc "(get_local $%t)"
+    | Iden(id) ->
+      (match id with
+      | "true" -> fprintf oc "(i32.const 1)"
+      | "false" -> fprintf oc "(i32.const 0)"
+      | _ -> fprintf oc "(get_local $%t)"
                       (fun c -> let depth = scope_depth (get_scope id ctx) in
-                                pstr (alphaRenaming id depth typ))
+                                pstr (alphaRenaming id depth typ)))
     | AValue(r,e) -> ()
     | SValue(r,id) -> ()
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
