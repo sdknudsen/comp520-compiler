@@ -9,7 +9,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   (* let pid id = pstr (fst id) in *)
-  let rec tabWith n = if n <= 0 then () else (pstr "  "; tabWith (n-1)) in
+  let rec tabWith n = if n > 0 then (pstr "  "; tabWith (n-1)) in
   let tab() = tabWith !tabc in
   let psfl s f = (* print string followed list *)
     List.iter (fun y -> f y; pstr s)
@@ -270,6 +270,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
+              if fId = "main" then (pstr "(start $main)\n"; tab());
               pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
@@ -305,7 +306,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
        fprintf oc
            ("(module\n"
-           ^^"  (start $main)\n"
            ^^"  (import $#print_i32 \"spectest\" \"print\" (param i32))\n"
            ^^"  (import $#print_f64 \"spectest\" \"print\" (param f64))\n"
            ^^"  (import $#println_i32 \"spectest\" \"println\" (param i32))\n"
