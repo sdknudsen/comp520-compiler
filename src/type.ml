@@ -6,6 +6,7 @@ open AuxFunctions
 type auxVal = (string * int * string * Context.info) list
 (* key: fName, val: name * depth * typName * typ *)
 let auxTable : (string, auxVal) Hashtbl.t = Hashtbl.create 1337
+let globalTable : (string, Typed.annotated_texpr) Hashtbl.t = Hashtbl.create 1337
 let currFName = ref "_main_" (* change name? *)
 (* let mklist() = Hashtbl.add auxTable !currFName [] *)
 
@@ -15,7 +16,6 @@ let tadd name kind ctx =
   in
   add name kind ctx;
   let depth = scope_depth (get_scope name ctx) in
-  (* let wastTyp = "i64" in (\* change this to get wast type!! *\) *)
   let t1,t2 = match find name ctx with
     | Some(typ) -> (Context.typ_to_str typ, typ)
     | _ -> failwith "not found"
@@ -459,6 +459,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
            | Some((_,(_,etyp,_))), None -> etyp
          in
          tadd i tt g;
+         may (fun t -> Hashtbl.add globalTable i t) te;
          (i, te, Some(tt))
        in
 
@@ -512,7 +513,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                  then typecheck_error pos ("Execution paths with no returns in function"));
 
          unscope ng;
-         currFName := "_main_";
+         currFName := "_global_";
          (Func_decl(fId, targs1, rtntyp, tstmts), pos)
        end
 
@@ -526,8 +527,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     tadd "float64" (TKind (TSimp("#",ctx))) ctx;
     tadd "true"    (sure (get_type_instance "bool" ctx)) ctx;
     tadd "false"   (sure (get_type_instance "bool" ctx)) ctx;
+    currFName := "_global_";
     let decls = tDecls ctx decls in
     unscope ctx;
-    (Prog(pkg, decls), auxTable)
+    (Prog(pkg, decls), auxTable, globalTable)
   end
 
