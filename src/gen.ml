@@ -178,12 +178,20 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Print(es) ->
        List.iter
          (function
+           | (_, (_,TSimp("bool",_),_)) as e -> 
+               pstr "(call $#printi32 ";
+               gExpr e;
+               pstr ")"
            | (_, (_,TSimp("int",_),_)) as e -> 
                pstr "(call $#printi32 ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("float64",_),_)) as e -> 
                pstr "(call $#printf64";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("rune",_),_)) as e -> 
+               pstr "(call $#printi32 ";
                gExpr e;
                pstr ")"
            | _ -> failwith "Print of unimplemented type") 
