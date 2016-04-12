@@ -84,7 +84,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TArray(_,_)
     | TSlice(_)
     | TFn(_,_) -> failwith "Structured types not yet supported"
-    | TVoid -> ()
+    | TVoid -> () (* clarify that this is right!! *)
     | TKind(a) -> gTyp a
   in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
@@ -95,7 +95,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TFn(_,_)
     | TSlice(_)
     | TVoid
-    | TKind(_) -> failwith "not yet supported"
+    | TKind(_) -> failwith "kinds not yet supported"
 (* type:   ( type <var> ) *)
 (* type:    ( type <name>? ( func <param>* <result>? ) ) *)
   in
@@ -108,8 +108,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
       | _ -> fprintf oc "(get_local $%t)"
                       (fun c -> let depth = scope_depth (get_scope id ctx) in
                                 pstr (alphaRenaming id depth typ)))
-    | AValue(r,e) -> ()
-    | SValue(r,id) -> ()
+    | AValue(r,e) -> failwith "avalues not yet supported"
+    | SValue(r,id) -> failwith "avalues not yet supported"
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
     | ILit(d) -> fprintf oc "(i32.const %d)" d
     | FLit(f) -> fprintf oc "(f64.const %f)" f
@@ -133,10 +133,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
                                             (fun c -> pstr i)
                                             (fun c -> pssl " " gExpr k)
-    | Fn_call(fun_id, es) -> ()
+    | Fn_call(fun_id, es) -> failwith "fn calls not yet supported"
   (* ( call <var> <expr>* ) *)
   (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
-    | Append(x, e) -> ()
+    | Append(x, e) -> failwith "appends not yet supported"
   in
   let rec getId (ue,(pos,typ,ctx):Typed.annotated_texpr):string =
     match ue with
@@ -167,7 +167,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                            fprintf oc "(set_local $%t %t)"
                              (fun c -> pstr (alphaRenaming s depth typ))
                              (fun c -> gExpr e)
-        | (Some typ,None) -> ()
+        | (Some typ,None) -> failwith "this shouldn't happen?"(*this or unit??*)
         | _ -> failwith "weeding error"
        )) xss
        (* let ls = List.map (fun () -> ) (List.concat xss) in *)
@@ -197,7 +197,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | _ -> failwith "Print of unimplemented type") 
          es
        
-    | Println(es) -> ()
+    | Println(es) -> failwith "println not yet supported"
 
     | If_stmt(po,e,ps,pso) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po;
@@ -231,10 +231,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        pstr ")"
                    
   (* ( block <name>? <expr>* ) *)
-    | Switch_stmt(po, eo, ps) -> ()
-    | Switch_clause(eso, ps) -> ()
-    | For_stmt(po1, eo, po2, ps) -> 
-       ()
+    | Switch_stmt(po, eo, ps) -> failwith "switch_stmt not yet supported"
+    | Switch_clause(eso, ps) -> failwith "switch_clause not yet supported"
+    | For_stmt(po1, eo, po2, ps) -> failwith "for_stmt not yet supported"
      
        (* may (fun s -> gStmt s; pstr "\n"; tab()) po1; *)
        (* pstr "(loop\n"; *)
@@ -259,19 +258,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 (fun c -> gExpr e))
           id_e_ls
         
-    | Type_stmt(id_typ_ls) -> ()
+    | Type_stmt(id_typ_ls) -> failwith "type_stmt not yet supported"
     | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
-    | Break -> ()
+    | Break -> failwith "break not yet supported"
        (* pstr "(br 0)" *)
-    | Continue -> ()
+    | Continue -> failwith "continue not yet supported"
     | Empty_stmt -> pstr "nop" (* or should we not do anything? *)
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
-           | Var_decl(xss) -> ()
+           | Var_decl(xss) -> failwith "var_decls not yet supported"
              (* plsl (fun xs -> *)
              (* pstr "var(\n"; incr tabc; *)
              (* List.iter (fun (s,eso,typo) -> *)
@@ -281,7 +280,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
              (*                  (fun c -> may (fun t -> pstr " = "; gExpr t) eso) *)
              (* ) xs; pstr ")"; decr tabc) xss *)
 
-           | Type_decl(id_atyp_ls) -> ()
+           | Type_decl(id_atyp_ls) -> failwith "type_decls not yet supported"
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
@@ -296,7 +295,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr ")")
                 id_typ_ls;
               (match typ with
-                | TVoid -> ()
+                | TVoid -> failwith "tvoid not yet supported"
                 | _     ->
                   tab();
                   pstr "(result ";
