@@ -4,7 +4,7 @@ open Ho
 open AuxFunctions
 open Printf
 
-let generate table globalVar (Prog(id,decls) : Typed.ast) oc =
+let generate table (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
   (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
@@ -311,24 +311,6 @@ let generate table globalVar (Prog(id,decls) : Typed.ast) oc =
                                (fun c -> pstr (sprintf "%s_%s_%d" v t d))
                                (fun c -> gTyp t2))
                      locals; pstr "\n";
-              (* declare global variables in each function *)
-              let globals = try Hashtbl.find table "_global_"
-                           with | _ -> []
-              in
-                pssl "\n" (fun (v,d,t,t2) ->
-                       tab();
-                       fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (sprintf "%s_%s_%d" v t d))
-                               (fun c -> gTyp t2))
-                     globals; pstr "\n";
-                List.iter (fun (v,d,t,t2) ->
-                  if Hashtbl.mem globalVar v then
-                    (tab();
-                     fprintf oc "(set_local $%t %t)"
-                       (fun c -> pstr (sprintf "%s_%s_%d" v t d))
-                       (fun c -> gExpr (Hashtbl.find globalVar v));
-                     pstr "\n"))
-                  globals; pstr "\n";
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
               pstr ")";
