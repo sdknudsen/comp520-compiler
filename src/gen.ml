@@ -222,7 +222,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
              pstr ")")
             pso;
        decr tabc;
-       pstr ")"
+       pstr ")\n"
     | Block(stmts) ->
        pstr "(block\n";
        incr tabc;
@@ -250,12 +250,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
             pstr "\n";
             incr tabc;
             tab();
-            pstr "(then\n";
+            pstr "(then $loop\n";
             incr tabc;
             pssl "\n" (fun st -> tab(); gStmt st) ps;
             decr tabc;
-            pstr ")";
-            pstr "\n";
+            pstr ")\n";
             tab();
             pstr "(else (br $done)))\n";
             decr tabc));
@@ -283,9 +282,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
-    | Break -> failwith "break not yet supported"
-       (* pstr "(br 0)" *)
-    | Continue -> failwith "continue not yet supported"
+    | Break -> pstr "(br $done)";
+    | Continue -> pstr "(br $loop)";
     | Empty_stmt -> pstr "nop" (* or should we not do anything? *)
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
