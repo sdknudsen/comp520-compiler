@@ -295,21 +295,20 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr ")")
                 id_typ_ls;
               (match typ with
-                | TVoid -> failwith "tvoid not yet supported"
+                | TVoid -> ()
                 | _     ->
                   tab();
                   pstr "(result ";
                   gTyp typ;
                   pstr ")\n");
-              let locals = try Hashtbl.find table fId
-                           with | _ -> []
-              in
+              if Hashtbl.mem table fId then
+               (let locals = Hashtbl.find table fId in
                 pssl "\n" (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (sprintf "%s_%s_%d" v t d))
                                (fun c -> gTyp t2))
-                     locals; pstr "\n";
+                     locals; pstr "\n");
               pssl "\n" (fun st -> tab(); gStmt st) ps;
               decr tabc;
               pstr ")";
