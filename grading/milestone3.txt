@@ -1,0 +1,5 @@
+• Very interesting target language; since Laurie and I don't know it
+  much, it'd be good to give us a quick primer on the language
+  (e.g. syntax highlights, typing discipline, scoping rules, etc.)
+• Do you need to maintain extra information during code generation?
+  (E.g. rename table)

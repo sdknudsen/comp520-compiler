@@ -1,0 +1,31 @@
+Members
+═══════
+
+  • Alexandre St-Louis Fortier 260720127
+  • Stefan Knudsen 260678259
+  • Cheuk Chuen Siow 260660584
+
+
+Q1
+══
+
+  • Grade: 10/10
+
+
+Q2
+══
+
+  • Grade: 19.2/30
+    • Valid: 6/15
+      • Recognized as valid: 6/15
+    • Invalid: 13.2/15
+      • Recognized as invalid: 52/59
+      • Recognized as valid: 5/59
+      • Exception: 2/59
+
+
+Q3
+══
+
+  • Grade: 9/10
+    • The explanation of what TKind is or why you need it is unclear
