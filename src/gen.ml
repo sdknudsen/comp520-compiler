@@ -6,6 +6,7 @@ open Printf
 
 let generate table (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
+  let switchTag = ref None in (* expr switch *)
   (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   (* let pid id = pstr (fst id) in *)
@@ -175,7 +176,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | _ -> failwith "Found non id in lhs of assignment"
   in
   let rec gStmt ((us, (pos,ctx)): Typed.annotated_utstmt) =
-   match us with
+    match us with
     | Assign(xs, es) -> 
        plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)"
                                   (fun c -> pstr (getId v))
@@ -278,8 +279,44 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        pstr ")"
                    
   (* ( block <name>? <expr>* ) *)
-    | Switch_stmt(po, eo, ps) -> failwith "switch_stmt not yet supported"
-    | Switch_clause(eso, ps) -> failwith "switch_clause not yet supported"
+    
+    | Switch_stmt(po, eo, ps) ->
+       switchTag := eo;
+       let case = List.filter (fun s -> (match fst s with
+                                         | Switch_clause(Some(e),_) -> true
+                                         | _ -> false)) ps in
+       let default = List.filter (fun s -> (match fst s with
+                                            | Switch_clause(None,_) -> true
+                                            | _ -> false)) ps in
+       fprintf oc "%t(block $switch%t%t)\n"
+                     (fun c -> may (fun p -> gStmt p; pstr "\n"; tab()) po)
+                     (fun c -> incr tabc; List.iter gStmt case)
+                     (fun c -> List.iter gStmt default);
+       decr tabc
+    | Switch_clause(eso, ps) ->
+       (match eso with
+        | None -> pstr "\n"; plsl (fun st -> tab(); gStmt st) ps
+        | Some es -> List.iter (fun e ->
+                       pstr "\n";
+                       tab();
+                       pstr "(if ";
+                       (match !switchTag with
+                        | None -> gExpr e; pstr "\n"
+                        | Some t -> pstr "(i32.eq ";
+                                    gExpr t;
+                                    pstr " ";
+                                    gExpr e;
+                                    pstr ")\n");
+                       incr tabc;
+                       tab();
+                       pstr "(then\n";
+                       incr tabc;
+                       plsl (fun st -> tab(); gStmt st) ps;
+                       pstr "\n";
+                       tab();
+                       pstr "(br $switch)))";
+                       decr tabc; decr tabc) es)
+
     | For_stmt(po1, eo, po2, ps) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po1;
        pstr "(loop $done $loop\n";
