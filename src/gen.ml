@@ -27,14 +27,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
   let gUOp op =
+    (* remove this function? (add case for positive before call) *)
     let s = match op with
       | Negative -> "neg"
       | Positive -> ""
-      | Boolnot -> failwith "!"
-                           (* i32.xor 1? *)
-                           (* i32.and 1 first? *)
-      | Bitnot -> failwith "^"
-                           (* i32.xor 0xFFFF? *)
+      | Boolnot -> "!"
+      | Bitnot -> "^"
     in pstr s
   in
   let gBOp op =
@@ -118,6 +116,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | FLit(f) -> fprintf oc "(f64.const %f)" f
     | RLit(c) -> fprintf oc "(i32.const %d)" (int_of_char c)
     | SLit(s) -> fprintf oc "\"%s\"" s
+    | Bexp(Boolor,e1,e2) -> gExp Bexp(Bitand,1,(Bitor,e1,e2))
+    | Bexp(Boolor,e1,e2) -> gExp Bexp(Bitand,1,(Bitand,e1,e2))
+    | Bexp(Boolor,e1,e2) -> gExp Uexp(Bitnot,(Bitand,e1,e2))
+
     | Bexp(op,e1,e2) ->
        fprintf oc "(%t.%t %t %t)"
                       (fun c -> gTyp typ)
