@@ -31,7 +31,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
       | Negative -> "neg"
       | Positive -> ""
       | Boolnot -> failwith "!"
+                           (* i32.xor 1? *)
+                           (* i32.and 1 first? *)
       | Bitnot -> failwith "^"
+                           (* i32.xor 0xFFFF? *)
     in pstr s
   in
   let gBOp op =
@@ -308,16 +311,24 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) -> failwith "var_decls not yet supported"
-             (* plsl (fun xs -> *)
-             (* pstr "var(\n"; incr tabc; *)
-             (* List.iter (fun (s,eso,typo) -> *)
-             (*     fprintf oc "%t %t%t\n" *)
-             (*                  (fun c -> pstr s) *)
-             (*                  (fun c -> may (fun t -> pstr " "; gTyp t) typo) *)
-             (*                  (fun c -> may (fun t -> pstr " = "; gExpr t) eso) *)
-             (* ) xs; pstr ")"; decr tabc) xss *)
+           (* the following is from var_stmt - if we put everything in a global function, then we can use this unchanged *)
+       (* List.iter (plsl (fun (s,eo,typo) -> *)
+       (*  match (typo,eo) with *)
+       (*  | (Some typ,Some e) -> let depth = scope_depth (get_scope s ctx) in *)
+       (*                         fprintf oc "(set_local $%t %t)" *)
+       (*                           (fun c -> pstr (alphaRenaming s depth typ)) *)
+       (*                           (fun c -> gExpr e) *)
+       (*  | (None,Some e) -> let (_,(_,typ,_)) = e in *)
+       (*                     let depth = scope_depth (get_scope s ctx) in *)
+       (*                     fprintf oc "(set_local $%t %t)" *)
+       (*                       (fun c -> pstr (alphaRenaming s depth typ)) *)
+       (*                       (fun c -> gExpr e) *)
+       (*  | (Some typ,None) -> failwith "this shouldn't happen?"(\*this or unit??*\) *)
+       (*  | _ -> failwith "weeding error" *)
+       (* )) xss *)
 
            | Type_decl(id_atyp_ls) -> failwith "type_decls not yet supported"
+           (* just remove this and place every instance of the defined type with the base type? *)
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
