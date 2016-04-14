@@ -117,8 +117,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | RLit(c) -> fprintf oc "(i32.const %d)" (int_of_char c)
     | SLit(s) -> fprintf oc "\"%s\"" s
     | Bexp(Boolor,e1,e2) -> gExp Bexp(Bitand,1,(Bitor,e1,e2))
-    | Bexp(Boolor,e1,e2) -> gExp Bexp(Bitand,1,(Bitand,e1,e2))
-    | Bexp(Boolor,e1,e2) -> gExp Uexp(Bitnot,(Bitand,e1,e2))
+    | Bexp(Booland,e1,e2) -> gExp Bexp(Bitand,1,(Bitand,e1,e2))
+    | Bexp(Bitnand,e1,e2) -> gExp Uexp(Bitnot,(Bitand,e1,e2))
 
     | Bexp(op,e1,e2) ->
        fprintf oc "(%t.%t %t %t)"
