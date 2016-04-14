@@ -128,6 +128,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Uexp(Negative, ((_,(_,TSimp("int",_),_)) as e) ) -> 
        fprintf oc "(i32.sub (i32.const 0) %t)"
                   (fun c -> gExpr e)
+    | Uexp(Boolnot, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+       fprintf oc "(i32.and (i32.const 1) (i32.xor (i32.const 4294967295) %t))" (* 2^32 - 1 *)
+                  (fun c -> gExpr e)
+    | Uexp(Bitnot, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+       fprintf oc "(i32.xor (i32.const 4294967295) %t)"
+                  (fun c -> gExpr e)
     | Uexp(op,e) -> 
        fprintf oc "(%t.%t %t)"
                       (fun c -> gTyp typ)
