@@ -3,6 +3,7 @@ open Context
 open Ho 
 open AuxFunctions
 open Printf
+exception GenError of string
 
 let generate table (Prog(id,decls) : Typed.ast) oc =
   let tabc = ref 0 in (* tab count *)
@@ -45,9 +46,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Modulo -> "rem_s"
     | Lshift -> "shl_s"
     | Rshift -> "shr_s"
-    | Boolor -> failwith "boolor implemented"
-    | Booland -> failwith "booland implemented"
-    | Bitnand -> failwith "bitnand implemented"
+    | Boolor -> raise (GenError "boolor implemented")
+    | Booland -> raise (GenError "booland implemented")
+    | Bitnand -> raise (GenError "bitnand implemented")
     in pstr s
   in
   
@@ -75,7 +76,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TSimp("string", _)    -> failwith "not implemented"
     (* I'm not sure about this: *)
     | TSimp(name,ctx) -> (match find name ctx with
-                              | None -> failwith "error at gTyp"
+                              | None -> raise (GenError "Base type not found")
                               | Some e -> gTyp e)
     | TStruct(_)
     | TArray(_,_)
