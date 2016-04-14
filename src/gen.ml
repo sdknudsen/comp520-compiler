@@ -27,15 +27,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
-  let gUOp op =
-    (* remove this function? (add case for positive before call) *)
-    let s = match op with
-      | Negative -> "neg"
-      | Positive -> ""
-      | Boolnot -> "!"
-      | Bitnot -> "^"
-    in pstr s
-  in
   let gBOp op =
     let s = match op with
     | Equals -> "eq"
@@ -147,26 +138,31 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       (fun c -> gExpr e1)
                       (fun c -> gExpr e2)
        
-    | Uexp(Negative, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+    (* | Uexp(Negative, ((_,(_,TSimp("int",_),_)) as e) ) ->  *)
+    (* check the type? *)
+    | Uexp(Negative, e) -> 
        fprintf oc "(i32.sub (i32.const 0) %t)"
                   (fun c -> gExpr e)
-    | Uexp(Boolnot, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+    (* | Uexp(Boolnot, ((_,(_,TSimp("int",_),_)) as e) ) ->  *)
+    | Uexp(Boolnot, e) -> 
        fprintf oc "(i32.and (i32.const 1) (i32.xor (i32.const 4294967295) %t))" (* 2^32 - 1 *)
                   (fun c -> gExpr e)
-    | Uexp(Bitnot, ((_,(_,TSimp("int",_),_)) as e) ) -> 
+    (* | Uexp(Bitnot, ((_,(_,TSimp("int",_),_)) as e) ) ->  *)
+    | Uexp(Bitnot, e) -> 
        fprintf oc "(i32.xor (i32.const 4294967295) %t)"
                   (fun c -> gExpr e)
-    | Uexp(op,e) -> 
-       fprintf oc "(%t.%t %t)"
-                      (fun c -> gTyp typ)
-                      (fun c -> gUOp op)
-                      (fun c -> gExpr e)
+    | Uexp(Positive,e) -> gExpr e
+       (* fprintf oc "(%t.%t %t)" *)
+       (*                (fun c -> gTyp typ) *)
+       (*                (fun c -> gUOp op) *)
     | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
                                             (fun c -> pstr i)
                                             (fun c -> pssl " " gExpr k)
-    | Fn_call(fun_id, es) -> failwith "fn calls not yet supported"
-  (* ( call <var> <expr>* ) *)
-  (* ( call_import <var> <expr>* ) ( call_indirect <var> <expr> <expr>* ) *)
+    | Fn_call(fun_id, es) -> failwith "fn_call without id"
+       (* let i = get_name fun_id in *)
+       (*                       fprintf oc "(call $%t %t)" *)
+       (*                               (fun c -> pstr i) *)
+       (*                               (fun c -> pssl " " gExpr k) *)
     | Append(x, e) -> failwith "appends not yet supported"
   in
   let rec getId (ue,(pos,typ,ctx):Typed.annotated_texpr):string =
@@ -391,8 +387,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (*  | _ -> failwith "weeding error" *)
        (* )) xss *)
 
-           | Type_decl(id_atyp_ls) -> failwith "type_decls not yet supported"
-           (* just remove this and place every instance of the defined type with the base type? *)
+           | Type_decl(id_atyp_ls) -> ()
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
