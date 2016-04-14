@@ -53,9 +53,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Modulo -> "rem_s"
     | Lshift -> "shl_s"
     | Rshift -> "shr_s"
-    | Boolor -> failwith "||"
-    | Booland -> failwith "&&"
-    | Bitnand -> failwith "&^"
+    | Boolor -> failwith "boolor implemented"
+    | Booland -> failwith "booland implemented"
+    | Bitnand -> failwith "bitnand implemented"
     in pstr s
   in
   
@@ -75,17 +75,21 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TKind(a) -> ""
   in *)
   let rec gTyp (at:Typed.uttyp) = match at with
-    (* get wast type before printing !! *)
+    (* do we need to check if the base names have been aliased?? *)
     | TSimp("bool", _)    -> pstr "i32"
     | TSimp("int", _)     -> pstr "i32"
     | TSimp("float64", _) -> pstr "f64"
     | TSimp("rune", _)    -> pstr "i32"
-    | TSimp(_, _)    -> failwith "Named types not yet supported"
+    | TSimp("string", _)    -> failwith "not implemented"
+    (* I'm not sure about this: *)
+    | TSimp(name,ctx) -> (match find name ctx with
+                              | None -> failwith "error at gTyp"
+                              | Some e -> gTyp e)
     | TStruct(_)
     | TArray(_,_)
     | TSlice(_)
     | TFn(_,_) -> failwith "Structured types not yet supported"
-    | TVoid -> () (* clarify that this is right!! *)
+    | TVoid -> () (* is this right?? *)
     | TKind(a) -> gTyp a
   in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
