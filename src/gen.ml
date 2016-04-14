@@ -197,8 +197,28 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | _ -> failwith "Print of unimplemented type") 
          es
        
-    | Println(es) -> failwith "println not yet supported"
-
+    | Println(es) ->
+       List.iter
+         (function
+           | (_, (_,TSimp("bool",_),_)) as e -> 
+               pstr "(call $#printlni32 ";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("int",_),_)) as e -> 
+               pstr "(call $#printlni32 ";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("float64",_),_)) as e -> 
+               pstr "(call $#printlnf64";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("rune",_),_)) as e -> 
+               pstr "(call $#printlni32 ";
+               gExpr e;
+               pstr ")"
+           | _ -> failwith "Println of unimplemented type") 
+         es
+        
     | If_stmt(po,e,ps,pso) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po;
        pstr "(if ";
