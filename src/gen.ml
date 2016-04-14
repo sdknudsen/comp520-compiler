@@ -116,9 +116,24 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | FLit(f) -> fprintf oc "(f64.const %f)" f
     | RLit(c) -> fprintf oc "(i32.const %d)" (int_of_char c)
     | SLit(s) -> fprintf oc "\"%s\"" s
-    | Bexp(Boolor,e1,e2) -> gExp Bexp(Bitand,1,(Bitor,e1,e2))
-    | Bexp(Booland,e1,e2) -> gExp Bexp(Bitand,1,(Bitand,e1,e2))
-    | Bexp(Bitnand,e1,e2) -> gExp Uexp(Bitnot,(Bitand,e1,e2))
+       (* gExpr (Bexp(Bitand,1,(Bitor,e1,e2)),(pos,typ,ctx)) *)
+       (* gExpr (Bexp(Bitand,1,(Bitand,e1,e2)),(pos,typ,ctx)) *)
+       (* gExpr (Uexp(Bitnot,(Bitand,e1,e2)),(pos,typ,ctx)) *)
+
+    | Bexp(Boolor,e1,e2) ->
+       fprintf oc "(i32.and (i32.const 1) (i32.or %t %t))"
+               (* do something with the type? *)
+               (* (fun c -> gTyp typ) *)
+               (fun c -> gExpr e1)
+               (fun c -> gExpr e2)
+    | Bexp(Booland,e1,e2) -> 
+       fprintf oc "(i32.and (i32.const 1) (i32.and %t %t))"
+               (fun c -> gExpr e1)
+               (fun c -> gExpr e2)
+    | Bexp(Bitnand,e1,e2) -> 
+       fprintf oc "(i32.neg (i32.const 1) (i32.and %t %t))"
+               (fun c -> gExpr e1)
+               (fun c -> gExpr e2)
 
     | Bexp(op,e1,e2) ->
        fprintf oc "(%t.%t %t %t)"
