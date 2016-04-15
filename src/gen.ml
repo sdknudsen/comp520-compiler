@@ -9,6 +9,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   (* may need memTable when implementing strings *)
   (*let memTable : (int, string) Hashtbl.t = Hashtbl.create 1337 in*) (* addr loc, value *)
   let globalVar : (string, (string * int)) Hashtbl.t = Hashtbl.create 1337 in (* var name, (type, addr loc) *)
+  let globc = ref 0 in (* function count for global variables *)
   let segc = ref 0 in (* segment count *)
   let tabc = ref 0 in (* tab count *)
   let switchTag = ref None in (* expr switch *)
@@ -411,6 +412,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) ->
               pstr "(func $global";
+              pstr (string_of_int !globc);
               pstr "\n";
               incr tabc;
               let styp = ref "" in
@@ -453,6 +455,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 | _ -> failwith "weeding error")) xss;
               pstr ")";
               decr tabc;
+              globc := !globc + 1
               
            | Type_decl(id_atyp_ls) -> ()
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
@@ -483,6 +486,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                (fun c -> pstr (sprintf "%s_%s_%d" v t d))
                                (fun c -> gTyp t2))
                      locals; pstr "\n");
+              if fId = "main" && !globc > 0 then
                 (tab(); fprintf oc "(call $global)\n");
               plsl (fun st -> tab(); gStmt st) ps;
               decr tabc;
@@ -503,10 +507,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
+       (fun c -> if !globc > 0 then begin
                    pstr "\n";
                    incr tabc; tab();
                    pstr "(func $global";
                    incr tabc;
+                   for i = 0 to !globc - 1 do
                      pstr "\n"; tab(); fprintf oc "(call $global%d)" i
                    done;
                    pstr ")";
