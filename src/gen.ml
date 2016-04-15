@@ -84,10 +84,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TSimp(name,ctx) -> (match find name ctx with
                               | None -> raise (GenError "Base type not found")
                               | Some e -> gTyp e)
-    | TStruct(_)
-    | TArray(_,_)
-    | TSlice(_)
-    | TFn(_,_) -> failwith "Structured types not yet supported"
+    | TStruct(a) -> failwith "Structured types not yet supported"
+    | TArray(a,b) -> failwith "Structured types not yet supported"
+    | TSlice(a) -> failwith "Structured types not yet supported"
+    | TFn(a,b) -> failwith "Structured types not yet supported"
     | TVoid -> () (* is this right?? *)
     | TKind(a) -> gTyp a
   in

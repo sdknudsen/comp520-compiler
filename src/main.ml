@@ -63,9 +63,10 @@ let compile lexbuf =
   let untypedTree = Parser.program Lexer.token lexbuf in
   let _ = Weed.weed untypedTree in
   let (typedTree,indexTable) = Type.typeAST untypedTree in
+  let simplyTypedTree = ToBase.simplify typedTree in
   if !pptype
-  then write Pprint.ptTree typedTree name ".pptype.go";
-  write (Gen.generate indexTable) typedTree name ".wast";
+  then write Pprint.ptTree simplyTypedTree name ".pptype.go";
+  write (Gen.generate indexTable) simplyTypedTree name ".wast";
   
   if !dumpsymtab
   then Printf.printf "dumpsymtab generated: %s.symtab\n" name;
