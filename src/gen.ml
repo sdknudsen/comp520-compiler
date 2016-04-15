@@ -13,6 +13,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let segc = ref 4 in (* segment count *)
   let tabc = ref 0 in (* tab count *)
   let switchTag = ref None in (* expr switch *)
+  let mainFunc = ref false in (* expr switch *)
   (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   (* let pid id = pstr (fst id) in *)
@@ -441,6 +442,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       | TSimp("string", _)
                       | TSimp("bool", _) ->    styp := "i32"; size := 4;
                       | _ -> failwith "not implemented");
+                    tab();
                     fprintf oc "(%s.store (i32.const %d) %t)"
                                 !styp
                                 !segc
@@ -462,7 +464,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               
                 | _ -> failwith "weeding error" )))) xss;
 
-              tab();
               pstr ")";
               decr tabc;
               globc := !globc + 1
@@ -470,6 +471,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
+              if fId = "main" then mainFunc := true;
               pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
@@ -581,26 +583,31 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
            ^^"      (br $#continue)))\n\n"
 
+           ^^"%t\n\n"
+          
            ^^"  (start $#init)\n"
            ^^"  (func $#init\n"
-           ^^"    %t\n"
            ^^"    (i32.store (i32.const 0) (i32.const %d))\n" (* Heap pointer *)
-           ^^"    (call $main))\n\n"
-
-           ^^"%t)")
+           ^^"%t%t))")
        (fun c -> pstr "")
-
-       (fun c -> if !globc > 0 then begin
-                   for i = 0 to !globc - 1 do
-                     tab(); fprintf oc "(call $#global%d)" i; pstr "\n";  
-                   done;
-                 end)
- 
-       !segc
 
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
+                
+       !segc
+       
+       (fun c -> incr tabc; incr tabc;
+                 if !globc > 0 then begin
+                   for i = 0 to !globc - 1 do
+                     tab(); fprintf oc "(call $#global%d)\n" i;
+                   done;
+                 end)
+ 
+       (fun c -> if !mainFunc then begin
+                   tab();
+                   fprintf oc "(call $main)";
+                 end)
 
 (* more about webassembly: *)
 
