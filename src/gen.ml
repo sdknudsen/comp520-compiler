@@ -6,6 +6,11 @@ open Printf
 exception GenError of string
 
 let generate table (Prog(id,decls) : Typed.ast) oc =
+  (* may need memTable when implementing strings *)
+  (*let memTable : (int, string) Hashtbl.t = Hashtbl.create 1337 in*) (* addr loc, value *)
+  let globalVar : (string, (string * int)) Hashtbl.t = Hashtbl.create 1337 in (* var name, (type, addr loc) *)
+  let globc = ref 0 in (* function count for global variables *)
+  let segc = ref 4 in (* segment count *)
   let tabc = ref 0 in (* tab count *)
   let switchTag = ref None in (* expr switch *)
   (* let pln() = fprintf oc "\n" in (* print line *) *)
@@ -112,12 +117,14 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
     | Iden(id) ->
-      (match id with
-      | "true" -> fprintf oc "(i32.const 1)"
-      | "false" -> fprintf oc "(i32.const 0)"
-      | _ -> fprintf oc "(get_local $%t)"
-                      (fun c -> let depth = scope_depth (get_scope id ctx) in
-                                pstr (alphaRenaming id depth typ)))
+      let depth = scope_depth (get_scope id ctx) in
+        if depth > 0 then
+          fprintf oc "(get_local $%t)"
+                     (fun c -> pstr (alphaRenaming id depth typ))
+        else begin
+          let global = Hashtbl.find globalVar id in
+             fprintf oc "(%s.load (i32.const %d))" (fst global) (snd global)
+        end
     | AValue(r,e) -> failwith "avalues not yet supported"
     | SValue(r,id) -> failwith "avalues not yet supported"
     (* | Parens(e)  -> fprintf oc "(%t)" (fun c -> gExpr e) *)
@@ -193,9 +200,39 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gStmt ((us, (pos,ctx)): Typed.annotated_utstmt) =
     match us with
     | Assign(xs, es) -> 
-       plsl (fun (v,e) -> fprintf oc "(set_local $%t %t)"
-                                  (fun c -> pstr (getId v))
-                                  (fun c -> gExpr e))
+       plsl (fun (v,e) -> let (ue,(_,typ,_)) = v in
+                          (match ue with
+                          | Iden(id) -> let depth = scope_depth (get_scope id ctx) in
+                                        if depth > 0 then
+                                          fprintf oc "(set_local $%t %t)"
+                                            (fun c -> pstr (getId v))
+                                            (fun c -> gExpr e)
+                                        else begin
+                                          let styp = ref "" in
+                                          let slen = ref 100 in
+                                          (match typ with
+                                          | TSimp("float64", _) -> styp := "f64"
+                                          | TSimp("int", _)
+                                          | TSimp("rune", _)
+                                          | TSimp("bool", _) -> styp := "i32"
+                                          | _ -> failwith "not implemented");
+                                          fprintf oc "(%s.store (i32.const %d) %t)"
+                                            !styp !segc (fun c -> gExpr e);
+                                          (match fst e with
+                                          | Iden(id) ->
+                                              (match id with
+                                              | "true" -> slen := 1
+                                              | "false" -> slen := 1
+                                              | _ -> ())
+                                          | ILit(d) -> slen := String.length (string_of_int d)
+                                          | FLit(f) -> slen := String.length (string_of_float f)
+                                          | RLit(c) -> slen := String.length (string_of_int (int_of_char c))
+                                          | _ -> ());
+                                          Hashtbl.replace globalVar id (!styp, !segc);
+                                          segc := !segc + !slen
+                                        end
+                          | _ -> failwith "Found non id in lhs of assignment"))
+                            
          (zip xs es)
     | Var_stmt(xss) ->
        List.iter (plsl (fun (s,eo,typo) ->
@@ -221,15 +258,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter
          (function
            | (_, (_,TSimp("bool",_),_)) as e -> 
-               pstr "(call $#printi32 ";
+               pstr "(call_import $#printbool ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("int",_),_)) as e -> 
-               pstr "(call $#printi32 ";
+               pstr "(call_import $#print_i32 ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("float64",_),_)) as e -> 
-               pstr "(call $#printf64";
+               pstr "(call_import $#print_f64";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
@@ -247,15 +284,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter
          (function
            | (_, (_,TSimp("bool",_),_)) as e -> 
-               pstr "(call $#printlni32 ";
+               pstr "(call_import $#printlnbool ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("int",_),_)) as e -> 
-               pstr "(call $#printlni32 ";
+               pstr "(call_import $#println_i32 ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("float64",_),_)) as e -> 
-               pstr "(call $#printlnf64";
+               pstr "(call_import $#println_f64";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
@@ -278,7 +315,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        tab();
        pstr "(then\n";
        incr tabc;
-       pssl "\n" (fun st -> tab(); gStmt st) ps;
+       plsl (fun st -> tab(); gStmt st) ps;
        decr tabc;
        pstr ")";
 
@@ -287,7 +324,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
              tab();
              pstr "(else\n";
              incr tabc;
-             pssl "\n" (fun st -> tab(); gStmt st) ps;
+             plsl (fun st -> tab(); gStmt st) ps;
              decr tabc;
              pstr ")")
             pso;
@@ -296,7 +333,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Block(stmts) ->
        pstr "(block\n";
        incr tabc;
-       pssl "\n" (fun st -> tab(); gStmt st) stmts;
+       plsl (fun st -> tab(); gStmt st) stmts;
        decr tabc;
        tab();
        pstr ")"
@@ -347,7 +384,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
       
        (match eo with
          (* infinite loop *)
-         | None -> pssl "\n" (fun st -> tab(); gStmt st) ps;
+         | None -> plsl (fun st -> tab(); gStmt st) ps;
          (* loop with conditional expression *)
          | Some e ->
            (tab();
@@ -358,7 +395,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
             tab();
             pstr "(then $#continue\n";
             incr tabc;
-            pssl "\n" (fun st -> tab(); gStmt st) ps;
+            plsl (fun st -> tab(); gStmt st) ps;
             decr tabc;
             pstr ")\n";
             tab();
@@ -372,8 +409,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 
   (* ( loop <label1>? <label2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
-        pssl "\n"
-             (fun (id, e) ->
+        plsl (fun (id, e) ->
               let (_,(_,typ,_)) = e in
               tab();
               fprintf oc "(set_local $%t %t)"
@@ -393,23 +429,56 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Empty_stmt -> () (* pstr "nop" *) (* or should we not do anything? *)
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
-           | Var_decl(xss) -> failwith "var_decls not yet supported"
-           (* the following is from var_stmt - if we put everything in a global function, then we can use this unchanged *)
-       (* List.iter (plsl (fun (s,eo,typo) -> *)
-       (*  match (typo,eo) with *)
-       (*  | (Some typ,Some e) -> let depth = scope_depth (get_scope s ctx) in *)
-       (*                         fprintf oc "(set_local $%t %t)" *)
-       (*                           (fun c -> pstr (alphaRenaming s depth typ)) *)
-       (*                           (fun c -> gExpr e) *)
-       (*  | (None,Some e) -> let (_,(_,typ,_)) = e in *)
-       (*                     let depth = scope_depth (get_scope s ctx) in *)
-       (*                     fprintf oc "(set_local $%t %t)" *)
-       (*                       (fun c -> pstr (alphaRenaming s depth typ)) *)
-       (*                       (fun c -> gExpr e) *)
-       (*  | (Some typ,None) -> failwith "this shouldn't happen?"(\*this or unit??*\) *)
-       (*  | _ -> failwith "weeding error" *)
-       (* )) xss *)
+           | Var_decl(xss) ->
+              pstr "(func $#global";
+              pstr (string_of_int !globc);
+              pstr "\n";
+              incr tabc;
 
+              List.iter (plsl (fun (s,eo,typo) ->
+               (let styp = ref "" in
+                let size = ref 0 in
+                (match (typo,eo) with
+                | (_,Some e) ->
+                  (let (ue,(_,typ,_)) = e in begin
+                    (match typ with
+                      | TSimp("float64", _) ->
+                        styp := "f64";
+                        size := 8;
+                        fprintf oc "(f64.store (i32.const %d) %t)"
+                                !segc
+                                (fun c -> gExpr e);
+                       | TSimp("int", _)
+                      | TSimp("rune", _)
+                      | TSimp("bool", _)
+                      | TSimp("string", _) ->
+                        styp := "i32";
+                        size := 4;
+                        fprintf oc "(i32.store (i32.const %d) %t)"
+                                !segc
+                                (fun c -> gExpr e);
+                      | _ -> failwith "not implemented");
+                    Hashtbl.add globalVar s (!styp, !segc);
+                    segc := !segc + !size;
+                  end);
+
+                | (Some typ, None) ->
+                    (match typ with
+                      | TSimp("float64", _) -> styp := "f64"; size := 8;
+                      | TSimp("int", _)
+                      | TSimp("rune", _)
+                      | TSimp("string", _)
+                      | TSimp("bool", _) ->    styp := "i32"; size := 4;
+                      | _ -> failwith "not implemented");
+                    Hashtbl.add globalVar s (!styp, !segc);
+                    segc := !segc + !size;
+              
+                | _ -> failwith "weeding error" )))) xss;
+
+              tab();
+              pstr ")";
+              decr tabc;
+              globc := !globc + 1
            | Type_decl(id_atyp_ls) -> ()
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
@@ -432,13 +501,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                   pstr ")\n");
               if Hashtbl.mem table fId then
                (let locals = Hashtbl.find table fId in
-                pssl "\n" (fun (v,d,t,t2) ->
+                plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (sprintf "%s_%s_%d" v t d))
                                (fun c -> gTyp t2))
                      locals; pstr "\n");
-              pssl "\n" (fun st -> tab(); gStmt st) ps;
+              plsl (fun st -> tab(); gStmt st) ps;
               decr tabc;
               pstr ")";
 
@@ -465,6 +534,26 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"  (func $#writei32 (param $i i32)\n"
            ^^"    (call_import $#write_i32\n"
            ^^"                 (get_local $i)))\n"
+
+           ^^"  (func $#prinlntbool (param $i i32)\n"
+           ^^"    (call $#printbool (get_local $i))\n"
+           ^^"    (call $#writei32 (i32.const 10)))\n"
+
+           ^^"  (func $#printbool (param $i i32)\n"
+           ^^"    (if (i32.eq (get_local $i) (i32.const 0))\n"
+           ^^"        (then\n"
+           ^^"          (call $#writei32 (i32.const 116))\n"
+           ^^"          (call $#writei32 (i32.const 114))\n"
+           ^^"          (call $#writei32 (i32.const 117))\n"
+           ^^"          (call $#writei32 (i32.const 101))\n"
+           ^^"        )\n"
+           ^^"        (else\n"
+           ^^"          (call $#writei32 (i32.const 102))\n"
+           ^^"          (call $#writei32 (i32.const 97))\n"
+           ^^"          (call $#writei32 (i32.const 108))\n"
+           ^^"          (call $#writei32 (i32.const 115))\n"
+           ^^"          (call $#writei32 (i32.const 101))\n"
+           ^^"        )))\n"
 
            ^^"  (func $#printi32 (param $i i32)\n"
            ^^"    (call_import $#print_i32\n"
@@ -507,19 +596,24 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 
            ^^"  (start $#init)\n"
            ^^"  (func $#init\n"
-           ^^"    (i32.store (i32.const 0) (i32.const 4))\n"
+           ^^"    %t\n"
+           ^^"    (i32.store (i32.const 0) (i32.const %d))\n" (* Heap pointer *)
            ^^"    (call $main))\n\n"
 
            ^^"%t)")
        (fun c -> pstr "")
 
+       (fun c -> if !globc > 0 then begin
+                   for i = 0 to !globc - 1 do
+                     tab(); fprintf oc "(call $#global%d)" i; pstr "\n";  
+                   done;
+                 end)
+ 
+       !segc
+
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
-
-(* fix tabbing *)
-
-
 
 (* more about webassembly: *)
 
