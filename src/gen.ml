@@ -209,27 +209,20 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                             (fun c -> gExpr e)
                                         else begin
                                           let styp = ref "" in
-                                          let slen = ref 100 in
+                                          let size = ref 0 in
                                           (match typ with
-                                          | TSimp("float64", _) -> styp := "f64"
-                                          | TSimp("int", _)
-                                          | TSimp("rune", _)
-                                          | TSimp("bool", _) -> styp := "i32"
-                                          | _ -> failwith "not implemented");
+                                            | TSimp("float64", _) -> styp := "f64"; size := 8;
+                                            | TSimp("int", _)
+                                            | TSimp("rune", _)
+                                            | TSimp("string", _)
+                                            | TSimp("bool", _) ->    styp := "i32"; size := 4;
+                                            | _ -> failwith "not implemented");
                                           fprintf oc "(%s.store (i32.const %d) %t)"
-                                            !styp !segc (fun c -> gExpr e);
-                                          (match fst e with
-                                          | Iden(id) ->
-                                              (match id with
-                                              | "true" -> slen := 1
-                                              | "false" -> slen := 1
-                                              | _ -> ())
-                                          | ILit(d) -> slen := String.length (string_of_int d)
-                                          | FLit(f) -> slen := String.length (string_of_float f)
-                                          | RLit(c) -> slen := String.length (string_of_int (int_of_char c))
-                                          | _ -> ());
-                                          Hashtbl.replace globalVar id (!styp, !segc);
-                                          segc := !segc + !slen
+                                                      !styp
+                                                      !segc
+                                                      (fun c -> gExpr e);
+                                          Hashtbl.add globalVar id (!styp, !segc);
+                                          segc := !segc + !size;
                                         end
                           | _ -> failwith "Found non id in lhs of assignment"))
                             
@@ -442,22 +435,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 | (_,Some e) ->
                   (let (ue,(_,typ,_)) = e in begin
                     (match typ with
-                      | TSimp("float64", _) ->
-                        styp := "f64";
-                        size := 8;
-                        fprintf oc "(f64.store (i32.const %d) %t)"
-                                !segc
-                                (fun c -> gExpr e);
-                       | TSimp("int", _)
+                      | TSimp("float64", _) -> styp := "f64"; size := 8;
+                      | TSimp("int", _)
                       | TSimp("rune", _)
-                      | TSimp("bool", _)
-                      | TSimp("string", _) ->
-                        styp := "i32";
-                        size := 4;
-                        fprintf oc "(i32.store (i32.const %d) %t)"
+                      | TSimp("string", _)
+                      | TSimp("bool", _) ->    styp := "i32"; size := 4;
+                      | _ -> failwith "not implemented");
+                    fprintf oc "(%s.store (i32.const %d) %t)"
+                                !styp
                                 !segc
                                 (fun c -> gExpr e);
-                      | _ -> failwith "not implemented");
                     Hashtbl.add globalVar s (!styp, !segc);
                     segc := !segc + !size;
                   end);
