@@ -258,15 +258,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter
          (function
            | (_, (_,TSimp("bool",_),_)) as e -> 
-               pstr "(call_import $#printbool ";
+               pstr "(call $#printbool ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("int",_),_)) as e -> 
-               pstr "(call_import $#print_i32 ";
+               pstr "(call $#printi32 ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("float64",_),_)) as e -> 
-               pstr "(call_import $#print_f64";
+               pstr "(call $#printf64";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
@@ -284,15 +284,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        List.iter
          (function
            | (_, (_,TSimp("bool",_),_)) as e -> 
-               pstr "(call_import $#printlnbool ";
+               pstr "(call $#printlnbool ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("int",_),_)) as e -> 
-               pstr "(call_import $#println_i32 ";
+               pstr "(call $#printlni32 ";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("float64",_),_)) as e -> 
-               pstr "(call_import $#println_f64";
+               pstr "(call $#printlnf64";
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
