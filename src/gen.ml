@@ -415,9 +415,9 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               pstr (string_of_int !globc);
               pstr "\n";
               incr tabc;
-              let styp = ref "" in
-              let slen = ref 100 in
               List.iter (plsl (fun (s,eo,typo) ->
+                let styp = ref "" in
+                let slen = ref 100 in
                 match (typo,eo) with
                 | (_,Some e) -> let (ue,(_,typ,_)) = e in
                                 (match typ with
