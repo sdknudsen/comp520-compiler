@@ -24,10 +24,12 @@ Cheuk Chuen Siow (260660584)}
 
 \raggedright
 \section{Introduction}
-%% \subsection*{Language choice}
-%% We chose OCaml as our implementation language for compiler design because the recursive nature of the language allows for easy manipulation of abstract syntax trees. In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler, including scanner, parser, and pretty printer. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| and by referring to [1, 2, 3]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml.
 
-%% We initially had trees for Sum of two expressions, Add of two expressions, etc. We changed this so that there was only one binary expression Node which included the kind of binary operation to be done, and the same thing for unary operations.
+New programming languages are being conceived every other year to tackle various kinds of problems. The structure of a computer program are dependent on the syntax and semantics of a given programming language, and the correctness of the program has to be exact for a compiler to translate it to a machine language. Since the number of programming languages is on the rise, the study on compiler design is imperative to actually understand the tools and how the whole compilation process works. Our group decided to work on the GoLite project as the source-to-source compiler.
+
+We chose OCaml [1] as our implementation language for compiler construction because the recursive nature of the language allows for easy manipulation of abstract syntax tree (AST). In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| [2,3,4]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml. What's more, the lead TA had pointed out that OCaml is a good language for such a project.
+
+As for the target language, we have chosen to generate WebAssembly (or \verb|wasm|) [5], a low-level programming language that attempts to be more efficient than JavaScript for the web browser. In particular, our compiler generates WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax [5,6]. Since WebAssembly is currently in the experimental stage, only a handful of documentations about the language exist and even some of them are not complete. So far only 2 compilers exist that translates a particular language to WebAssembly: emscripten [8] from LLVM to JavaScript (\verb|asm.js|, the predecessor of \verb|wasm|), and ilwasm [9] from C\# to \verb|wasm|. As such, our compiler that takes GoLite programs and generates WebAssembly TextFormat is a timely project.
 
 \section{Compiler Structure}
 
@@ -116,17 +118,31 @@ Cheuk Chuen Siow (260660584)}
 \section{Conclusions}
 
 \section{Contributions}
+\begin{description}
+  \item [Scanner] Alexandre laid the ground work for defining the tokens. Cheuk Chuen and Alexandre defined the regular expressions for the literals.
+  \item [Parser] Cheuk Chuen laid the ground work for defining the grammar and AST. Alexandre made important changes and thorough bug checks.
+  \item [Pretty printer] Stefan worked extensively on the pretty printer.
+  \item [Weeder] Alexandre wrote the weeder.
+  \item [AST] Alexandre modified the AST so as to add annotations.
+  \item [Symbol table] Cheuk Chuen wrote the symbol table. Alexandre made changes according to the modified type checker.
+  \item [Type checker] Stefan laid the ground work for the type checker. Alexandre made changes according to the modified AST.
+  \item [Pretty printer for type] Stefan modified the pretty printer to work for the new AST and to print the types of typed expressions.
+  \item [Testing] Alexandre wrote shell scripts to automate testing of the existing valid and invalid programs. Cheuk Chuen wrote the majority of the tests for type checking.
+  \item [Code generation] All three of us contribute to various parts of the code generation.
+\end{description}
 
 \section{References}
-\begin{itemize}
+\begin{enumerate}
+  \item \url{https://ocaml.org/}
   \item \url{http://caml.inria.fr/pub/docs/manual-ocaml-4.00/manual026.html}
   \item \url{https://realworldocaml.org/v1/en/html/parsing-with-ocamllex-and-menhir.html}
   \item \url{http://pauillac.inria.fr/~fpottier/menhir/manual.pdf}
+  \item \url{https://webassembly.github.io/}
   \item \url{https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md}
   \item \url{https://github.com/WebAssembly/design/blob/master/AstSemantics.md}
-\item \url{http://tex.stackexchange.com/questions/236704/how-to-draw-this-simple-box-diagram-with-tikz}
-\item \url{http://tex.stackexchange.com/questions/42611/list-of-available-tikz-libraries-with-a-short-introduction}
-\end{itemize}
+  \item \url{https://github.com/kripken/emscripten}
+  \item \url{https://github.com/WebAssembly/ilwasm}
+\end{enumerate}
 
 \end{document}
 
