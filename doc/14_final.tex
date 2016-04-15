@@ -9,6 +9,10 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage[margin=1in]{geometry}
 
+% for box diagrams
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
 \begin{document}
 
 \title{COMP 520 - Final Report (GoLite)}
@@ -21,26 +25,172 @@ Cheuk Chuen Siow (260660584)}
 \raggedright
 \section{Introduction}
 
+New programming languages are being conceived every other year to tackle various kinds of problems. The structure of a computer program are dependent on the syntax and semantics of a given programming language, and the correctness of the program has to be exact for a compiler to translate it to a machine language. Since the number of programming languages is on the rise, the study on compiler design is imperative to actually understand the tools and how the whole compilation process works. Our group decided to work on the GoLite project as the source-to-source compiler.
+
+We chose OCaml [1] as our implementation language for compiler construction because the recursive nature of the language allows for easy manipulation of abstract syntax tree (AST). In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| [2,3,4]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml. What's more, the lead TA had pointed out that OCaml is a good language for such a project.
+
+As for the target language, we have chosen to generate WebAssembly (or \verb|wasm|) [5], a low-level programming language that attempts to be more efficient than JavaScript for the web browser. In particular, our compiler generates WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax [5,6]. Since WebAssembly is currently in the experimental stage, only a handful of documentations about the language exist and even some of them are not complete. So far only 2 compilers exist that translates a particular language to WebAssembly: emscripten [8] from LLVM to JavaScript (\verb|asm.js|, the predecessor of \verb|wasm|), and ilwasm [9] from C\# to \verb|wasm|. As such, our compiler that takes GoLite programs and generates WebAssembly TextFormat is a timely project.
+
 \section{Compiler Structure}
 
+\tikzstyle{block} = [draw, rectangle, minimum height=3em, minimum width=3em]
+\tikzstyle{virtual} = [coordinate]
+\begin{tikzpicture}[>=stealth,auto, node distance=2cm]
+  \node [virtual] (input)     {};
+  \node [block, right of=input] (scanner) {Scanner};
+  \node [block, right of=scanner] (parser) {Parser};
+  \node [block, right of=parser] (weeder) {Weeder};
+  \node [block, below of=scanner] (tcheck) {Type Checker};
+  \node [block, below of=weeder] (gen) {Code Generation};
+  \node [virtual, right of=gen] (output)     {};
+
+  %% \draw [->] (input) -- node {$x$} (scanner);
+  %% \draw [->] (scanner) -- node [name=y] {$y$}(pout);
+  \draw [->] (input) -- node {} (scanner);
+  \draw [->] (scanner) -- node {} (parser);
+  \draw [->] (parser) -- node {} (weeder);
+  \draw [->] (weeder) -- node {} (tcheck);
+  \draw [->] (tcheck) -- node {} (gen);
+  \draw [->] (gen) -- node {} (output);
+
+  \end{tikzpicture}
+
 \subsection{Scanner}
+%% \subsection*{Tokens}
+%% We took the token definitions from \verb|parser.mly| and placed them into a separate file \verb|tokens.mly|. Along with the flags defined in \verb|myocamlbuild.mly|, this enables the main program to display a list of tokens from the tokenizer.
+
 
 \subsection{Parser}
 
 \subsection{Weeder}
 
+%% \subsection*{Weeder}
+%% The weeder checks for invalid programs that we deferred from milestone 1. In particular, we check for
+%% \begin{itemize}
+%% 	\item Invalid use of basic types (\verb|int|, \verb|float64|, \verb|bool|, \verb|rune|, \verb|string|) as an identifier, since we didn't specify those basic types as keywords.
+%% 	\item Invalid use of underscore.
+%% 	\item Negative index for arrays.
+%% 	\item Invalid use of expression as expression statement or left value.
+%% 	\item Multiple \verb|default| in a switch statement.
+%% 	\item Invalid use of \verb|break| and \verb|continue| outside of loops.
+%% \end{itemize}
+
 \subsection{Symbol Table}
+%% \subsection*{Symbol table}
+%% Initially, the symbol table consisted of a list of maps (as in dictionaries). We briefly considered the alpha-renaming approach, but since hash tables are typically used for symbol table because of its performance, we ended up changing the symbol table to utilize hash tables instead.
+
+%% The way we design the symbol table is to implement a cactus stack of hash tables, as had been presented in class. The root represents the global scope with a hash table which stores the information for top-level declarations. Whenever a block is entered, a new frame is generated. This frame (\verb|F|) has a new hash table associated with the new scope, and also has a pointer to the parent frame. This allows for the lookup of a declaration starting from the innermost scope that \verb|F| resides, and recursively traverse towards the root node through the parent frame, but not the neighboring nodes as the scopes of these nodes and \verb|F| are disjoint.
+
+%% We went a little off of what was suggested to handle some of the primitives.
+%% This can be seen with our extended type system which includes \verb|TKind| types.
+%% We use \verb|TKind| as the type of variables. So all base types have type \verb|TKind(TSimp("#"))| where \verb|"#"| is the type at the top of the type hierarchy. The use of \verb|TKind| allowed us to handle type checking as the function call of a \verb|TKind| identifier.
+%% Accordingly, \verb|type| statements add a symbol of type \verb|TKind| to the symbol
+%% table.
+
+%% Since our ast doesn't encode the last position of a node, it was difficult to
+%% print the last line of a scope. Instead we provide an alternative view of the
+%% symbol table with the \verb|-smartsymtab| which gives a better view of how
+%% some symbols shadow others.
 
 \subsection{Typechecker}
 
+%% \subsection*{Type checker}
+%% Type-checking closely followed the \verb|typechecker.pdf|. New scopes are added at the beginning of every block, and at the end of every block, the top hash table is popped. At variable, type, and function declarations, a check is made to see if the \verb|id| has been declared in the current scope. A type error is raised if it's already been declared.
+
+%% Because of the initial idea of using an immutable map rather than a mutable hash table, type checking consisted of ``threading'' the context through lists, that is, mapping while passing each context onto the next element of the list. Since we decided not to use the map, this is no longer needed, (simply mapping suffices).
+
+%% Because type declaration is allowed in \verb|GoLite|, the approach of matching the types and operators that we had seen for the \verb|minilang| compiler wouldn't work. We took the approach of pattern matching on the operator and check if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
+
 \subsection{Code Generation}
+%% We chose to generate WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax. For this milestone we have implemented function declarations, declaration statements, short declaration statements, if-else statements, assignment statements, post-op assignments, parenthesized expressions, binary operations, and literals. 
+
+%% Note that some of the implementations mentioned above are partially implemented. For example, WebAssembly does not have \verb|string| as the base type, and certain GoLite operations are not found in the WebAssembly specification and design documentation [1,2]. We'll implement the rest in milestone4.
+
+%% The following is an example GoLite program (left) and the corresponding WebAssembly output (right). WebAssembly requires that variable declarations in a function to be defined at the top of the function body (\verb|local|) before they are used, so we append the GoLite type and scope level to the variable names.
+
+
+\subsection{Webassembly primer}
+
+\subsubsection{Declaring locals}
 
 \section{Examples}
 
 \section{Conclusions}
 
 \section{Contributions}
+\begin{description}
+  \item [Scanner] Alexandre laid the ground work for defining the tokens. Cheuk Chuen and Alexandre defined the regular expressions for the literals.
+  \item [Parser] Cheuk Chuen laid the ground work for defining the grammar and AST. Alexandre made important changes and thorough bug checks.
+  \item [Pretty printer] Stefan worked extensively on the pretty printer.
+  \item [Weeder] Alexandre wrote the weeder.
+  \item [AST] Alexandre modified the AST so as to add annotations.
+  \item [Symbol table] Cheuk Chuen wrote the symbol table. Alexandre made changes according to the modified type checker.
+  \item [Type checker] Stefan laid the ground work for the type checker. Alexandre made changes according to the modified AST.
+  \item [Pretty printer for type] Stefan modified the pretty printer to work for the new AST and to print the types of typed expressions.
+  \item [Testing] Alexandre wrote shell scripts to automate testing of the existing valid and invalid programs. Cheuk Chuen wrote the majority of the tests for type checking.
+  \item [Code generation] All three of us contribute to various parts of the code generation.
+\end{description}
 
 \section{References}
+\begin{enumerate}
+  \item \url{https://ocaml.org/}
+  \item \url{http://caml.inria.fr/pub/docs/manual-ocaml-4.00/manual026.html}
+  \item \url{https://realworldocaml.org/v1/en/html/parsing-with-ocamllex-and-menhir.html}
+  \item \url{http://pauillac.inria.fr/~fpottier/menhir/manual.pdf}
+  \item \url{https://webassembly.github.io/}
+  \item \url{https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md}
+  \item \url{https://github.com/WebAssembly/design/blob/master/AstSemantics.md}
+  \item \url{https://github.com/kripken/emscripten}
+  \item \url{https://github.com/WebAssembly/ilwasm}
+\end{enumerate}
 
 \end{document}
+
+from former milestones:
+%% \title{COMP 520 - Milestone 1}
+%% \raggedright
+%% \section*{Design Decisions}
+
+%% \subsection*{Semicolon}
+%% For inserting semicolon token according to rule 1, we added a variable \verb|insert_semic| for each of the tokens that define the insertion condition. Upon reaching a newline or end of file tokens, our program checks whether the previous token that satisfy rule 1 has updated \verb|insert_semic|, and if it evaluates to \verb|true| it will trigger the insertion of the semicolon token.
+
+%% \subsection*{Type}
+%% We made a decision to handle types as identifiers and not include the primitive types as tokens. This way our parser will be able to accept both primitive types and type aliases when specifying types. We also decided to defer the check for invalid use of primitive types in variable identifiers to the weeding phase.
+
+%% \subsection*{Pretty printing}
+%% Initially, we used semicolons to separate each kind of print statement. For better readability, we now use Printf.fprintf so that the string component of a statement/expression can be written one line with the parts to be expanded following.
+%% followed by the ``string'' body and functions that output each of the required output.
+
+
+%% \title{COMP 520 - Milestone 2}
+
+%% \subsection*{Pretty printer}
+%% We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the AST, only minor modifications were then needed to allow type printing of the typed AST. Types are printed as block comment right after the expression it is associated with.
+
+%% \subsection*{Testing}
+
+%% One thing we noticed about the reference GoLite compiler is that the \verb|init| statements for the \verb|if| and \verb|switch| statements can shadow variables declared in the same scope, but the \verb|init| statement for the three-part \verb|for| loop does not. For our compiler, the \verb|init| statements for \verb|if|, \verb|switch|, and \verb|for| do shadow variables declared in the same scope.
+%% This is in accordance with the Golang compiler and the Golang spec that mentions
+%% that \verb|if|, \verb|for|, and \verb|switch| are enclosed in an implicit \verb|block|
+%% statement.
+
+
+
+%% \tikzstyle{block} = [draw, rectangle, minimum height=3em, minimum width=3em]
+%% \tikzstyle{virtual} = [coordinate]
+%% \begin{tikzpicture}[>=stealth,auto, node distance=2cm]
+%%   \node [block] (lexer) {Lexer};
+%%   \node [block] (parser) {Parser};
+%%   \node [virtual, left=of lexer] (input)     {};
+%%   \node [virtual, right=of parser] (pout)    {};
+
+%%   %% \node [block] (parser) {Parser};
+%%   %% \node [virtual, left=of parser] (pout)     {};
+%%   %% \node [virtual, right=of parser] (output)    {};
+
+%%   \draw [->] (input) -- node {$x$} (lexer);
+%%   \draw [->] (lexer) -- node [name=y] {$y$}(pout);
+%%   %% \draw [->] (parser) -- node [name=z] {$z$}(output);
+%%   %% \draw [->] (output) -- node {$x$} (parser);
+  %% \end{tikzpicture}
+
