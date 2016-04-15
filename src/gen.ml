@@ -399,7 +399,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 (fun c -> gExpr e))
           id_e_ls
         
-    | Type_stmt(id_typ_ls) -> failwith "type_stmt not yet supported"
+    | Type_stmt(id_typ_ls) -> ()
     | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
         fprintf oc "(return %t)"
