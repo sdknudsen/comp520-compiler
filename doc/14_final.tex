@@ -42,7 +42,8 @@ The next section is about the design of the compiler structure and all its phase
   \node [block, right of=scanner] (parser) {Parser};
   \node [block, right of=parser] (weeder) {Weeder};
   \node [block, below of=scanner] (tcheck) {Type Checker};
-  \node [block, below of=weeder] (gen) {Code Generation};
+  \node [block, below of=weeder] (simp) {Type simplifier};
+  \node [block, below of=tcheck] (gen) {Code Generation};
   \node [virtual, right of=gen] (output)     {};
 
   %% \draw [->] (input) -- node {$x$} (scanner);
@@ -51,7 +52,8 @@ The next section is about the design of the compiler structure and all its phase
   \draw [->] (scanner) -- node {} (parser);
   \draw [->] (parser) -- node {} (weeder);
   \draw [->] (weeder) -- node {} (tcheck);
-  \draw [->] (tcheck) -- node {} (gen);
+  \draw [->] (tcheck) -- node {} (simp);
+  \draw [->] (simp) -- node {} (gen);
   \draw [->] (gen) -- node {} (output);
 
   \end{tikzpicture}
