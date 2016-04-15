@@ -85,6 +85,18 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TVoid -> () (* is this right?? *)
     | TKind(a) -> gTyp a
   in
+
+  let rec value_bytes v = match v with
+    | SValue(r,id) -> failwith "avalues not yet supported"
+    | ILit(d) -> 4
+    | FLit(f) -> 4
+    | RLit(c) -> 4
+
+    (* Strings are encoded as a size `n` followed by `n` runes *)
+    | AValue(r,e) -> 4
+    | SLit(s) -> 4 + (String.length s) * 4
+    | _ -> 0
+  in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
     (* get wast type before printing !! *)
     | TSimp(t,_) -> sprintf "%s_%s_%d" id t d
@@ -112,7 +124,13 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | ILit(d) -> fprintf oc "(i32.const %d)" d
     | FLit(f) -> fprintf oc "(f64.const %f)" f
     | RLit(c) -> fprintf oc "(i32.const %d)" (int_of_char c)
-    | SLit(s) -> fprintf oc "\"%s\"" s
+    | SLit(s) -> fprintf oc "(block (i32.store (i32.load (i32.const 0)) (i32.const %d)) %t (i32.store (i32.const 0) (i32.add (i32.const %d) (i32.load (i32.const 0)))) (i32.sub (i32.load (i32.const 0)) (i32.const %d)))"
+                  (String.length s)
+                  (fun c -> String.iteri
+                             (fun i c -> (fprintf oc "\n(i32.store (i32.add (i32.load (i32.const 0)) (i32.const %d)) (i32.const %d))" ((i+1) * 4) (Char.code c)))
+                             s)
+                  (((String.length s) + 1) * 4)
+                  (((String.length s) + 1) * 4)
        (* gExpr (Bexp(Bitand,1,(Bitor,e1,e2)),(pos,typ,ctx)) *)
        (* gExpr (Bexp(Bitand,1,(Bitand,e1,e2)),(pos,typ,ctx)) *)
        (* gExpr (Uexp(Bitnot,(Bitand,e1,e2)),(pos,typ,ctx)) *)
@@ -170,10 +188,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     match ue with
     | Iden(id) -> let depth = scope_depth (get_scope id ctx) in
                   alphaRenaming id depth typ
-(*
-    | AValue(r,e) -> failwith "getId not implemented for AValue"
-    | SValue(r,id) -> failwith "getId not implemented for SValue"
-*)
     | _ -> failwith "Found non id in lhs of assignment"
   in
   let rec gStmt ((us, (pos,ctx)): Typed.annotated_utstmt) =
@@ -219,7 +233,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
-               pstr "(call $#printi32 ";
+               pstr "(call $#writei32 ";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("string",_),_)) as e -> 
+               pstr "(call $#printstring ";
                gExpr e;
                pstr ")"
            | _ -> failwith "Print of unimplemented type") 
@@ -241,7 +259,11 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                gExpr e;
                pstr ")"
            | (_, (_,TSimp("rune",_),_)) as e -> 
-               pstr "(call $#printlni32 ";
+               pstr "(call $#writelni32 ";
+               gExpr e;
+               pstr ")"
+           | (_, (_,TSimp("string",_),_)) as e -> 
+               pstr "(call $#printlnstring ";
                gExpr e;
                pstr ")"
            | _ -> failwith "Println of unimplemented type") 
@@ -289,7 +311,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        let default = List.filter (fun s -> (match fst s with
                                             | Switch_clause(None,_) -> true
                                             | _ -> false)) ps in
-       fprintf oc "%t(block $switch%t%t)\n"
+       fprintf oc "%t(block $#break%t%t)\n"
                      (fun c -> may (fun p -> gStmt p; pstr "\n"; tab()) po)
                      (fun c -> incr tabc; List.iter gStmt case)
                      (fun c -> List.iter gStmt default);
@@ -315,12 +337,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                        plsl (fun st -> tab(); gStmt st) ps;
                        pstr "\n";
                        tab();
-                       pstr "(br $switch)))";
+                       pstr "(br $#break)))";
                        decr tabc; decr tabc) es)
 
     | For_stmt(po1, eo, po2, ps) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po1;
-       pstr "(loop $done $loop\n";
+       pstr "(loop $#break $#continue\n";
        incr tabc;
       
        (match eo with
@@ -334,18 +356,18 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
             pstr "\n";
             incr tabc;
             tab();
-            pstr "(then $loop\n";
+            pstr "(then $#continue\n";
             incr tabc;
             pssl "\n" (fun st -> tab(); gStmt st) ps;
             decr tabc;
             pstr ")\n";
             tab();
-            pstr "(else (br $done)))\n";
+            pstr "(else (br $#break)))\n";
             decr tabc));
            
         tab();
         may (fun s -> gStmt s; pstr "\n"; tab()) po2;
-        pstr "(br $loop))\n";
+        pstr "(br $#continue))\n";
         decr tabc;
 
   (* ( loop <label1>? <label2>? <expr>* ) *)
@@ -360,15 +382,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 (fun c -> gExpr e))
           id_e_ls
         
-    | Type_stmt(id_typ_ls) -> failwith "type_stmt not yet supported"
+    | Type_stmt(id_typ_ls) -> () 
     | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
   (* ( return <expr>? ) *)
-    | Break -> pstr "(br $done)";
-    | Continue -> pstr "(br $loop)";
-    | Empty_stmt -> pstr "nop" (* or should we not do anything? *)
+    | Break -> pstr "(br $#break)";
+    | Continue -> pstr "(br $#continue)";
+    | Empty_stmt -> () (* pstr "nop" *) (* or should we not do anything? *)
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) -> failwith "var_decls not yet supported"
@@ -392,7 +414,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
-              if fId = "main" then (pstr "(start $main)\n"; tab());
               pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
@@ -427,23 +448,71 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
        fprintf oc
            ("(module\n"
+           ^^"  (memory 128 128 %t)\n"
+
+           ^^"  (import $#write_i32 \"spectest\" \"write\" (param i32))\n"
+           ^^"  (import $#writeln_i32 \"spectest\" \"writeln\" (param i32))\n"
+
            ^^"  (import $#print_i32 \"spectest\" \"print\" (param i32))\n"
            ^^"  (import $#print_f64 \"spectest\" \"print\" (param f64))\n"
            ^^"  (import $#println_i32 \"spectest\" \"println\" (param i32))\n"
            ^^"  (import $#println_f64 \"spectest\" \"println\" (param f64))\n"
+
+           ^^"  (func $#writelni32 (param $i i32)\n"
+           ^^"    (call_import $#writeln_i32\n"
+           ^^"                 (get_local $i)))\n"
+
+           ^^"  (func $#writei32 (param $i i32)\n"
+           ^^"    (call_import $#write_i32\n"
+           ^^"                 (get_local $i)))\n"
+
            ^^"  (func $#printi32 (param $i i32)\n"
            ^^"    (call_import $#print_i32\n"
            ^^"                 (get_local $i)))\n"
+
            ^^"  (func $#printf64 (param $i f64)\n"
            ^^"    (call_import $#print_f64\n"
            ^^"                 (get_local $i)))\n"
+
            ^^"  (func $#printlni32 (param $i i32)\n"
            ^^"    (call_import $#println_i32\n"
            ^^"                 (get_local $i)))\n"
+
            ^^"  (func $#printlnf64 (param $i f64)\n"
            ^^"    (call_import $#println_f64\n"
            ^^"                 (get_local $i)))\n"
+
+           ^^"  (func $#printlnstring (param $s i32)\n"
+           ^^"                        (local $n i32)\n"
+           ^^"                        (local $i i32)\n"
+           ^^"    (set_local $i (i32.const 0))\n"
+           ^^"    (set_local $n (i32.load (get_local $s)))\n"
+           ^^"    (loop $#break $#continue\n"
+           ^^"      (br_if $#break (i32.ge_u (get_local $i) (get_local $n)))\n" 
+           ^^"      (call $#writei32 (i32.load (i32.add (get_local $s) (i32.mul (i32.const 4) (i32.add (i32.const 1) (get_local $i))))))\n"
+           ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
+           ^^"      (br $#continue))\n"
+           ^^"    (call $#writei32 (i32.const 10)))\n\n"
+
+           ^^"  (func $#printstring (param $s i32)\n"
+           ^^"                      (local $n i32)\n"
+           ^^"                      (local $i i32)\n"
+           ^^"    (set_local $i (i32.const 0))\n"
+           ^^"    (set_local $n (i32.load (get_local $s)))\n"
+           ^^"    (loop $#break $#continue\n"
+           ^^"      (br_if $#break (i32.ge_u (get_local $i) (get_local $n)))\n" 
+           ^^"      (call $#writei32 (i32.load (i32.add (get_local $s) (i32.mul (i32.const 4) (i32.add (i32.const 1) (get_local $i))))))\n"
+           ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
+           ^^"      (br $#continue)))\n\n"
+
+           ^^"  (start $#init)\n"
+           ^^"  (func $#init\n"
+           ^^"    (i32.store (i32.const 0) (i32.const 4))\n"
+           ^^"    (call $main))\n\n"
+
            ^^"%t)")
+       (fun c -> pstr "")
+
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
