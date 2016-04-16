@@ -2,6 +2,7 @@ open Ast
 open Context
 open Ho 
 open AuxFunctions
+(* open ToBase *)
 
 type auxVal = (string * int * string * Context.info) list
 (* key: fName, val: name * depth * typName * typ *)
@@ -75,7 +76,16 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | TSimp((i,p)) -> if in_context i g
                       then TSimp(i, get_scope i g)
                       else typecheck_error p "Use of undefined type"
-    | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
+    | TStruct(tl) ->
+       let rec tc l acc = match l with
+         | (("_",p),_)::xs -> tc xs acc
+         | ((i,p),_)::xs -> if List.mem i acc
+                            then typecheck_error p "Duplicate field in struct definiton"
+                            else tc xs (i::acc)
+         | [] -> ()
+       in
+       tc tl [];
+       TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
     | TArray(at,s) -> TArray(tTyp g at, s)
     | TSlice(st) -> TSlice(tTyp g st)
     | TFn(args, rtn) -> TFn(List.map (tTyp g) args, tTyp g rtn)
@@ -212,8 +222,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let (_,ftyp) = (match btyp with
          | TStruct(tl) -> begin
              try
-               List.find (function | (_,i) -> true)
-                         tl
+               List.find (function | (f,_) -> i=f) tl
              with 
               |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
            end
@@ -242,13 +251,13 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | Print(es) -> 
       let texps = List.map (tExpr g) es in
       (List.iter (fun (_,(p,t,_)) ->
-                   if not (isBaseType t)
+                   if not (isBaseType (sTyp t))
                    then typecheck_error p "Print argument not of base type") texps);
       (Print(texps), (pos, g))
     | Println(es) ->
       let texps = List.map (tExpr g) es in
       (List.iter (fun (_,(p,t,_)) ->
-                   if not (isBaseType t)
+                   if not (isBaseType (sTyp t))
                    then typecheck_error p "Print argument not of base type") texps);
       (Println(texps), (pos, g))
     | If_stmt(po,e,ps,pso) ->
@@ -403,6 +412,37 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
        (SDecl_stmt(tds), (pos,g))
 
+    (* here *)
+       (* let tds = List.map (fun ((i,_), e) -> (i, tExpr g e)) ds in *)
+
+       (* if not (List.exists (function *)
+       (*                       | ("_", _) -> false *)
+       (*                       | (i, _) ->  not (in_scope i g)) *)
+       (*                     tds) *)
+       (* then typecheck_error pos "Short declaration should define at least one new variable"; *)
+       (* let rec tc l acc = match l with *)
+       (*   | (("_",p),_)::xs -> tc xs acc *)
+       (*   | ((i,p),_)::xs -> if List.mem i acc *)
+       (*                      then typecheck_error p "Duplicate lhs in short declaration" *)
+       (*                      else tc xs (i::acc) *)
+       (*   | [] -> () *)
+       (* in *)
+       (* tc ds []; *)
+
+       (* List.iter (fun (i, (e,(_,te,_))) -> *)
+       (*             if (in_scope i g) *)
+       (*             then match find i g with *)
+       (*               | None -> () (\* Impossible *\) *)
+       (*               | Some(t) -> begin *)
+       (*                  if not (same_type t te) *)
+       (*                  then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`") *)
+       (*                 end *)
+       (*             else *)
+       (*               tadd i te g) *)
+       (*           tds; *)
+
+       (* (SDecl_stmt(tds), (pos,g)) *)
+
     | Type_stmt(typ_decls) -> 
        let tl = List.map (fun (i, t) -> (i,TKind(tTyp g t))) typ_decls in
        let tl = List.map
@@ -501,8 +541,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                            then typecheck_error
                                   ipos
                                   ("Parameter name `" ^ i ^ "` use twice")
-                           else (add i t ng; (i, t)))
-                                targs
+                           else
+                             (match sTyp t with
+                              | TKind(_) -> (add i t ng; (i, t))
+                              | _ -> typecheck_error ipos 
+                                  ("Parameter type of `" ^ i ^ "` is not valid")
+                          )) targs
            in
 
          let tstmts = List.map (tStmt rtntyp ng) stmts in
