@@ -34,6 +34,22 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
+  let hsh s = "g#"^s in
+  let rec addHash ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
+    let hue = match ue with
+    | Iden(id) -> Iden(hsh id)
+    | AValue(r,e) -> AValue(addHash r,addHash e)
+    | SValue(r,id) -> SValue(addHash r,hsh id)
+    | ILit(_) 
+    | FLit(_)
+    | RLit(_)
+    | SLit(_) ->  ue
+    | Bexp(op,e1,e2) -> Bexp(op,addHash e1,addHash e2)
+    | Uexp(op,e) -> Uexp(op,addHash e)
+    | Fn_call(fun_id,es) -> Fn_call(fun_id,List.map addHash es)
+    | Append(x,e) -> Append(hsh x,addHash e)
+    in (hue,(pos, typ ,ctx))
+  in
   let gBOp op =
     let s = match op with
     | Equals -> "eq"
@@ -104,7 +120,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | _ -> 0
   in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
-    (* get wast type before printing !! *)
     | TSimp(t,_) -> sprintf "%s_%s_%d" id t d
     | TArray(_,_)
     | TStruct(_)
@@ -403,15 +418,21 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 
   (* ( loop <label1>? <label2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
-        plsl (fun (id, e) ->
-              let (_,(_,typ,_)) = e in
-              tab();
-              fprintf oc "(set_local $%t %t)"
-                (fun c -> let depth = scope_depth (get_scope id ctx) in
-                          pstr (alphaRenaming id depth typ))
-                (fun c -> gExpr e))
-          id_e_ls
-        
+       let notUnder = List.filter (fun (x,_) -> x != "_") id_e_ls in
+       let inCtx = List.filter (fun (x,_) -> in_context x ctx) notUnder in
+       let newid_e_ls = List.map (fun (id,e) -> ("g#"^id,addHash e)) inCtx in
+       List.iter (fun (id,(_,(_,t,_))) -> add id t ctx) newid_e_ls;
+
+       plsl (fun (id, e) ->
+           let (_,(_,typ,_)) = e in
+           tab();
+           fprintf oc "(set_local $%t %t)"
+                   (fun c -> let depth = scope_depth (get_scope id ctx) in
+                             pstr (alphaRenaming id depth typ))
+                   (fun c -> gExpr e))
+            (* id_e_ls *)
+            (List.map (fun (id,e) -> (id,addHash e)) id_e_ls)
+            
     | Type_stmt(id_typ_ls) -> () 
     | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
