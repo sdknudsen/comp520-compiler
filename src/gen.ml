@@ -33,27 +33,50 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | [] -> ()
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
-  let gBOp op =
-    let s = match op with
-    | Equals -> "eq"
-    | Notequals -> "ne"
-    | Lt -> "lt_s"
-    | Lteq -> "le_s"
-    | Gt -> "gt_s"
-    | Gteq -> "ge_s"
-    | Plus -> "add"
-    | Minus -> "sub"
-    | Bitor -> "or"
-    | Bitand -> "and"
-    | Bitxor -> "xor"
-    | Times -> "mul"
-    | Div -> "div_s"
-    | Modulo -> "rem_s"
-    | Lshift -> "shl_s"
-    | Rshift -> "shr_s"
-    | Boolor -> raise (GenError "boolor implemented")
-    | Booland -> raise (GenError "booland implemented")
-    | Bitnand -> raise (GenError "bitnand implemented")
+  let rec gTyp (at:Typed.uttyp) = match at with
+    (* do we need to check if the base names have been aliased?? *)
+    | TSimp("bool", _)    -> "i32"
+    | TSimp("int", _)     -> "i32"
+    | TSimp("float64", _) -> "f64"
+    | TSimp("rune", _)    -> "i32"
+    | TSimp("string", _)    -> failwith "not implemented"
+    (* I'm not sure about this: *)
+    | TSimp(name,ctx) -> (match find name ctx with
+                              | None -> raise (GenError "Base type not found")
+                              | Some e -> gTyp e)
+    | TStruct(a) -> failwith "Structured types not yet supported"
+    | TArray(a,b) -> failwith "Structured types not yet supported"
+    | TSlice(a) -> failwith "Structured types not yet supported"
+    | TFn(a,b) -> failwith "Structured types not yet supported"
+    | TVoid -> ""
+    | TKind(a) -> gTyp a
+  in
+  let gBOp op t =
+    let s = match op, t with
+    | Equals,TSimp("string",_) -> "call $#string_eq"
+
+    | Equals,t    -> (gTyp t) ^ ".eq"
+    | Notequals,t -> (gTyp t) ^ ".ne"
+    | Lt,t        -> (gTyp t) ^ ".lt_s"
+    | Lteq,t      -> (gTyp t) ^ ".le_s"
+    | Gt,t        -> (gTyp t) ^ ".gt_s"
+    | Gteq,t      -> (gTyp t) ^ ".ge_s"
+    | Plus,t      -> (gTyp t) ^ ".add"
+    | Minus,t     -> (gTyp t) ^ ".sub"
+    | Bitor,t     -> (gTyp t) ^ ".or"
+    | Bitand,t    -> (gTyp t) ^ ".and"
+    | Bitxor,t    -> (gTyp t) ^ ".xor"
+    | Times,t     -> (gTyp t) ^ ".mul"
+    | Div,t       -> (gTyp t) ^ ".div_s"
+    | Modulo,t    -> (gTyp t) ^ ".rem_s"
+    | Lshift,t    -> (gTyp t) ^ ".shl_s"
+    | Rshift,t    -> (gTyp t) ^ ".shr_s"
+(*    | Boolor,_    -> raise (GenError "boolor implemented")*)
+    | Boolor,t    -> (gTyp t) ^ ".and"
+(*    | Booland,_   -> raise (GenError "booland implemented")*)
+    | Booland,t   -> (gTyp t) ^ ".or"
+(*    | Bitnand,_   -> raise (GenError "bitnand implemented")*)
+    | Bitnand,t   -> (gTyp t) ^ ".shr_s"
     in pstr s
   in
   
@@ -72,34 +95,18 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TVoid -> ""
     | TKind(a) -> ""
   in *)
-  let rec gTyp (at:Typed.uttyp) = match at with
-    (* do we need to check if the base names have been aliased?? *)
-    | TSimp("bool", _)    -> pstr "i32"
-    | TSimp("int", _)     -> pstr "i32"
-    | TSimp("float64", _) -> pstr "f64"
-    | TSimp("rune", _)    -> pstr "i32"
-    | TSimp("string", _)    -> failwith "not implemented"
-    (* I'm not sure about this: *)
-    | TSimp(name,ctx) -> (match find name ctx with
-                              | None -> raise (GenError "Base type not found")
-                              | Some e -> gTyp e)
-    | TStruct(a) -> failwith "Structured types not yet supported"
-    | TArray(a,b) -> failwith "Structured types not yet supported"
-    | TSlice(a) -> failwith "Structured types not yet supported"
-    | TFn(a,b) -> failwith "Structured types not yet supported"
-    | TVoid -> () (* is this right?? *)
-    | TKind(a) -> gTyp a
-  in
 
-  let rec value_bytes v = match v with
-    | SValue(r,id) -> failwith "avalues not yet supported"
-    | ILit(d) -> 4
-    | FLit(f) -> 4
+  let rec size_of_type t = match t with
+    | TSimp("bool", _)
+    | TSimp("rune", _)
+    | TSimp("int", _)
+    | TSimp("string", _) -> 4
+    | TSimp("float64", _) -> 8
+    (*| FLit(f) -> 4
     | RLit(c) -> 4
-
     (* Strings are encoded as a size `n` followed by `n` runes *)
     | AValue(r,e) -> 4
-    | SLit(s) -> 4 + (String.length s) * 4
+    | SLit(s) -> 4 + (String.length s) * 4*)
     | _ -> 0
   in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
@@ -117,6 +124,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gExpr ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
     match ue with
     | Iden(id) ->
+      if ((id = "true") || (id = "false")) && (0 = (scope_depth (get_scope id ctx)))
+      then match id with
+        | "true"  -> fprintf oc "(i32.const 1)"
+        | "false" -> fprintf oc "(i32.const 0)"
+        | _ -> failwith "Strange things happenning in wonderland"
+      else
       let depth = scope_depth (get_scope id ctx) in
         if depth > 0 then
           fprintf oc "(get_local $%t)"
@@ -142,6 +155,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (* gExpr (Bexp(Bitand,1,(Bitand,e1,e2)),(pos,typ,ctx)) *)
        (* gExpr (Uexp(Bitnot,(Bitand,e1,e2)),(pos,typ,ctx)) *)
 
+(*
     | Bexp(Boolor,e1,e2) ->
        fprintf oc "(i32.and (i32.const 1) (i32.or %t %t))"
                (* do something with the type? *)
@@ -152,15 +166,15 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        fprintf oc "(i32.and (i32.const 1) (i32.and %t %t))"
                (fun c -> gExpr e1)
                (fun c -> gExpr e2)
+*)
     | Bexp(Bitnand,e1,e2) -> 
        fprintf oc "(i32.neg (i32.const 1) (i32.and %t %t))"
                (fun c -> gExpr e1)
                (fun c -> gExpr e2)
 
     | Bexp(op,e1,e2) ->
-       fprintf oc "(%t.%t %t %t)"
-                      (fun c -> gTyp typ)
-                      (fun c -> gBOp op)
+       fprintf oc "(%t %t %t)"
+                      (fun c -> gBOp op typ)
                       (fun c -> gExpr e1)
                       (fun c -> gExpr e2)
        
@@ -248,56 +262,80 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (*                            (fun c -> gExpr e)) ls *)
 
     | Print(es) ->
-       List.iter
-         (function
-           | (_, (_,TSimp("bool",_),_)) as e -> 
+       let rec genprint es = match es with
+
+           | ((_, (_,TSimp("bool",_),_)) as e)::xs -> 
                pstr "(call $#printbool ";
                gExpr e;
-               pstr ")"
-           | (_, (_,TSimp("int",_),_)) as e -> 
+               pstr ")";
+               genprint xs
+           | ((_, (_,TSimp("rune",_),_)) as e)::xs 
+           | ((_, (_,TSimp("int",_),_)) as e)::xs -> 
                pstr "(call $#printi32 ";
                gExpr e;
-               pstr ")"
-           | (_, (_,TSimp("float64",_),_)) as e -> 
+               pstr ")";
+               genprint xs
+           | ((_, (_,TSimp("float64",_),_)) as e)::xs -> 
                pstr "(call $#printf64";
                gExpr e;
-               pstr ")"
-           | (_, (_,TSimp("rune",_),_)) as e -> 
-               pstr "(call $#writei32 ";
-               gExpr e;
-               pstr ")"
-           | (_, (_,TSimp("string",_),_)) as e -> 
+               pstr ")";
+               genprint xs
+           | ((_, (_,TSimp("string",_),_)) as e)::xs -> 
                pstr "(call $#printstring ";
                gExpr e;
-               pstr ")"
-           | _ -> failwith "Print of unimplemented type") 
-         es
+               pstr ")";
+               genprint xs
+           | _ -> () 
+       in genprint es
        
     | Println(es) ->
-       List.iter
-         (function
-           | (_, (_,TSimp("bool",_),_)) as e -> 
+       let rec genprint es = match es with
+           | [(_, (_,TSimp("bool",_),_)) as e] -> 
                pstr "(call $#printlnbool ";
                gExpr e;
                pstr ")"
-           | (_, (_,TSimp("int",_),_)) as e -> 
-               pstr "(call $#printlni32 ";
+           | [(_, (_,TSimp("rune",_),_)) as e] 
+           | [(_, (_,TSimp("int",_),_)) as e] -> 
+               pstr "(call $#printlnlni32 ";
                gExpr e;
                pstr ")"
-           | (_, (_,TSimp("float64",_),_)) as e -> 
+           | [(_, (_,TSimp("float64",_),_)) as e] -> 
                pstr "(call $#printlnf64";
                gExpr e;
                pstr ")"
-           | (_, (_,TSimp("rune",_),_)) as e -> 
-               pstr "(call $#writelni32 ";
-               gExpr e;
-               pstr ")"
-           | (_, (_,TSimp("string",_),_)) as e -> 
+           | [(_, (_,TSimp("string",_),_)) as e] -> 
                pstr "(call $#printlnstring ";
                gExpr e;
                pstr ")"
-           | _ -> failwith "Println of unimplemented type") 
-         es
+
+           | ((_, (_,TSimp("bool",_),_)) as e)::xs -> 
+               pstr "(call $#printbool ";
+               gExpr e;
+               pstr ")";
+               pstr "(call $#writei32 (i32.const 32))";
+               genprint xs
+           | ((_, (_,TSimp("rune",_),_)) as e)::xs 
+           | ((_, (_,TSimp("int",_),_)) as e)::xs -> 
+               pstr "(call $#printi32 ";
+               gExpr e;
+               pstr ")";
+               pstr "(call $#writei32 (i32.const 32))";
+               genprint xs
+           | ((_, (_,TSimp("float64",_),_)) as e)::xs -> 
+               pstr "(call $#printf64";
+               gExpr e;
+               pstr ")";
+               pstr "(call $#writei32 (i32.const 32))";
+               genprint xs
+           | ((_, (_,TSimp("string",_),_)) as e)::xs -> 
+               pstr "(call $#printstring ";
+               gExpr e;
+               pstr ")";
+               pstr "(call $#writei32 (i32.const 32))";
+               genprint xs
+           | _ -> failwith "Println of unimplemented type"
+       in 
+       genprint es
         
     | If_stmt(po,e,ps,pso) ->
        may (fun s -> gStmt s; pstr "\n"; tab()) po;
@@ -429,7 +467,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               incr tabc;
 
               List.iter (plsl (fun (s,eo,typo) ->
-               (let styp = ref "" in
+               (let styp = ref "#!ERROR!#" in
                 let size = ref 0 in
                 (match (typo,eo) with
                 | (_,Some e) ->
@@ -455,7 +493,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       | TSimp("int", _)
                       | TSimp("rune", _)
                       | TSimp("string", _)
-                      | TSimp("bool", _) ->    styp := "i32"; size := 4;
+                      | TSimp("bool", _)    -> styp := "i32"; size := 4;
+                      | TArray(t, i)        -> size := (size_of_type t) * i + 4
                       | _ -> failwith "not implemented");
                     Hashtbl.add globalVar s (!styp, !segc);
                     segc := !segc + !size;
@@ -476,7 +515,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 (fun (id,typ) ->
                   tab();
                   pstr (sprintf "(param $%s " (alphaRenaming id 1 typ));
-                  gTyp typ;
+                  pstr (gTyp typ);
                   pstr ")")
                 id_typ_ls;
               (match typ with
@@ -484,7 +523,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 | _     ->
                   tab();
                   pstr "(result ";
-                  gTyp typ;
+                  pstr (gTyp typ);
                   pstr ")\n");
               if Hashtbl.mem table fId then
                (let locals = Hashtbl.find table fId in
@@ -492,7 +531,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                        tab();
                        fprintf oc "(local $%t %t)"
                                (fun c -> pstr (sprintf "%s_%s_%d" v t d))
-                               (fun c -> gTyp t2))
+                               (fun c -> pstr (gTyp t2)))
                      locals; pstr "\n");
               plsl (fun st -> tab(); gStmt st) ps;
               decr tabc;
@@ -522,12 +561,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"    (call_import $#write_i32\n"
            ^^"                 (get_local $i)))\n"
 
-           ^^"  (func $#prinlntbool (param $i i32)\n"
+           ^^"  (func $#printlnbool (param $i i32)\n"
            ^^"    (call $#printbool (get_local $i))\n"
            ^^"    (call $#writei32 (i32.const 10)))\n"
 
            ^^"  (func $#printbool (param $i i32)\n"
-           ^^"    (if (i32.eq (get_local $i) (i32.const 0))\n"
+           ^^"    (if (i32.ne (get_local $i) (i32.const 0))\n"
            ^^"        (then\n"
            ^^"          (call $#writei32 (i32.const 116))\n"
            ^^"          (call $#writei32 (i32.const 114))\n"
@@ -580,6 +619,52 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"      (call $#writei32 (i32.load (i32.add (get_local $s) (i32.mul (i32.const 4) (i32.add (i32.const 1) (get_local $i))))))\n"
            ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
            ^^"      (br $#continue)))\n\n"
+
+           ^^"  (func $#string_eq (param $s1 i32)\n"
+           ^^"                    (param $s2 i32)\n"
+           ^^"                    (local $s1len i32)\n"
+           ^^"                    (local $s2len i32)\n"
+           ^^"                    (local $r i32)\n"
+           ^^"                    (local $i i32)\n"
+           ^^"                    (result i32)\n"
+           ^^"    (set_local $i (i32.const 1))\n"
+           ^^"    (set_local $s1len (i32.load (get_local $s1)))\n"
+           ^^"    (set_local $s2len (i32.load (get_local $s2)))\n"
+           ^^"    (if (i32.ne (get_local $s1len) (get_local $s2len))\n"
+           ^^"        (return (i32.const 0)))\n"
+           ^^"    (loop $#break $#continue\n"
+           ^^"     (if (i32.gt (get_local $i) (get_local $s1len))\n"
+           ^^"         (return (i32.const 1)))\n"
+           (*^^"     (if (i32.gt (get_local $i) (get_local $s2len))\n"
+           ^^"         (return (i32.const 0)))\n"*)
+           ^^"     (set_local $r (i32.eq (i32.load (i32.add (i32.mul (i32.const 4)\n"
+           ^^"                                                       (get_local $i))\n"
+           ^^"                                              (get_local $s1)))\n"
+           ^^"                           (i32.load (i32.add (i32.mul (i32.const 4)\n"
+           ^^"                                                       (get_local $i))\n"
+           ^^"                                              (get_local $s2)))))\n"
+           ^^"     (if (i32.eq (i32.const 0) (get_local $r))\n"
+           ^^"         (return (i32.const 0)))\n"
+           ^^"     (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
+           ^^"     (br $#continue)))\n\n"
+
+           ^^"  (func $#copy (param $src i32)\n"
+           ^^"               (param $dest i32)\n"
+           ^^"               (param $len i32)\n"
+           ^^"               (local $i i32)\n"
+           ^^"               (local $n i32)\n"
+           ^^"               (result i32)\n"
+           ^^"    (set_local $i (i32.const 0))\n"
+           ^^"    (loop $#break $#continue\n"
+           ^^"      (br_if $#break (i32.ge_u (get_local $i) (get_local $len)))\n" 
+           ^^"      (i32.store (i32.load (get_locat $dest))\n"
+           ^^"                 (i32.load (get_local $src)))\n"
+           ^^"      (set_local $i (i32.add (i32.const 4) (get_local $i)))\n"
+           ^^"      (set_local $src (i32.add (i32.const 4) (get_local $src)))\n"
+           ^^"      (set_local $dest (i32.add (i32.const 4) (get_local $dest)))\n"
+           ^^"      (br $#continue))\n\n"
+           ^^"    (return (i32.sub (get_local $dest)\n"
+           ^^"                     (get_local $i))))\n"
 
            ^^"  (start $#init)\n"
            ^^"  (func $#init\n"

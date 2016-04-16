@@ -152,7 +152,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        if (isCastable t)
        then
          let tx = sure (get_type_instance x g) in 
-         (Fn_call((Iden(x), (ipos, TKind(tx),g)), [te]), (pos, tx, g))
+         (Fn_call((Iden(x), (ipos, TKind(tx),get_scope x g)), [te]), (pos, tx, g))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
     | Fn_call(fid, es) -> 
@@ -172,6 +172,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        List.iter2 typecheck_args fargs tes;
        (Fn_call(tfid,texps), (pos, ft, g))
 
+    (* append id? *)
     | Append((i,ipos), e) ->
        let t = (match find i g with
          | Some(TSlice(t)) -> t
@@ -188,7 +189,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
         (* let (typo,ind) = find i g in *)
         (* match typo with !!!*)
         match find i g with
-          | Some(t) -> (Iden(i), (pos, t, g))
+          | Some(t) -> (Iden(i), (pos, t, (get_scope i g)))
           | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
       end
     | AValue(r,e) ->
@@ -207,12 +208,11 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | SValue(e, (i,ip)) ->
        let te = tExpr g e in
        let (_,(_,etyp,_)) = te in
-       let btyp = sure (get_base_type etyp) in
        
-       let (_,ftyp) = (match btyp with
+       let (_,ftyp) = (match etyp with
          | TStruct(tl) -> begin
              try
-               List.find (function | (_,i) -> true)
+               List.find (function | (_,i) -> true | _ -> false)
                          tl
              with 
               |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
@@ -526,7 +526,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     tadd "float64" (TKind (TSimp("#",ctx))) ctx;
     tadd "true"    (sure (get_type_instance "bool" ctx)) ctx;
     tadd "false"   (sure (get_type_instance "bool" ctx)) ctx;
-    let decls = tDecls ctx decls in
+    let decls = tDecls (scope ctx) decls in
+    unscope ctx;
     unscope ctx;
     (Prog(pkg, decls), auxTable)
   end

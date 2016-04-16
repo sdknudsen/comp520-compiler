@@ -361,9 +361,9 @@ rule token = parse
         (Printf.sprintf "Invalid rune '%s'" c)
     }
   | '"' (str_char* as s) '"'     {
-      insert_semic:=true; STRING s
+      insert_semic:=true; STRING (unescape s)
     }
-  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING (escape s) }
+  | '`' (raw_str_char* as s) '`' { insert_semic:=true; STRING s }
 
 (* String error handling *)
   | '"' { string_error lexbuf }
