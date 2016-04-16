@@ -184,9 +184,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
     | Append((i,ipos), e) ->
        let t = (match find i g with
+       (* let t = (match mapo sTyp2 (find i g) with *)
          | Some(TSlice(t)) -> t
          | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
-         | _    -> typecheck_error pos  ("`" ^ i ^ "` must have be a slice"))
+         | _    -> typecheck_error pos  ("`" ^ i ^ "` must be a slice"))
        in
        let (_,(_,typ,_)) as te = tExpr g e in
        if same_type t typ then begin
@@ -353,7 +354,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
        (match teo with 
          | None -> ()
-         | Some(_,(_,t,_)) when (same_type t (sure (get_type_instance "bool" g))) -> ()
+         | Some(_,(_,t,_)) when (same_type (sTyp2 t) (sure (get_type_instance "bool" g))) -> ()
          | _ -> typecheck_error pos "Condition is not a boolean expression");
 
        let tpo2 = (match po2 with
