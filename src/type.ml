@@ -263,7 +263,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | If_stmt(po,e,ps,pso) ->
        let tinit = mapo (tStmt frt g) po in
        let (_,(_,typ,_)) as tcond = tExpr g e in
-       if not (same_type typ (sure (get_type_instance "bool" g)))
+       let btyp = sTyp2 typ in
+       if not (same_type btyp (sure (get_type_instance "bool" g)))
        then typecheck_error pos "If condition must have type bool";
        let gthen = scope g in
        let tthen = List.map (tStmt frt gthen) ps in
