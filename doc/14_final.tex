@@ -29,9 +29,9 @@ New programming languages are being conceived every other year to tackle various
 
 We chose OCaml [1] as our implementation language for compiler construction because the recursive nature of the language allows for easy manipulation of abstract syntax tree (AST). In addition, the pattern matching feature that OCaml provides is particularly helpful in constructing the compiler and has been applied to most parts of the compiler. The tools that we used for building the scanner and parser are \verb|ocamllex| and \verb|Menhir| [2,3,4]. The maturity of the parsing and scanning tools were another reason for the choice of OCaml. What's more, the lead TA had pointed out that OCaml is a good language for such a project.
 
-As for the target language, we have chosen to generate WebAssembly (or \verb|wasm|) [5], a low-level programming language that attempts to be more efficient than JavaScript for the web browser. In particular, our compiler generates WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax [6,7]. Since WebAssembly is currently in the experimental stage, only a handful of documentations about the language exist and even some of them are not complete. So far we have only encountered 2 compilers that translates a particular language to WebAssembly: emscripten [8] from LLVM to JavaScript (\verb|asm.js|, the predecessor of \verb|wasm|), and ilwasm [9] from C\# to \verb|wasm|. As such, our compiler that takes GoLite programs and generates WebAssembly TextFormat is a timely project.
+As for the target language, we have chosen to generate WebAssembly (or \verb|wasm|) [5], a low-level programming language that attempts to be more efficient than JavaScript for the web browser. In particular, our compiler generates WebAssembly [6,7]. Since WebAssembly is currently in the experimental stage, only a handful of documentations about the language exist and even some of them are not complete. So far we have only encountered 2 compilers that translates a particular language to WebAssembly: emscripten [8] from LLVM to JavaScript (\verb|asm.js|, the predecessor of \verb|wasm|), and ilwasm [9] from C\# to \verb|wasm|. As such, our compiler that takes GoLite programs and generates WebAssembly is a timely project.
 
-The next section is about the design of the compiler structure and all its phases, followed by some examples comparing GoLite programs and the generated WebAssembly TextFormat code, and ended with a brief discussion and future work.
+The next section is about the design of the compiler structure and all its phases, followed by some examples comparing GoLite programs and the generated WebAssembly code, and ended with a brief discussion and future work.
 
 \section{Compiler Structure}
 \begin{center}
@@ -43,7 +43,7 @@ The next section is about the design of the compiler structure and all its phase
   \node [block, right of=scanner] (parser) {Parser};
   \node [block, right of=parser] (weeder) {Weeder};
   \node [block, below of=scanner] (tcheck) {Type Checker};
-  \node [block, below of=weeder] (simp) {Type simplifier};
+  \node [block, below of=weeder] (simp) {Type Simplifier};
   \node [block, below of=tcheck] (gen) {Code Generation};
   \node [virtual, right of=gen] (output)     {};
 
@@ -88,11 +88,7 @@ Initially, the symbol table consisted of a list of maps (as in dictionaries). We
 
 The way we design the symbol table is to implement a cactus stack of hash tables, as had been presented in class. The root represents the global scope with a hash table which stores the information for top-level declarations. Whenever a block is entered, a new frame is generated. This frame (\verb|F|) has a new hash table associated with the new scope, and also has a pointer to the parent frame. This allows for the lookup of a declaration starting from the innermost scope that \verb|F| resides, and recursively traverse towards the root node through the parent frame, but not the neighboring nodes as the scopes of these nodes and \verb|F| are disjoint.
 
-%% We went a little off of what was suggested to handle some of the primitives.
-%% This can be seen with our extended type system which includes \verb|TKind| types.
-%% We use \verb|TKind| as the type of variables. So all base types have type \verb|TKind(TSimp("#"))| where \verb|"#"| is the type at the top of the type hierarchy. The use of \verb|TKind| allowed us to handle type checking as the function call of a \verb|TKind| identifier.
-%% Accordingly, \verb|type| statements add a symbol of type \verb|TKind| to the symbol
-%% table.
+We went a little off of what was suggested to handle some of the primitives. This can be seen with our extended type system which includes \verb|TKind| types. We use \verb|TKind| as the type of variables. So all base types have type \verb|TKind(TSimp("#"))| where \verb|"#"| is the type at the top of the type hierarchy. The use of \verb|TKind| allowed us to handle type checking as the function call of a \verb|TKind| identifier. Accordingly, \verb|type| statements add a symbol of type \verb|TKind| to the symbol table.
 
 Since our AST doesn't encode the last position of a node, it was difficult to print the last line of a scope. Instead we provide an alternative view of the symbol table with the \verb|-smartsymtab| flag which gives a better view of how some symbols shadow others.
 
@@ -103,23 +99,35 @@ Because of the initial idea of using an immutable map rather than a mutable hash
 
 Because type declaration is allowed in GoLite, the approach of matching the types and operators that we had seen for the \verb|minilang| compiler wouldn't work. We took the approach of pattern matching on the operator and check if two types were unifiable. If their upper bound were belonged to the class of types allowable for the operator, then the upper bound was the type returned.
 
-\subsection{Code Generation}
+\subsection{Type Simplifier}
+Before passing the annotated AST to code generator, we convert type aliases to their base types. This is to simplify the code generation phase as WebAssembly has only numbers as primitive types and does not support type declarations.
 
-\subsubsection{Global variables}
+\subsection{Code Generation}
+There are two kinds of formats that represent WebAssembly code: WebAssembly TextFormat (\verb|.wast|) code which uses an AST representation in S-expression syntax, and WebAssembly binary-encoding (\verb|.wasm|). Current tools that deal with these files include \verb|sexpr-wasm-prototype| [10] which translates WebAssembly TextFormat to binary-encoding, and \verb|binaryen| [11] which is a compiler that parses and emits WebAssembly files. Our compiler generates the WebAssembly TextFormat code.
+
+Below are some of the constructs that are uncommon and worth mentioning here. We follow the specification as defined in [6,7].
 
 \subsubsection{Local variables}
-%% WebAssembly requires that variable declarations in a function to be defined at the top of the function body (\verb|local|) before they are used, so we append the GoLite type and scope level to the variable names.
+WebAssembly requires that variable declarations in a function to be defined at the top of the function body (\verb|local|) before they are used. As such, all variables local to a function has only a single scope. To overcome this limitation, we append the GoLite type and scope level to the variable names. We use \verb|set_local| and \verb|get_local| instructions for any operations that deal with global variables.
+
+\subsubsection{Global variables}
+WebAssembly does not support global variables. The way we implement global variables is to make use of linear memory. For each top-level declarations, we enclosed them in functions which will be called at the beginning of the start program, and assign a location to the memory address to store the declaration. This information is stored in a hash table for later usage. We use \verb|store| and \verb|load| instructions for any operations that deal with global variables.
 
 \subsubsection{Types}
-%% WebAssembly does not have \verb|string| as the base type
+WebAssembly supports 32-/64-bit integer and 32-/64-bit floating point as the base types, but not the others. We take the 32-bit integer to represent the integer in GoLite, whereas rune, bool, and string are represented as 32-bit integer in WebAssembly. Strings are stored in memory, so integer type for strings represents the memory location.
 
 \subsubsection{Control flow structures}
+WebAssembly has basic control flow structures including \verb|block|, \verb|loop|, and \verb|if| statements. We make use of \verb|block| and \verb|label| to implement \verb|for| loops and \verb|switch| statements. For nested statements with multiple scoping, we can make a reference to a named label that is defined by the closest outer enclosing construct, so labels in different scopes but have the same name do not have conflicting results.
 
-\subsubsection{Print and println statements}
+\subsubsection{Print statements}
+WebAssembly does not have native support for printing to console. A way to include printing is to import a module from \verb|spectest|, but that also has its limitations in that it can only print WebAssembly integers and floats verbatim. Alexandre implemented proper printing mechanism in \verb|binaryen| in his forked copy of the repository [12], and we use that program to parse the generated S-expression code.
 
 \section{Examples}
 
+
 \section{Conclusions}
+This project is challenging not only because WebAssembly is a low-level programming language, but also the scarcity of information and documentation about WebAssembly that makes it much more difficult for us to implement the code generator, especially for certain constructs such as GoLite types and string operations. Even \verb|ilwasm| [9] has not implemented proper generation of arrays and prints. Time is needed for the development of WebAssembly to mature. Even then, the speed of the development will only result in changes to the formal specification.
+
 At the end of the project, we have come to know that building a compiler from scratch is no small feat. We have to devote our time in designing the architecture of the compiler from parsing to code generation, while maintaining the correctness of the syntax and semantics of the generated code. Even though it is a difficult process especially when dealing with a low-level programming language that has certain limitations over a high-level programming language, we have learned much from this project on what defines a computer program. We assert that the study of compiler design is crucial for programmers to understand the tools that they are using to build a computer program.
 
 This project serves as an excellent example for the community at large to refer to a compiler that generates WebAssembly. There is still much work to be done if we were to extend GoLite to Go instead, but we hope to see that more such compilers exist so as to allow support for more programming languages to be compiled to WebAssembly code. This in turn will move the development of WebAssembly forward.
@@ -149,55 +157,9 @@ This project serves as an excellent example for the community at large to refer 
   \item \url{https://github.com/WebAssembly/design/blob/master/AstSemantics.md}
   \item \url{https://github.com/kripken/emscripten}
   \item \url{https://github.com/WebAssembly/ilwasm}
+  \item \url{https://github.com/WebAssembly/sexpr-wasm-prototype}
+  \item \url{https://github.com/WebAssembly/binaryen}
+  \item \url{https://github.com/astlouisf/binaryen}
 \end{enumerate}
 
 \end{document}
-
-from former milestones:
-%% \title{COMP 520 - Milestone 1}
-%% \raggedright
-%% \section*{Design Decisions}
-
-%% \subsection*{Semicolon}
-%% For inserting semicolon token according to rule 1, we added a variable \verb|insert_semic| for each of the tokens that define the insertion condition. Upon reaching a newline or end of file tokens, our program checks whether the previous token that satisfy rule 1 has updated \verb|insert_semic|, and if it evaluates to \verb|true| it will trigger the insertion of the semicolon token.
-
-%% \subsection*{Type}
-%% We made a decision to handle types as identifiers and not include the primitive types as tokens. This way our parser will be able to accept both primitive types and type aliases when specifying types. We also decided to defer the check for invalid use of primitive types in variable identifiers to the weeding phase.
-
-%% \subsection*{Pretty printing}
-%% Initially, we used semicolons to separate each kind of print statement. For better readability, we now use Printf.fprintf so that the string component of a statement/expression can be written one line with the parts to be expanded following.
-%% followed by the ``string'' body and functions that output each of the required output.
-
-
-%% \title{COMP 520 - Milestone 2}
-
-%% \subsection*{Pretty printer}
-%% We decided that we needed to modify the AST to include annotations. This required making changes to the pretty printer from the first deliverable. Due to the nature of the AST, only minor modifications were then needed to allow type printing of the typed AST. Types are printed as block comment right after the expression it is associated with.
-
-%% \subsection*{Testing}
-
-%% One thing we noticed about the reference GoLite compiler is that the \verb|init| statements for the \verb|if| and \verb|switch| statements can shadow variables declared in the same scope, but the \verb|init| statement for the three-part \verb|for| loop does not. For our compiler, the \verb|init| statements for \verb|if|, \verb|switch|, and \verb|for| do shadow variables declared in the same scope.
-%% This is in accordance with the Golang compiler and the Golang spec that mentions
-%% that \verb|if|, \verb|for|, and \verb|switch| are enclosed in an implicit \verb|block|
-%% statement.
-
-
-
-%% \tikzstyle{block} = [draw, rectangle, minimum height=3em, minimum width=3em]
-%% \tikzstyle{virtual} = [coordinate]
-%% \begin{tikzpicture}[>=stealth,auto, node distance=2cm]
-%%   \node [block] (lexer) {Lexer};
-%%   \node [block] (parser) {Parser};
-%%   \node [virtual, left=of lexer] (input)     {};
-%%   \node [virtual, right=of parser] (pout)    {};
-
-%%   %% \node [block] (parser) {Parser};
-%%   %% \node [virtual, left=of parser] (pout)     {};
-%%   %% \node [virtual, right=of parser] (output)    {};
-
-%%   \draw [->] (input) -- node {$x$} (lexer);
-%%   \draw [->] (lexer) -- node [name=y] {$y$}(pout);
-%%   %% \draw [->] (parser) -- node [name=z] {$z$}(output);
-%%   %% \draw [->] (output) -- node {$x$} (parser);
-  %% \end{tikzpicture}
-
