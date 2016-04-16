@@ -327,7 +327,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                pstr ")"
            | [(_, (_,TSimp("rune",_),_)) as e] 
            | [(_, (_,TSimp("int",_),_)) as e] -> 
-               pstr "(call $#printlnlni32 ";
+               pstr "(call $#printlni32 ";
                gExpr e;
                pstr ")"
            | [(_, (_,TSimp("float64",_),_)) as e] -> 
