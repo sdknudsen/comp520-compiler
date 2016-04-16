@@ -495,7 +495,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                   tl
        in
        (Type_decl(tl), pos)
-
     | Func_decl((fId,_), args, typ, stmts) ->
        currFName := fId;
        (* mklist(); *)
@@ -518,12 +517,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                            then typecheck_error
                                   ipos
                                   ("Parameter name `" ^ i ^ "` use twice")
-                           else
-                             (match sTyp t with
-                              | TKind(_) -> (add i t ng; (i, t))
-                              | _ -> typecheck_error ipos 
-                                  ("Parameter type of `" ^ i ^ "` is not valid")
-                          )) targs
+                           else (add i t ng; (i, t)))
+                                targs
            in
 
          let tstmts = List.map (tStmt rtntyp ng) stmts in
@@ -537,10 +532,52 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
          (Func_decl(fId, targs1, rtntyp, tstmts), pos)
        end
 
+
+    (* | Func_decl((fId,_), args, typ, stmts) -> *)
+    (*    currFName := fId; *)
+    (*    (\* mklist(); *\) *)
+    (*    (\* indexCount := List.length args; *\) *)
+    (*    if in_scope fId g *)
+    (*    then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared") *)
+    (*    else begin *)
+           
+    (*        let targs = List.map (fun((i,ipos), t) -> let vt = tTyp g t in *)
+    (*                                                      (\* ((i,ipos), vt, newIndex ())) args in *\) *)
+    (*                                                      ((i,ipos), vt)) args in *)
+    (*        let tl = List.map snd targs in *)
+    (*        let rtntyp = tTyp g typ in *)
+           
+    (*        add fId (TFn(tl, rtntyp)) g; *)
+
+    (*        let ng = scope g in   *)
+    (*        let targs1 = List.map (fun((i,ipos),t) -> *)
+    (*                         if in_scope i ng *)
+    (*                         then typecheck_error *)
+    (*                                ipos *)
+    (*                                ("Parameter name `" ^ i ^ "` use twice") *)
+    (*                         else *)
+    (*                           (match sTyp t with *)
+    (*                            | TKind(_) -> (add i t ng; (i, t)) *)
+    (*                            | _ -> typecheck_error ipos  *)
+    (*                                                   ("Parameter type of `" ^ i ^ "` is not valid") *)
+    (*                       )) targs *)
+    (*        in *)
+
+    (*        let tstmts = List.map (tStmt rtntyp ng) stmts in *)
+    (*        (match typ with *)
+    (*         | TVoid -> () *)
+    (*         | _ -> if not (valid_return_path tstmts) *)
+    (*                then typecheck_error pos ("Execution paths with no returns in function")); *)
+
+    (*        unscope ng; *)
+    (*        currFName := "_main_"; *)
+    (*        (Func_decl(fId, targs1, rtntyp, tstmts), pos) *)
+    (*      end *)
+
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
   let ctx = (init ()) in begin
-    tadd "int"     (TKind (TSimp("#",ctx))) ctx;
+      tadd "int"     (TKind (TSimp("#",ctx))) ctx;
     tadd "bool"    (TKind (TSimp("#",ctx))) ctx;
     tadd "string"  (TKind (TSimp("#",ctx))) ctx;
     tadd "rune"    (TKind (TSimp("#",ctx))) ctx;
