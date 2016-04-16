@@ -550,7 +550,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               psfl "\n"
                 (fun (id,typ) ->
                   tab();
-                  pstr (sprintf "(param $%s " (alphaRenaming id 1 typ));
+                  pstr (sprintf "(param $%s " (alphaRenaming id 2 typ));
                   pstr (gTyp typ);
                   pstr ")")
                 id_typ_ls;
