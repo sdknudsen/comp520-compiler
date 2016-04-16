@@ -114,7 +114,7 @@ WebAssembly requires that variable declarations in a function to be defined at t
 WebAssembly does not support global variables. The way we implement global variables is to make use of linear memory. For each top-level declarations, we enclosed them in functions which will be called at the beginning of the start program, and assign a location to the memory address to store the declaration. This information is stored in a hash table for later usage. We use \verb|store| and \verb|load| instructions for any operations that deal with global variables.
 
 \subsubsection{Types}
-WebAssembly supports 32-/64-bit integer and 32-/64-bit floating point as the base types, but not the others. We take the 32-bit integer to represent the integer in GoLite, whereas rune, bool, and string are represented as 32-bit integer in WebAssembly. Strings are stored in memory, so integer type for strings represents the memory location.
+WebAssembly supports 32-/64-bit integer and 32-/64-bit floating point as the base types, but not the others. We take the 32-bit integer to represent the integer in GoLite, whereas rune, bool, and string are represented as 32-bit integer in WebAssembly. Strings are stored in memory, so integer type for strings represents the memory location. The value for 32-bit integer takes 4 bytes of the memory, whereas 64-bit float takes 8 bytes.
 
 \subsubsection{Control flow structures}
 WebAssembly has basic control flow structures including \verb|block|, \verb|loop|, and \verb|if| statements. We make use of \verb|block| and \verb|label| to implement \verb|for| loops and \verb|switch| statements. For nested statements with multiple scoping, we can make a reference to a named label that is defined by the closest outer enclosing construct, so labels in different scopes but have the same name do not have conflicting results.
@@ -123,7 +123,97 @@ WebAssembly has basic control flow structures including \verb|block|, \verb|loop
 WebAssembly does not have native support for printing to console. A way to include printing is to import a module from \verb|spectest|, but that also has its limitations in that it can only print WebAssembly integers and floats verbatim. Alexandre implemented proper printing mechanism in \verb|binaryen| in his forked copy of the repository [12], and we use that program to parse the generated S-expression code.
 
 \section{Examples}
+\subsubsection*{GoLite}
+The following is a simple GoLite program.
 
+\begin{lstlisting}
+package main
+
+func main() {
+  var x, y int = 2, 3
+  if z := 1; z == 0 {
+    x = y * (z - 4)
+  } else {
+    y++
+  }
+}	
+\end{lstlisting}
+
+\subsubsection*{WebAssembly}
+We can see from the generated code that we rely a lot on self-defined functions to support print and string:
+
+\begin{lstlisting}
+(module
+  (memory 128 128 )
+  (import $#write_i32 "spectest" "write" (param i32))
+  (import $#writeln_i32 "spectest" "writeln" (param i32))
+  (import $#print_i32 "spectest" "print" (param i32))
+  (import $#print_f64 "spectest" "print" (param f64))
+  (import $#println_i32 "spectest" "println" (param i32))
+  (import $#println_f64 "spectest" "println" (param f64))
+  (func $#writelni32 (param $i i32)
+    (call_import $#writeln_i32 (get_local $i)))
+  (func $#writei32 (param $i i32)
+    (call_import $#write_i32 (get_local $i)))
+  (func $#prinlntbool (param $i i32)
+    (call $#printbool (get_local $i))
+    (call $#writei32 (i32.const 10)))
+  (func $#printbool (param $i i32)
+    (if (i32.eq (get_local $i) (i32.const 0))
+      (then (call $#writei32 (i32.const 116))
+        (call $#writei32 (i32.const 114))
+        (call $#writei32 (i32.const 117))
+        (call $#writei32 (i32.const 101)))
+    (else (call $#writei32 (i32.const 102))
+      (call $#writei32 (i32.const 97))
+      (call $#writei32 (i32.const 108))
+      (call $#writei32 (i32.const 115))
+      (call $#writei32 (i32.const 101)) )))
+  (func $#printi32 (param $i i32)
+    (call_import $#print_i32 (get_local $i)))
+  (func $#printf64 (param $i f64)
+    (call_import $#print_f64 (get_local $i)))
+  (func $#printlni32 (param $i i32)
+    (call_import $#println_i32 (get_local $i)))
+  (func $#printlnf64 (param $i f64)
+    (call_import $#println_f64 (get_local $i)))
+  (func $#printlnstring (param $s i32) (local $n i32) (local $i i32)
+    (set_local $i (i32.const 0))
+    (set_local $n (i32.load (get_local $s)))
+    (loop $#break $#continue
+      (br_if $#break (i32.ge_u (get_local $i) (get_local $n)))
+      (call $#writei32 (i32.load (i32.add (get_local $s)
+        (i32.mul (i32.const 4) (i32.add (i32.const 1) (get_local $i))))))
+      (set_local $i (i32.add (get_local $i) (i32.const 1)))
+      (br $#continue))
+    (call $#writei32 (i32.const 10)))
+  (func $#printstring (param $s i32) (local $n i32) (local $i i32)
+    (set_local $i (i32.const 0))
+    (set_local $n (i32.load (get_local $s)))
+    (loop $#break $#continue
+      (br_if $#break (i32.ge_u (get_local $i) (get_local $n)))
+      (call $#writei32 (i32.load (i32.add (get_local $s)
+        (i32.mul (i32.const 4) (i32.add (i32.const 1) (get_local $i))))))
+      (set_local $i (i32.add (get_local $i) (i32.const 1)))
+      (br $#continue)))
+  (func $main
+    (local $x_int_1 i32)
+    (local $y_int_1 i32)
+    (local $z_int_2 i32)
+    (set_local $x_int_1 (i32.const 2))
+    (set_local $y_int_1 (i32.const 3))
+    (block
+      (set_local $z_int_2 (i32.const 1))
+      (if (i32.eq (get_local $z_int_2) (i32.const 0))
+        (then
+          (set_local $x_int_1 (i32.mul (get_local $y_int_1) (i32.sub (get_local $z_int_2) (i32.const 4)))))
+        (else
+          (set_local $y_int_1 (i32.add (get_local $y_int_1) (i32.const 1)))))))
+  (start $#init)
+  (func $#init
+    (i32.store (i32.const 0) (i32.const 4))
+    (call $main)))
+\end{lstlisting}
 
 \section{Conclusions}
 This project is challenging not only because WebAssembly is a low-level programming language, but also the scarcity of information and documentation about WebAssembly that makes it much more difficult for us to implement the code generator, especially for certain constructs such as GoLite types and string operations. Even \verb|ilwasm| [9] has not implemented proper generation of arrays and prints. Time is needed for the development of WebAssembly to mature. Even then, the speed of the development will only result in changes to the formal specification.
