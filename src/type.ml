@@ -397,6 +397,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                              | (i, _) ->  not (in_scope i g))
                            tds)
        then typecheck_error pos "Short declaration should define at least one new variable";
+       let rec tc l acc = match l with
+         | (("_",p),_)::xs -> tc xs acc
+         | ((i,p),_)::xs -> if List.mem i acc
+                            then typecheck_error p "Duplicate lhs in short declaration"
+                            else tc xs (i::acc)
+         | [] -> ()
+       in
+       tc ds [];
 
        List.iter (fun (i, (e,(_,te,_))) ->
                    if (in_scope i g)
@@ -411,37 +419,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                  tds;
 
        (SDecl_stmt(tds), (pos,g))
-
-    (* here *)
-       (* let tds = List.map (fun ((i,_), e) -> (i, tExpr g e)) ds in *)
-
-       (* if not (List.exists (function *)
-       (*                       | ("_", _) -> false *)
-       (*                       | (i, _) ->  not (in_scope i g)) *)
-       (*                     tds) *)
-       (* then typecheck_error pos "Short declaration should define at least one new variable"; *)
-       (* let rec tc l acc = match l with *)
-       (*   | (("_",p),_)::xs -> tc xs acc *)
-       (*   | ((i,p),_)::xs -> if List.mem i acc *)
-       (*                      then typecheck_error p "Duplicate lhs in short declaration" *)
-       (*                      else tc xs (i::acc) *)
-       (*   | [] -> () *)
-       (* in *)
-       (* tc ds []; *)
-
-       (* List.iter (fun (i, (e,(_,te,_))) -> *)
-       (*             if (in_scope i g) *)
-       (*             then match find i g with *)
-       (*               | None -> () (\* Impossible *\) *)
-       (*               | Some(t) -> begin *)
-       (*                  if not (same_type t te) *)
-       (*                  then typecheck_error pos ("Type mismatch with variable `" ^ i ^ "`") *)
-       (*                 end *)
-       (*             else *)
-       (*               tadd i te g) *)
-       (*           tds; *)
-
-       (* (SDecl_stmt(tds), (pos,g)) *)
 
     | Type_stmt(typ_decls) -> 
        let tl = List.map (fun (i, t) -> (i,TKind(tTyp g t))) typ_decls in
