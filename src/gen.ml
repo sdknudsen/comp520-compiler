@@ -197,6 +197,21 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (* fprintf oc "(%t.%t %t)" *)
        (*                (fun c -> gTyp typ) *)
        (*                (fun c -> gUOp op) *)
+
+    | Fn_call((Iden("float64"),_), [k]) -> 
+       let (_,(_,t,_)) = k in
+       (match sTyp2 t with
+       | TSimp("float64",_) -> gExpr k
+       | _ -> fprintf oc "(f64.convert_s/i32 %t)" (fun c -> gExpr k))
+
+    | Fn_call((Iden("int"),_), [k])
+    | Fn_call((Iden("bool"),_), [k])
+    | Fn_call((Iden("rune"),_), [k]) -> 
+       let (_,(_,t,_)) = k in
+       (match sTyp2 t with
+        | TSimp(("float64",_)) -> fprintf oc "(i32.trunc_s/f64 %t)" (fun c -> gExpr k)
+        | _ -> gExpr k)
+
     | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
                                             (fun c -> pstr i)
                                             (fun c -> pssl " " gExpr k)
@@ -416,7 +431,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
         pstr "(br $#continue))\n";
         decr tabc;
 
-  (* ( loop <label1>? <label2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
        let notUnder = List.filter (fun (x,_) -> x != "_") id_e_ls in
        let inCtx = List.filter (fun (x,_) -> in_context x ctx) notUnder in
@@ -438,7 +452,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Return(eo) -> 
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
-  (* ( return <expr>? ) *)
     | Break -> pstr "(br $#break)";
     | Continue -> pstr "(br $#continue)";
     | Empty_stmt -> () (* pstr "nop" *) (* or should we not do anything? *)
@@ -629,20 +642,3 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                    tab();
                    fprintf oc "(call $main)";
                  end)
-
-(* more about webassembly: *)
-
-(* value: <int> | <float> *)
-(* var: <int> | $<name> *)
-(* name: (<letter> | <digit> | _ | . | + | - | * | / | \ | ^ | ~ | = | < | > | ! | ? | @ | # | $ | % | & | | | : | ' | `)+ *)
-(* string: "(<char> | \n | \t | \\ | \' | \" | \<hex><hex>)*" *)
-
-(* type: i32 | i64 | f32 | f64 *)
-
-(* unop:  ctz | clz | popcnt | ... *)
-(* binop: add | sub | mul | ... *)
-(* relop: eq | ne | lt | ... *)
-(* sign: s|u *)
-(* offset: offset=<uint> *)
-(* align: align=(1|2|4|8|...) *)
-(* cvtop: trunc_s | trunc_u | extend_s | extend_u | ... *)

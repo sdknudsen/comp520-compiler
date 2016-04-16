@@ -7,25 +7,6 @@ open List
 open Context
 
 let simplify (Prog(id,decls) : Typed.ast) =
-  let rec sTyp (at:Typed.uttyp) =
-    match at with
-    | TSimp(("int",g))
-    | TSimp(("float64",g))
-    | TSimp(("string",g))
-    | TSimp(("rune",g))
-    | TSimp(("bool",g)) -> at
-    | TSimp((x,g)) ->
-       (match find x g with
-        | Some(TKind(x)) -> sTyp x
-        | None -> failwith "Not valid type type")
-    (* | t -> Some(t) *)
-    | TStruct(x_typ_ls) -> TStruct(map (fun(id,typ) -> id, sTyp typ) x_typ_ls)
-    | TArray(typ,d) -> TArray(sTyp typ,d)
-    | TSlice(typ) -> TSlice(sTyp typ)
-    | TVoid -> TVoid
-    | TFn(a,b) -> TFn(map sTyp a,sTyp b)
-    | TKind(a) -> sTyp a
-  in
   
   let rec sExpr ((ue,(pos,typ,d)):Typed.annotated_texpr) =
     let sue = match ue with
