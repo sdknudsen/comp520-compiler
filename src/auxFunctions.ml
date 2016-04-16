@@ -1,6 +1,45 @@
 open Ast
 open Context
 
+let rec sTyp (at:Typed.uttyp) =
+  match at with
+  | TSimp(("int",g))
+    | TSimp(("float64",g))
+    | TSimp(("string",g))
+    | TSimp(("rune",g))
+    | TSimp(("bool",g)) -> at
+  | TSimp((x,g)) ->
+     (match find x g with
+      | Some(TKind(x)) -> sTyp x
+      | _ -> failwith "Not valid type type")
+  (* | t -> Some(t) *)
+  | TStruct(x_typ_ls) -> TStruct(List.map (fun(id,typ) -> id, sTyp typ) x_typ_ls)
+  | TArray(typ,d) -> TArray(sTyp typ,d)
+  | TSlice(typ) -> TSlice(sTyp typ)
+  | TVoid -> TVoid
+  | TFn(a,b) -> TFn(List.map sTyp a,sTyp b)
+  | TKind(a) -> TKind(sTyp a)
+
+let rec sTyp2 (at:Typed.uttyp) =
+  match at with
+  | TSimp(("int",g))
+    | TSimp(("float64",g))
+    | TSimp(("string",g))
+    | TSimp(("rune",g))
+    | TSimp(("bool",g)) -> at
+  | TSimp((x,g)) ->
+     (match find x g with
+      | Some(TKind(x)) -> sTyp2 x
+      | _ -> failwith "Not valid type type")
+      (* | None -> failwith "Not valid type type") *)
+  (* | t -> Some(t) *)
+  | TStruct(x_typ_ls) -> TStruct(List.map (fun(id,typ) -> id, sTyp2 typ) x_typ_ls)
+  | TArray(typ,d) -> TArray(sTyp2 typ,d)
+  | TSlice(typ) -> TSlice(sTyp2 typ)
+  | TVoid -> TVoid
+  | TFn(a,b) -> TFn(List.map sTyp2 a,sTyp2 b)
+  | TKind(a) -> sTyp2 a
+
 let uop_to_str = function
   | Positive -> "+"           
   | Negative -> "-"

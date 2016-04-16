@@ -2,6 +2,7 @@ open Ast
 open Context
 open Ho 
 open AuxFunctions
+(* open ToBase *)
 
 type auxVal = (string * int * string * Context.info) list
 (* key: fName, val: name * depth * typName * typ *)
@@ -75,7 +76,16 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | TSimp((i,p)) -> if in_context i g
                       then TSimp(i, get_scope i g)
                       else typecheck_error p "Use of undefined type"
-    | TStruct(tl) -> TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
+    | TStruct(tl) ->
+       let rec tc l acc = match l with
+         | (("_",p),_)::xs -> tc xs acc
+         | ((i,p),_)::xs -> if List.mem i acc
+                            then typecheck_error p "Duplicate field in struct definiton"
+                            else tc xs (i::acc)
+         | [] -> ()
+       in
+       tc tl [];
+       TStruct(List.map (fun ((i,_), t) -> (i, tTyp g t)) tl)
     | TArray(at,s) -> TArray(tTyp g at, s)
     | TSlice(st) -> TSlice(tTyp g st)
     | TFn(args, rtn) -> TFn(List.map (tTyp g) args, tTyp g rtn)
@@ -175,9 +185,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     (* append id? *)
     | Append((i,ipos), e) ->
        let t = (match find i g with
+       (* let t = (match mapo sTyp2 (find i g) with *)
          | Some(TSlice(t)) -> t
          | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
-         | _    -> typecheck_error pos  ("`" ^ i ^ "` must have be a slice"))
+         | _    -> typecheck_error pos  ("`" ^ i ^ "` must be a slice"))
        in
        let (_,(_,typ,_)) as te = tExpr g e in
        if same_type t typ then begin
@@ -212,8 +223,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let (_,ftyp) = (match etyp with
          | TStruct(tl) -> begin
              try
-               List.find (function | (_,i) -> true | _ -> false)
-                         tl
+               List.find (function | (f,_) -> i=f) tl
              with 
               |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
            end
@@ -242,19 +252,20 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | Print(es) -> 
       let texps = List.map (tExpr g) es in
       (List.iter (fun (_,(p,t,_)) ->
-                   if not (isBaseType t)
+                   if not (isBaseType (sTyp t))
                    then typecheck_error p "Print argument not of base type") texps);
       (Print(texps), (pos, g))
     | Println(es) ->
       let texps = List.map (tExpr g) es in
       (List.iter (fun (_,(p,t,_)) ->
-                   if not (isBaseType t)
+                   if not (isBaseType (sTyp t))
                    then typecheck_error p "Print argument not of base type") texps);
       (Println(texps), (pos, g))
     | If_stmt(po,e,ps,pso) ->
        let tinit = mapo (tStmt frt g) po in
        let (_,(_,typ,_)) as tcond = tExpr g e in
-       if not (same_type typ (sure (get_type_instance "bool" g)))
+       let btyp = sTyp2 typ in
+       if not (same_type btyp (sure (get_type_instance "bool" g)))
        then typecheck_error pos "If condition must have type bool";
        let gthen = scope g in
        let tthen = List.map (tStmt frt gthen) ps in
@@ -343,7 +354,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
        (match teo with 
          | None -> ()
-         | Some(_,(_,t,_)) when (same_type t (sure (get_type_instance "bool" g))) -> ()
+         | Some(_,(_,t,_)) when (same_type (sTyp2 t) (sure (get_type_instance "bool" g))) -> ()
          | _ -> typecheck_error pos "Condition is not a boolean expression");
 
        let tpo2 = (match po2 with
@@ -388,6 +399,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                              | (i, _) ->  not (in_scope i g))
                            tds)
        then typecheck_error pos "Short declaration should define at least one new variable";
+       let rec tc l acc = match l with
+         | (("_",p),_)::xs -> tc xs acc
+         | ((i,p),_)::xs -> if List.mem i acc
+                            then typecheck_error p "Duplicate lhs in short declaration"
+                            else tc xs (i::acc)
+         | [] -> ()
+       in
+       tc ds [];
 
        List.iter (fun (i, (e,(_,te,_))) ->
                    if (in_scope i g)
@@ -478,7 +497,6 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                   tl
        in
        (Type_decl(tl), pos)
-
     | Func_decl((fId,_), args, typ, stmts) ->
        currFName := fId;
        (* mklist(); *)
@@ -516,10 +534,52 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
          (Func_decl(fId, targs1, rtntyp, tstmts), pos)
        end
 
+
+    (* | Func_decl((fId,_), args, typ, stmts) -> *)
+    (*    currFName := fId; *)
+    (*    (\* mklist(); *\) *)
+    (*    (\* indexCount := List.length args; *\) *)
+    (*    if in_scope fId g *)
+    (*    then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared") *)
+    (*    else begin *)
+           
+    (*        let targs = List.map (fun((i,ipos), t) -> let vt = tTyp g t in *)
+    (*                                                      (\* ((i,ipos), vt, newIndex ())) args in *\) *)
+    (*                                                      ((i,ipos), vt)) args in *)
+    (*        let tl = List.map snd targs in *)
+    (*        let rtntyp = tTyp g typ in *)
+           
+    (*        add fId (TFn(tl, rtntyp)) g; *)
+
+    (*        let ng = scope g in   *)
+    (*        let targs1 = List.map (fun((i,ipos),t) -> *)
+    (*                         if in_scope i ng *)
+    (*                         then typecheck_error *)
+    (*                                ipos *)
+    (*                                ("Parameter name `" ^ i ^ "` use twice") *)
+    (*                         else *)
+    (*                           (match sTyp t with *)
+    (*                            | TKind(_) -> (add i t ng; (i, t)) *)
+    (*                            | _ -> typecheck_error ipos  *)
+    (*                                                   ("Parameter type of `" ^ i ^ "` is not valid") *)
+    (*                       )) targs *)
+    (*        in *)
+
+    (*        let tstmts = List.map (tStmt rtntyp ng) stmts in *)
+    (*        (match typ with *)
+    (*         | TVoid -> () *)
+    (*         | _ -> if not (valid_return_path tstmts) *)
+    (*                then typecheck_error pos ("Execution paths with no returns in function")); *)
+
+    (*        unscope ng; *)
+    (*        currFName := "_main_"; *)
+    (*        (Func_decl(fId, targs1, rtntyp, tstmts), pos) *)
+    (*      end *)
+
   and tDecls gamma ds = List.map (tDecl gamma) ds
   in
   let ctx = (init ()) in begin
-    tadd "int"     (TKind (TSimp("#",ctx))) ctx;
+      tadd "int"     (TKind (TSimp("#",ctx))) ctx;
     tadd "bool"    (TKind (TSimp("#",ctx))) ctx;
     tadd "string"  (TKind (TSimp("#",ctx))) ctx;
     tadd "rune"    (TKind (TSimp("#",ctx))) ctx;

@@ -13,6 +13,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let segc = ref 4 in (* segment count *)
   let tabc = ref 0 in (* tab count *)
   let switchTag = ref None in (* expr switch *)
+  let mainFunc = ref false in (* expr switch *)
   (* let pln() = fprintf oc "\n" in (* print line *) *)
   let pstr s = fprintf oc "%s" s in (* print ocaml string *)
   (* let pid id = pstr (fst id) in *)
@@ -79,6 +80,22 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | Bitnand,t   -> (gTyp t) ^ ".shr_s"
     in pstr s
   in
+  let hsh s = "g#"^s in
+  let rec addHash ((ue,(pos,typ,ctx)):Typed.annotated_texpr) =
+    let hue = match ue with
+    | Iden(id) -> Iden(hsh id)
+    | AValue(r,e) -> AValue(addHash r,addHash e)
+    | SValue(r,id) -> SValue(addHash r,hsh id)
+    | ILit(_) 
+    | FLit(_)
+    | RLit(_)
+    | SLit(_) ->  ue
+    | Bexp(op,e1,e2) -> Bexp(op,addHash e1,addHash e2)
+    | Uexp(op,e) -> Uexp(op,addHash e)
+    | Fn_call(fun_id,es) -> Fn_call(fun_id,List.map addHash es)
+    | Append(x,e) -> Append(hsh x,addHash e)
+    in (hue,(pos, typ ,ctx))
+  in
   
   (* let rec name_typ (at:Typed.uttyp) = match at with
     | TSimp("bool", _)    -> "bool"
@@ -110,7 +127,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | _ -> 0
   in
   let rec alphaRenaming id d (at:Typed.uttyp) : string = match at with
-    (* get wast type before printing !! *)
     | TSimp(t,_) -> sprintf "%s_%s_%d" id t d
     | TArray(_,_)
     | TStruct(_)
@@ -195,6 +211,21 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
        (* fprintf oc "(%t.%t %t)" *)
        (*                (fun c -> gTyp typ) *)
        (*                (fun c -> gUOp op) *)
+
+    | Fn_call((Iden("float64"),_), [k]) -> 
+       let (_,(_,t,_)) = k in
+       (match sTyp2 t with
+       | TSimp("float64",_) -> gExpr k
+       | _ -> fprintf oc "(f64.convert_s/i32 %t)" (fun c -> gExpr k))
+
+    | Fn_call((Iden("int"),_), [k])
+    | Fn_call((Iden("bool"),_), [k])
+    | Fn_call((Iden("rune"),_), [k]) -> 
+       let (_,(_,t,_)) = k in
+       (match sTyp2 t with
+        | TSimp(("float64",_)) -> fprintf oc "(i32.trunc_s/f64 %t)" (fun c -> gExpr k)
+        | _ -> gExpr k)
+
     | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
                                             (fun c -> pstr i)
                                             (fun c -> pssl " " gExpr k)
@@ -438,23 +469,27 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
         pstr "(br $#continue))\n";
         decr tabc;
 
-  (* ( loop <label1>? <label2>? <expr>* ) *)
     | SDecl_stmt(id_e_ls) ->
-        plsl (fun (id, e) ->
-              let (_,(_,typ,_)) = e in
-              tab();
-              fprintf oc "(set_local $%t %t)"
-                (fun c -> let depth = scope_depth (get_scope id ctx) in
-                          pstr (alphaRenaming id depth typ))
-                (fun c -> gExpr e))
-          id_e_ls
-        
+       let notUnder = List.filter (fun (x,_) -> x != "_") id_e_ls in
+       let inCtx = List.filter (fun (x,_) -> in_context x ctx) notUnder in
+       let newid_e_ls = List.map (fun (id,e) -> ("g#"^id,addHash e)) inCtx in
+       List.iter (fun (id,(_,(_,t,_))) -> add id t ctx) newid_e_ls;
+
+       plsl (fun (id, e) ->
+           let (_,(_,typ,_)) = e in
+           tab();
+           fprintf oc "(set_local $%t %t)"
+                   (fun c -> let depth = scope_depth (get_scope id ctx) in
+                             pstr (alphaRenaming id depth typ))
+                   (fun c -> gExpr e))
+            (* id_e_ls *)
+            (List.map (fun (id,e) -> (id,addHash e)) id_e_ls)
+            
     | Type_stmt(id_typ_ls) -> () 
     | Expr_stmt e -> gExpr e        
     | Return(eo) -> 
         fprintf oc "(return %t)"
                 (fun c-> defaulto gExpr () eo)
-  (* ( return <expr>? ) *)
     | Break -> pstr "(br $#break)";
     | Continue -> pstr "(br $#continue)";
     | Empty_stmt -> () (* pstr "nop" *) (* or should we not do anything? *)
@@ -479,6 +514,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                       | TSimp("string", _)
                       | TSimp("bool", _) ->    styp := "i32"; size := 4;
                       | _ -> failwith "not implemented");
+                    tab();
                     fprintf oc "(%s.store (i32.const %d) %t)"
                                 !styp
                                 !segc
@@ -501,7 +537,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               
                 | _ -> failwith "weeding error" )))) xss;
 
-              tab();
               pstr ")";
               decr tabc;
               globc := !globc + 1
@@ -509,6 +544,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
               (* write a function to go through the branch of the typed ast and gather all the variable declarations, then call it at the beginning *)
+              if fId = "main" then mainFunc := true;
               pstr "(func $"; pstr fId;
               incr tabc; pstr "\n";
               psfl "\n"
@@ -666,40 +702,27 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"    (return (i32.sub (get_local $dest)\n"
            ^^"                     (get_local $i))))\n"
 
+           ^^" %t\n"
            ^^"  (start $#init)\n"
            ^^"  (func $#init\n"
-           ^^"    %t\n"
            ^^"    (i32.store (i32.const 0) (i32.const %d))\n" (* Heap pointer *)
-           ^^"    (call $main))\n\n"
-
-           ^^"%t)")
+           ^^"%t%t))")
        (fun c -> pstr "")
-
-       (fun c -> if !globc > 0 then begin
-                   for i = 0 to !globc - 1 do
-                     tab(); fprintf oc "(call $#global%d)" i; pstr "\n";  
-                   done;
-                 end)
- 
-       !segc
 
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
-
-(* more about webassembly: *)
-
-(* value: <int> | <float> *)
-(* var: <int> | $<name> *)
-(* name: (<letter> | <digit> | _ | . | + | - | * | / | \ | ^ | ~ | = | < | > | ! | ? | @ | # | $ | % | & | | | : | ' | `)+ *)
-(* string: "(<char> | \n | \t | \\ | \' | \" | \<hex><hex>)*" *)
-
-(* type: i32 | i64 | f32 | f64 *)
-
-(* unop:  ctz | clz | popcnt | ... *)
-(* binop: add | sub | mul | ... *)
-(* relop: eq | ne | lt | ... *)
-(* sign: s|u *)
-(* offset: offset=<uint> *)
-(* align: align=(1|2|4|8|...) *)
-(* cvtop: trunc_s | trunc_u | extend_s | extend_u | ... *)
+                
+       !segc
+       
+       (fun c -> incr tabc; incr tabc;
+                 if !globc > 0 then begin
+                   for i = 0 to !globc - 1 do
+                     tab(); fprintf oc "(call $#global%d)\n" i;
+                   done;
+                 end)
+ 
+       (fun c -> if !mainFunc then begin
+                   tab();
+                   fprintf oc "(call $main)";
+                 end)

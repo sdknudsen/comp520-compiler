@@ -3,7 +3,7 @@ open Context
 
 (* utilities *)
 let write f obj name suff = f obj (open_out (name^suff))
-let file = ref ""
+let file = ref "out.go"
 let dumpsymtab = ref false
 let smartsymtab = ref false
 let pptype = ref false
@@ -113,6 +113,7 @@ let main =
   in
   begin
     Arg.parse speclist anon_fun usage_msg;
+    (*if !file <> "out.go" then*)
     if !file <> "" then
       begin
         let lexbuf = Lexing.from_channel !in_channel in
