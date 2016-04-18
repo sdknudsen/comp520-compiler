@@ -22,7 +22,7 @@ let simplify (Prog(id,decls) : Typed.ast) =
     | Uexp(op,e) -> Uexp(op,sExpr e)
     | Fn_call((Iden(i),(a, TKind(typ), g)), es) -> 
          (match sTyp (sure (get_type_instance i g)) with
-         | TSimp(baseName,ctx) -> Fn_call((Iden(baseName),(a, sure (get_type_instance "#" ctx), ctx)), map sExpr es) 
+         | TSimp(baseName,ctx) -> Fn_call((Iden(baseName),(a, (TKind (TSimp("#", get_root ctx))), ctx)), map sExpr es) 
          | _ -> failwith "no")
     (* | Fn_call((Iden(i),a), k) -> failwith "no" *)
     | Fn_call(fun_id,es) -> Fn_call(fun_id,map sExpr es)

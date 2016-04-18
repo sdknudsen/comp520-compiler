@@ -1,5 +1,9 @@
 (* Higher order function (mostly) *)
 
+let iso = function
+  | Some(_) -> true
+  | None -> false
+
 let sure = function
   | Some(x) -> x
   | None -> failwith "So sure?\n" 

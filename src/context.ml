@@ -61,6 +61,12 @@ let rec get_scope name g = match g with
       else get_scope name c
   | Root(tbl,_,_) -> g 
 
+let rec get_root g = match g with
+  | Frame(tbl,c,_,_) -> get_root c
+  | Root(_,_,_) -> g 
+
+ 
+
 
 let indent n = 
   may (fun o -> Printf.fprintf o

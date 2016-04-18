@@ -161,7 +161,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let (_,(_,t,_)) as te = tExpr g e in
        if (isCastable t)
        then
-         let tx = sure (get_type_instance x g) in 
+         let tx = sure (get_type_instance x g) in
          (Fn_call((Iden(x), (ipos, TKind(tx),get_scope x g)), [te]), (pos, tx, g))
        else typecheck_error pos ("Type `" ^ (typ_to_str t) ^ "` is not castable")
 
