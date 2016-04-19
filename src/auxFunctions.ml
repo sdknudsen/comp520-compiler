@@ -97,7 +97,22 @@ let rec get_base_type = function
          | _ -> None)
    | t -> Some(t)
 
-let rec same_type t1 t2 = 
+let rec is_type t = match t with
+   | TSimp((i,ctx)) ->
+      (match find i ctx with
+        | Some(TKind(_)) -> true
+        | _ -> false)
+   | _ -> true
+
+let rec get_base_type = function
+   | TSimp((x,g)) ->
+       (match find x g with
+         | Some(TKind(x)) -> get_base_type x
+         | _ -> None)
+   | t -> Some(t)
+
+let rec same_type t1 t2 =
+ let rec same_type' t1 t2 = 
    match t1, t2 with
     | TVoid, TVoid -> true
     | TSimp((a,c)), TSimp((a',c')) -> a = a' && c == c'
@@ -107,6 +122,7 @@ let rec same_type t1 t2 =
     | TStruct(tl), TStruct(tl') ->
         List.exists2 (fun (i,t) (i',t') -> not (i = i' && (same_type t t'))) tl tl'
     | _, _ -> false
+ in same_type' t1 t2
 
 let rec isBool = function
     | TSimp(("bool", _)) -> true

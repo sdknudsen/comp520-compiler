@@ -179,7 +179,10 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
          then typecheck_error pos ("Function argument mistmatch between "^typ_to_str ta^" and "^typ_to_str te)
          else ()
        end in
-       List.iter2 typecheck_args fargs tes;
+       (try
+          List.iter2 typecheck_args fargs tes
+        with
+         | _ -> typecheck_error pos ("Wrong number of arguments"));
        (Fn_call(tfid,texps), (pos, ft, g))
 
     (* append id? *)
@@ -187,8 +190,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        let t = (match find i g with
        (* let t = (match mapo sTyp2 (find i g) with *)
          | Some(TSlice(t)) -> t
-         | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined")
-         | _    -> typecheck_error pos  ("`" ^ i ^ "` must be a slice"))
+         | Some(t) -> begin
+             match get_base_type t with
+               | Some(TSlice(t)) -> t
+               | _ -> typecheck_error pos  ("`" ^ i ^ "` must be a slice")
+           end
+         | None -> typecheck_error ipos ("variable `" ^ i ^ "` is undefined"))
        in
        let (_,(_,typ,_)) as te = tExpr g e in
        if same_type t typ then begin
@@ -206,9 +213,8 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | AValue(r,e) ->
        let (_,(p1,typ1,_)) as tr = tExpr g r in
        let (_,(p2,typ2,_)) as te = tExpr g e in
-       (* do we allow e to be empty if this is a slice?? *)
-       let ot = (match typ1 with
-         | TArray(t,_) -> t
+       let ot = (match sure (get_base_type typ1) with
+         | TArray(t,_)
          | TSlice(t) -> t
          | _ -> typecheck_error p1 "Non-indexable value");
        in
@@ -219,15 +225,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
     | SValue(e, (i,ip)) ->
        let te = tExpr g e in
        let (_,(_,etyp,_)) = te in
-       
-       let (_,ftyp) = (match etyp with
+      
+       let (_,ftyp) = (match sure (get_base_type etyp) with
          | TStruct(tl) -> begin
              try
                List.find (function | (f,_) -> i=f) tl
              with 
               |   Not_found -> typecheck_error ip ("Invalid struct field `"^i^"`")
            end
-         | TKind(_) -> typecheck_error pos "Expression of type kind"
          | _ -> typecheck_error pos "Expression not of type struct")
        in
        (SValue(te,(i)), (pos, ftyp, g))
@@ -383,6 +388,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                else typecheck_error ipos ("Conflicting type for variable declaration `" ^ i ^ "`")
            | Some((_,(_,etyp,_))), None -> etyp
          in
+         (if is_type tt
+          then ()
+          else typecheck_error ipos ("Invalid type for `" ^ i ^ "`"));
          tadd i tt g;
          (* (i, te, Some(tt), newIndex()) *)
          (i, te, Some(tt))
@@ -393,6 +401,12 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
 
     | SDecl_stmt(ds) ->
        let tds = List.map (fun ((i,_), e) -> (i, tExpr g e)) ds in
+
+       List.iter (function
+                   | (_, (_,(p,TVoid,_))) -> 
+                     typecheck_error p "Cannot assign void"
+                   | _ -> ())
+                 tds;
 
        if not (List.exists (function
                              | ("_", _) -> false
@@ -465,7 +479,7 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
            | Some(e) -> Some(tExpr g e)
          in
 
-         if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope");
+         (if in_scope i g then typecheck_error ipos ("Variable \""^ i ^"\" already declared in scope"));
          
          let tt = match te, t with
            | None, None -> typecheck_error ipos "Neither type or expression provided to variable declaration"
@@ -477,6 +491,9 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
                else typecheck_error ipos ("Conflicting type for variable declaration " ^ i)
            | Some((_,(_,etyp,_))), None -> etyp
          in
+         (if is_type tt
+          then ()
+          else typecheck_error ipos ("Invalid type for `" ^ i ^ "`"));
          tadd i tt g;
          (i, te, Some(tt))
        in
@@ -505,9 +522,14 @@ let typeAST (Prog((pkg,_),decls) : Untyped.ast) =
        then typecheck_error pos ("Function \"" ^ fId ^ "\" already declared")
        else begin
            
-           let targs = List.map (fun((i,ipos), t) -> let vt = tTyp g t in
-                                                         (* ((i,ipos), vt, newIndex ())) args in *)
-                                                         ((i,ipos), vt)) args in
+           let targs = List.map (fun((i,ipos), t) ->
+                                  let vt = tTyp g t in
+                                  if not (is_type vt)
+                                  then typecheck_error ipos ("Function argument doesn't have a valid type")
+                                   (* ((i,ipos), vt, newIndex ())) args in *)
+                                  else ((i,ipos), vt))
+                                args
+           in
            let tl = List.map snd targs in
            let rtntyp = tTyp g typ in
            

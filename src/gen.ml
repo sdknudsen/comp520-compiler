@@ -32,7 +32,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | x::xs -> f x; List.iter (fun y -> pstr "\n"; f y) xs
   in
   let rec type_name (at:Typed.uttyp) = match at with
-    (* do we need to check if the base names have been aliased?? *)
     | TSimp("bool", _)    -> "bool"
     | TSimp("int", _)     -> "int"
     | TSimp("float64", _) -> "float64"
@@ -100,20 +99,18 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let gBOp op t =
     let s = match op, t with
 (*
-    | Equals,    TStruct("string",_) -> "call $#string_eq"
-    | Notequals, TStruct("string",_) -> "call $#string_ne"
     | Lt,        TStruct("string",_) -> "call $#string_lt"
     | Lteq,      TS("string",_)      -> "call $#string_le"
     | Gt,        TSimp("string",_)   -> "call $#string_gt"
     | Gteq,      TSimp("string",_)   -> "call $#string_ge"
 *)
-
     | Equals,    TSimp("string",_) -> "call $#string_eq"
     | Notequals, TSimp("string",_) -> "call $#string_ne"
     | Lt,        TSimp("string",_) -> "call $#string_lt"
     | Lteq,      TSimp("string",_) -> "call $#string_le"
     | Gt,        TSimp("string",_) -> "call $#string_gt"
     | Gteq,      TSimp("string",_) -> "call $#string_ge"
+    | Plus,      TSimp("string",_) -> "call $#string_cat"
 
     | Equals,t    -> (gTyp t) ^ ".eq"
     | Notequals,t -> (gTyp t) ^ ".ne"
@@ -161,7 +158,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
     | TArray(t, l) -> (size_of_type t) * l
     | TSlice(_) -> 4
     | TSimp("float64", _) -> 8
-    | _ -> 0
+    | _ -> 90
   in
   let complex_type t = match t with
     | TSimp("bool", _)
@@ -207,19 +204,26 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                      (fun c -> pstr (alphaRenaming id depth typ))
         else begin
           let global = Hashtbl.find globalVar id in
-          if not (complex_type typ)
+          if not (complex_type typ) && doLoad
           then fprintf oc "(%s.load (i32.const %d))" (fst global) (snd global)
           else fprintf oc "(i32.const %d)" (snd global) 
         end
 
+    | AValue(((_,(_,TSlice(t),_)) as e1),e2)
     | AValue(((_,(_,TArray(t,_),_)) as e1),e2) ->
-       (if not (complex_type typ)
-        then fprintf oc "(i32.load (i32.add %t (i32.mul (i32.const %d) %t)))"
-        else fprintf oc "(i32.add %t (i32.mul (i32.const %d) %t))")
+       if not (complex_type typ) && doLoad
+       then fprintf oc "(%s.load (i32.add %t (i32.mul (i32.const %d) %t)))"
+           (gTyp typ)
            (fun c -> gExpr e1 false)
            (size_of_type t)
            (fun c -> gExpr e2 true)
        
+       else fprintf oc "(i32.add %t (i32.mul (i32.const %d) %t))"
+           (fun c -> gExpr e1 false)
+           (size_of_type t)
+           (fun c -> gExpr e2 true)
+       
+    | AValue(_,_) -> failwith "Typechecking leaks invalid array references"
                                                         
     | SValue(((_,(_,TStruct(l),_)) as r),id) ->
       let rec field_offset id l acc = match l with
@@ -227,9 +231,12 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
         | (i,t)::xs -> field_offset id xs (acc + (size_of_type t))
         | _ -> failwith "Typechecking doesn't check struct fields correctly"
       in
-       (if (not (complex_type typ))
-        then fprintf oc "(i32.load (i32.add %t (i32.const %d)))"
-        else fprintf oc "(i32.add %t (i32.const %d))")
+       if (not (complex_type typ)) && doLoad
+       then fprintf oc "(%s.load (i32.add %t (i32.const %d)))"
+               (gTyp typ)
+               (fun c -> gExpr r true)
+               (field_offset id l 0)
+       else fprintf oc "(i32.add %t (i32.const %d))"
                (fun c -> gExpr r true)
                (field_offset id l 0)
                         
@@ -259,28 +266,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                (fun c -> gExpr e1 true)
                (fun c -> gExpr e2 true)
 
-(*
-   | Bexp(op,((e,(p,TArray(t, l) as t,c)) as e1),e2) ->
-      let rec p n l acc = match l with
-        | [x] -> 
-          fprintf oc "(%t %t %t)"
-                      (fun c -> gBOp op t)
-                      (fun c -> gExpr e1)
-                      (fun c -> gExpr e2)
+    | Bexp(Notequals,((_,(_,(TStruct(_) as t), _)) as e1),e2)
+    | Bexp(Notequals,((_,(_,(TArray(_) as t), _)) as e1),e2) ->
+        fprintf oc "(call $#nequals_bytes %t %t (i32.const %d))"
+                   (fun c -> gExpr e1 true)
+                   (fun c -> gExpr e2 true)
+                   ((size_of_type t) / 4)
+    | Bexp(Equals,((_,(_,(TStruct(_) as t), _)) as e1),e2)
+    | Bexp(Equals,((_,(_,(TArray(_) as t), _)) as e1),e2) ->
+        fprintf oc "(call $#equals_bytes %t %t (i32.const %d))"
+                   (fun c -> gExpr e1 true)
+                   (fun c -> gExpr e2 true)
+                   ((size_of_type t) / 4)
        
-        | x::xs ->
-          fprintf oc "(i32.and (%t (i32.load (i32.add (i32.iconst n) ())"
-                      (fun c -> gBOp op t)
-                      (fun c -> gExpr e1)
-                      (fun c -> gExpr e2)
-      in p 0 l []
-   | Bexp(op,((e,(p,TStruct(_) as t,c)) as e1),e2) ->
-       fprintf oc "(%t %t %t)"
-                      (fun c -> gBOp op t)
-                      (fun c -> gExpr e1)
-                     (fun c -> gExpr e2)    
-
-*)
     | Bexp(op,((e,(p,t,c)) as e1),e2) ->
        fprintf oc "(%t %t %t)"
                       (fun c -> gBOp op t)
@@ -319,11 +317,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
         | TSimp(("float64",_)) -> fprintf oc "(i32.trunc_s/f64 %t)" (fun c -> gExpr k true)
         | _ -> gExpr k true)
 
-    | Fn_call((Iden(i),_), k) -> fprintf oc "(call $%t %t)"
-                                            (fun c -> pstr i)
-                                            (fun c -> pssl " " (fun x -> gExpr x true) k)
+    | Fn_call((Iden(i),_), k) ->
+      fprintf oc "(call $%t %t)"
+        (fun c -> pstr i)
+        (fun c -> pssl " "
+                  (fun ((_,(_,t,_)) as x) ->
+                     if complex_type t
+                     then fprintf oc "(call $#copyarg %t (i32.const %d))"
+                             (fun c -> gExpr x true)
+                             (size_of_type t)
+                     else gExpr x true)
+                  k)
     | Fn_call(fun_id, es) -> failwith "fn_call without id"
-       (* let i = get_name fun_id in *)
+        (* let i = get_name fun_id in *)
        (*                       fprintf oc "(call $%t %t)" *)
        (*                               (fun c -> pstr i) *)
        (*                               (fun c -> pssl " " gExpr k) *)
@@ -338,29 +344,60 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   let rec gAssign (((ue,_) as lhs),((_,(_,typ,ctx)) as rhs)) = match ue with
     | Iden(id) ->
       let depth = scope_depth (get_scope id ctx) in
-      if depth > 0 then
+      if depth > 1 then
+        if complex_type typ
+        then
+        fprintf oc "(call $#copy (get_local %t) %t (i32.const %d))"
+                   (fun c -> pstr (getId lhs))
+                   (fun c -> gExpr rhs true)
+                   (size_of_type typ)
+        else
         fprintf oc "(set_local $%t %t)"
                    (fun c -> pstr (getId lhs))
                    (fun c -> gExpr rhs true)
       else begin
         let styp = gTyp typ in
         let size = size_of_type typ in
+        if complex_type typ
+        then
+        fprintf oc "(call $#copy (i32.const %d) %t (i32.const %d))"
+                   (snd (try (Hashtbl.find globalVar id) with
+                          | _ -> failwith "Shouldn't happen"))
+                   (fun c -> gExpr rhs true)
+                   (size_of_type typ)
+        else
         fprintf oc "(%s.store (i32.const %d) %t)"
                    styp
-                   !segc
+                   (snd (try (Hashtbl.find globalVar id) with
+                          | _ -> failwith "Shouldn't happen"))
                    (fun c -> gExpr rhs true);
-                   Hashtbl.add globalVar id (styp, !segc);
-                   segc := !segc + size;
       end
     | AValue(e1,e2) ->
-        fprintf oc "(%s.store (i32.add %t (i32.mul (i32.const %d) %t)) %t)"
-                   (gTyp typ) 
-                   (fun c -> gExpr e1 false)
+        if complex_type typ
+        then
+        fprintf oc "(call $#copy %t %t (i32.const %d))"
+                   (fun c -> gExpr lhs false)
+                   (fun c -> gExpr rhs true)
                    (size_of_type typ)
-                   (fun c -> gExpr e2 true)
+        else
+        fprintf oc "(%s.store %t %t)"
+                   (gTyp typ) 
+                   (fun c -> gExpr lhs false)
                    (fun c -> gExpr rhs true)
         
-    | SValue(e,i) -> ()
+    | SValue(e,i) ->
+        if complex_type typ
+        then
+        fprintf oc "(call $#copy %t %t (i32.const %d))"
+                   (fun c -> gExpr lhs false)
+                   (fun c -> gExpr rhs true)
+                   (size_of_type typ)
+        else
+        fprintf oc "(%s.store %t %t)"
+                   (gTyp typ) 
+                   (fun c -> gExpr lhs false)
+                   (fun c -> gExpr rhs true)
+
     | _ -> failwith "Found non id in lhs of assignment"
   in
   let rec gStmt ((us, (pos,ctx)): Typed.annotated_utstmt) =
@@ -419,11 +456,18 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                                           ^^ "(i32.sub (i32.load (i32.const 0)) (i32.const %d)))")
                                   array_size
                                   array_size)
-(*
             | TStruct(l)  ->
+              let struct_size = size_of_type typ in
+              fprintf oc "(set_local $%t %t)"
+                (fun c -> pstr (alphaRenaming s depth typ))
+                (fun c -> fprintf oc ("(block (i32.store (i32.const 0) (i32.add (i32.load (i32.const 0)) (i32.const %d)))"
+                                          ^^ "(i32.sub (i32.load (i32.const 0)) (i32.const %d)))")
+                                  struct_size
+                                  struct_size)
+(*
             | TArray()    ->
 *) 
-            | _ -> failwith "Unsupported type")
+            | _ -> failwith "Unsupported type 2")
 
         | _ -> failwith "weeding error"
        )) xss
@@ -636,14 +680,16 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
   in
   let rec gDecl ((ud,pos): Typed.annotated_utdecl) = tab(); match ud with
            | Var_decl(xss) ->
-              pstr "(func $#global";
-              pstr (string_of_int !globc);
-              pstr "\n";
-              incr tabc;
 
               List.iter (plsl (fun (s,eo,typo) ->
                (match (typo,eo) with
                 | (_,Some ((ue,(_,typ,_))  as e)) ->
+
+                  pstr "(func $#global";
+                  pstr (string_of_int !globc);
+                  pstr "\n";
+                  incr tabc;
+
                   let styp = gTyp typ in
                   let size = size_of_type typ in
                     tab();
@@ -654,6 +700,10 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                     Hashtbl.add globalVar s (styp, !segc);
                     segc := !segc + size;
                  
+                  pstr ")";
+                  decr tabc;
+                  globc := !globc + 1
+                 
                 | (Some typ, None) ->
                   let styp = gTyp typ in
                   let size = size_of_type typ in
@@ -662,9 +712,6 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
               
                 | _ -> failwith "weeding error" ))) xss;
 
-              pstr ")";
-              decr tabc;
-              globc := !globc + 1
            | Type_decl(id_atyp_ls) -> ()
            | Func_decl(fId, id_typ_ls, typ, ps) -> 
               (* local variables must be declared at the function declaration *)
@@ -691,7 +738,8 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
                 plsl (fun (v,d,t,t2) ->
                        tab();
                        fprintf oc "(local $%t %t)"
-                               (fun c -> pstr (sprintf "%s_%s_%d" v t d))
+                               (fun c -> (*pstr (sprintf "%s_%s_%d" v t d))*)
+                                         pstr (alphaRenaming v d (sTyp t2)))
                                (fun c -> pstr (gTyp t2)))
                      locals; pstr "\n");
               plsl (fun st -> tab(); gStmt st) ps;
@@ -704,7 +752,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
 (* module:  ( module <type>* <func>* <import>* <export>* <table>* <memory>? <start>? ) *)
        fprintf oc
            ("(module\n"
-           ^^"  (memory 128 128 %t)\n"
+           ^^"  (memory 1024 1024 %t)\n"
 
            ^^"  (import $#write_i32 \"spectest\" \"write\" (param i32))\n"
            ^^"  (import $#writeln_i32 \"spectest\" \"writeln\" (param i32))\n"
@@ -938,61 +986,85 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"     (if (get_local $r) (return (i32.const 0)))\n"
            ^^"     (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
            ^^"     (br $#continue)))\n\n"
-(*
+
            ^^"  (func $#string_cat (param $s1 i32)\n"
            ^^"                     (param $s2 i32)\n"
            ^^"                     (local $s1len i32)\n"
            ^^"                     (local $s2len i32)\n"
-           ^^"                     (local $ns i32)\n"
-           ^^"                     (local $n1str i32)\n"
-           ^^"                     (local $n2str i32)\n"
-           ^^"    (set_local $i     (i32.const 1))\n"
-           ^^"    (set_local $n1str  (i32.store (i32.const 0)))\n"
+           ^^"                     (local $base i32)\n"
+           ^^"                     (local $ptr i32)\n"
+           ^^"                     (local $i i32)\n"
+           ^^"                     (result i32)\n"
+           ^^"    (set_local $base (i32.load (i32.const 0)))\n"
+           ^^"    (set_local $ptr (i32.add (get_local $base) (i32.const 4)))\n"
            ^^"    (set_local $s1len (i32.load (get_local $s1)))\n"
            ^^"    (set_local $s2len (i32.load (get_local $s2)))\n"
-           ^^"    (set_local $n2str (i32.add (i32.mul (i32.add (i32.const 1) (get_local $s1len)) (i32.const 4))
-                                             (get_local $n1str)))\n"
-           ^^"    (i32.store (get_local $n1str) (i32.add (get_local $s1len) (get_local $s2len)))\n"
+           
+           ^^"    (i32.store (get_local $base) (i32.add (get_local $s1len) (get_local $s2len)))\n"
+
+           ^^"    (set_local $i (i32.const 0))\n"
+           ^^"    (set_local $s1 (i32.add (i32.const 4) (get_local $s1)))\n"
            ^^"    (loop $#break $#continue\n"
-           ^^"      (br_if $#break (i32.gt_u (get_local $i) (get_local $s1len)))\n"
-           ^^"      (i32.store (get_local $i)"
-           ^^"      (i32.store (i32.add (get_local n1str) (i32.mul (i32.const 4) (get_local ))))"
-           ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
-           ^^"      (br $#continue)))\n\n"
+           ^^"     (if (i32.ge_s (get_local $i) (get_local $s1len))\n"
+           ^^"         (br $#break))\n"
+           ^^"     (i32.store (get_local $ptr)\n"
+           ^^"                (i32.load (get_local $s1)))\n"
+           ^^"     (set_local $i   (i32.add (i32.const 1) (get_local $i)))\n"
+           ^^"     (set_local $s1  (i32.add (i32.const 4) (get_local $s1)))\n"
+           ^^"     (set_local $ptr (i32.add (i32.const 4) (get_local $ptr)))\n"
+           ^^"     (br $#continue))\n\n"
+
+           ^^"    (set_local $i (i32.const 0))\n"
+           ^^"    (set_local $s2 (i32.add (i32.const 4) (get_local $s2)))\n"
+           ^^"    (loop $#break $#continue\n"
+           ^^"     (if (i32.ge_s (get_local $i) (get_local $s2len))\n"
+           ^^"         (br $#break))\n"
+           ^^"     (i32.store (get_local $ptr)\n"
+           ^^"                (i32.load (get_local $s2)))\n"
+           ^^"     (set_local $i   (i32.add (i32.const 1) (get_local $i)))\n"
+           ^^"     (set_local $s2  (i32.add (i32.const 4) (get_local $s2)))\n"
+           ^^"     (set_local $ptr (i32.add (i32.const 4) (get_local $ptr)))\n"
+           ^^"     (br $#continue))\n\n"
+           ^^"    (i32.store (i32.const 0) (get_local $ptr))\n"
+           ^^"    (return (get_local $base)))\n"
+
+
+           ^^"  (func $#nequals_bytes (param $s1 i32) (param $s2 i32) (param $len i32) (local $i i32) (local $tmp i32) (result i32)\n"
            ^^"    (set_local $i (i32.const 0))\n"
            ^^"    (loop $#break $#continue\n"
-           ^^"      (br_if $#break (i32.gt_u (get_local $i) (get_local $s2len)))\n" 
-           ^^"      (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
-           ^^"      (br $#continue))\n"
-           ^^"    (return (get_local n1str))\n\n"
-*)
-(*
-           ^^"  (func $#nequal_bytes (param $s1 i32) (param $s1 i32) (param $len) (local $i i32) (result i32)\n"
-           ^^"    (set_local $i (i32.const 0))\n"
-           ^^"    (loop $#break $#continue\n"
-           ^^"     (if (i32.gte_s (get_local $i) (get_local $len))\n"
+           ^^"     (if (i32.ge_s (get_local $i) (get_local $len))\n"
            ^^"         (return (i32.const 0)))\n"
-           ^^"     (set_local $r (i32.ne (i32.load (i32.add (get_local $tmp)\n"
-           ^^"                                              (get_local $s1)))\n"
-           ^^"                           (i32.load (i32.add (get_local $tmp)\n"
-           ^^"                                              (get_local $s2)))))\n"
-           ^^"     (if (get_local $r) (return (i32.const 1)))\n"
+           ^^"     (set_local $tmp (i32.mul (i32.const 4) (get_local $i)))\n"
+           ^^"     (set_local $tmp (i32.ne (i32.load (i32.add (get_local $tmp)\n"
+           ^^"                                                (get_local $s1)))\n"
+           ^^"                             (i32.load (i32.add (get_local $tmp)\n"
+           ^^"                                                (get_local $s2)))))\n"
+           ^^"     (if (get_local $tmp) (return (i32.const 1)))\n"
            ^^"     (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
            ^^"     (br $#continue)))\n\n"
 
-           ^^"  (func $#equal_bytes (param $s1 i32) (param $s1 i32) (param $len) (local $i i32) (result i32)\n"
+           ^^"  (func $#equals_bytes (param $s1 i32) (param $s2 i32) (param $len i32) (local $i i32) (local $tmp i32) (result i32)\n"
            ^^"    (set_local $i (i32.const 0))\n"
            ^^"    (loop $#break $#continue\n"
-           ^^"     (if (i32.gte_s (get_local $i) (get_local $len))\n"
+           ^^"     (if (i32.ge_s (get_local $i) (get_local $len))\n"
            ^^"         (return (i32.const 1)))\n"
-           ^^"     (set_local $r (i32.ne (i32.load (i32.add (get_local $tmp)\n"
-           ^^"                                              (get_local $s1)))\n"
-           ^^"                           (i32.load (i32.add (get_local $tmp)\n"
-           ^^"                                              (get_local $s2)))))\n"
-           ^^"     (if (get_local $r) (return (i32.const 0)))\n"
+           ^^"     (set_local $tmp (i32.mul (i32.const 4) (get_local $i)))\n"
+           ^^"     (set_local $tmp (i32.ne (i32.load (i32.add (get_local $tmp)\n"
+           ^^"                                                (get_local $s1)))\n"
+           ^^"                             (i32.load (i32.add (get_local $tmp)\n"
+           ^^"                                                (get_local $s2)))))\n"
+           ^^"     (if (get_local $tmp) (return (i32.const 0)))\n"
            ^^"     (set_local $i (i32.add (get_local $i) (i32.const 1)))\n"
            ^^"     (br $#continue)))\n\n"
-*)
+
+           ^^"  (func $#copyarg (param $src i32)\n"
+           ^^"               (param $len i32)\n"
+           ^^"               (local $base i32)\n"
+           ^^"               (result i32)\n"
+           ^^"    (set_local $base (i32.load (i32.const 0)))\n"
+           ^^"    (call $#copy (get_local $src) (get_local $base) (get_local $len))\n"
+           ^^"    (i32.store (i32.const 0) (i32.add (get_local $base) (get_local $len)))\n"
+           ^^"    (return (get_local $base)))\n"
 
            ^^"  (func $#copy (param $src i32)\n"
            ^^"               (param $dest i32)\n"
@@ -1003,7 +1075,7 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"    (set_local $i (i32.const 0))\n"
            ^^"    (loop $#break $#continue\n"
            ^^"      (br_if $#break (i32.ge_u (get_local $i) (get_local $len)))\n" 
-           ^^"      (i32.store (i32.load (get_locat $dest))\n"
+           ^^"      (i32.store (get_local $dest)\n"
            ^^"                 (i32.load (get_local $src)))\n"
            ^^"      (set_local $i (i32.add (i32.const 4) (get_local $i)))\n"
            ^^"      (set_local $src (i32.add (i32.const 4) (get_local $src)))\n"
@@ -1011,19 +1083,19 @@ let generate table (Prog(id,decls) : Typed.ast) oc =
            ^^"      (br $#continue))\n\n"
            ^^"    (return (i32.sub (get_local $dest)\n"
            ^^"                     (get_local $i))))\n"
-
            ^^" %t\n"
            ^^"  (start $#init)\n"
            ^^"  (func $#init\n"
-           ^^"    (i32.store (i32.const 0) (i32.const %d))\n" (* Heap pointer *)
+           ^^"    (i32.store (i32.const 0) (i32.const %t))\n" (* Heap pointer *)
            ^^"%t%t))")
+
        (fun c -> pstr "")
 
        (fun c -> incr tabc;
                  plsl gDecl decls;
                  decr tabc)
-                
-       !segc
+               
+       (fun c -> pstr (string_of_int !segc))
        
        (fun c -> incr tabc; incr tabc;
                  if !globc > 0 then begin

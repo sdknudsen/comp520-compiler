@@ -152,9 +152,16 @@ let weed ast =
           ; 
         end
       | SDecl_stmt(decls) ->
+          let blank_defs = List.filter (function
+                                         | (("_",_),_) -> true
+                                         | _ -> false)
+                                       decls
+           in
+          (if (List.length blank_defs) = (List.length decls)
+           then  Error.print_error pos "At least one must be different from `_`"
+           else ());
           List.iter (fun (lhs, rhs) ->
                        weed_reserved_words lhs;
-                       weed_blank lhs;
                        weed_expression rhs false false;)
                     decls
       | Type_stmt(tl) ->
