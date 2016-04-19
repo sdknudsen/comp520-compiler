@@ -3,7 +3,7 @@ open Context
 
 (* utilities *)
 let write f obj name suff = f obj (open_out (name^suff))
-let file = ref "out.go"
+let file = ref ""
 let dumpsymtab = ref false
 let smartsymtab = ref false
 let pptype = ref false
