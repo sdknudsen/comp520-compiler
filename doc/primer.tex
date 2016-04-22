@@ -1,0 +1,206 @@
+% are there any problems with removing the time-steps from iterators??
+\documentclass{beamer}
+
+\usefonttheme{serif}
+\usepackage{graphicx} % Allows including images
+\usepackage{listings}
+\usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+
+\usepackage{enumitem}
+\usepackage{bussproofs}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\setbeamertemplate{footline}[frame number]
+
+\title[A Webassembly Primer]{A Webassembly Primer}
+%% \title{Indexed Reactive Programming}
+
+\author{
+Alexandre St-Louis Fortier \\
+Stefan Knudsen \\
+Cheuk Chuen Siow }
+\institute[McGill] {COMP 527 - Group 14}
+\date{\today}
+
+\begin{document}
+\lstset{language=ML}
+
+\begin{frame}
+\titlepage % Print the title page as the first slide
+\end{frame}
+
+%% \begin{frame}
+%% \frametitle{Overview} % Table of contents slide, comment this block out to remove it
+%% \tableofcontents % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+%% \end{frame}
+
+%% \section{Basic Types}
+
+\begin{frame}
+\frametitle{}
+\begin{block}{}
+  Webassembly is a lowlevel programming language designed to be efficient and faster than javascript.
+\end{block}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+\frametitle{}
+\begin{itemize}
+\item Webassembly has a binary format, .wasm, and an abstract tree format, .wast
+\item We used the abstract tree format, which has a syntax based on S-expressions
+\end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}
+\frametitle{}
+
+\begin{itemize}
+  \item Within a function, all local variables must be declared at the beginning
+  \item The following is the syntax that we used
+\end{itemize}
+\end{frame}
+
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\frametitle{Syntax}
+\begin{verbatim}
+var: <int> | $<name>
+name: (<letter> | <digit> | _ | . | + | - | *
+| / | \ | ^ | ~ | = | < | > | ! | ? | @ | #
+| $ | % | & | | | : | ' | `)+
+string: ``(<char> | \n | \t | \\
+| \' | \" | \<hex><hex>)*''
+\end{verbatim}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\frametitle{Types}
+
+\begin{verbatim}
+ value: <int> | <float>
+ type: i32 | i64 | f32 | f64
+\end{verbatim}
+
+%% \begin{itemize}
+%%   \item We used i32 and f64
+%%   %% \item Since webassembly is an assembly language, we aren't given strings
+%% \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\frametitle{Operators}
+\begin{verbatim}
+binop: eq | ne | lt_s | le_s | gt_s | ge_s | add
+| sub | or | and | xor | mul | div_s | rem_s | shl_s
+| shr_s | and | or | shr_s
+unop:
+\end{verbatim}
+we ended up defining our golite unary primitives in terms of the binary operations
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\frametitle{Expressions}
+
+\begin{verbatim}
+expr: ( block <name>? <expr>* )
+| ( loop <name1>? <name2>? <expr>* )         
+;; = (block <name1>? (loop <name2>? (block <expr>*)))
+| ( if <expr> ( then <name>? <expr>* )
+	( else <name>? <expr>* )? )
+| ( if <expr1> <expr2> <expr3>? )            
+;; = (if <expr1> (then <expr2>) (else <expr3>?))
+| ( br <var> <expr>? )
+| ( return <expr>? )                         
+;; = (br <current_depth> <expr>?)
+
+\end{verbatim}
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}[fragile]
+\frametitle{More expressions}
+
+\begin{verbatim}
+expr: ( call <var> <expr>* )
+| ( get_local <var> )
+| ( set_local <var> <expr> )
+| ( <type>.load((8|16|32)_<sign>)?
+	<offset>? <align>? <expr> )
+| ( <type>.store(8|16|32)? <offset>?
+	<align>? <expr> <expr> )
+| ( <type>.const <value> )
+| ( <type>.<binop> <expr> <expr> )
+
+\end{verbatim}
+
+\end{frame}
+
+%------------------------------------------------
+
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\begin{verbatim}
+func:   ( func <name>? <type>? <param>*
+	<result>? <local>* <expr>* )
+param:  ( param <type>* ) | ( param <name> <type> )
+result: ( result <type> )
+local:  ( local <type>* ) | ( local <name> <type> )
+
+\end{verbatim}
+
+\end{frame}
+
+%------------------------------------------------
+
+
+\begin{frame}[fragile]
+\frametitle{Header}
+
+We used the following functions for the gen.ml header:
+\begin{verbatim}
+expr:
+( br_if <var> <expr>? <expr> )
+( call_import <var> <expr>* )
+module:  ( module <type>* <func>* <import>* <export>*
+	<table>* <memory>? <start>? )
+import:  ( import <name>? <string> <string>
+	(param <type>* ) (result <type>)* )
+start:   ( start <var> )
+memory:  ( memory <int> <int>? <segment>* )
+
+\end{verbatim}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{References}
+\url{https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md}
+\end{frame}
+
+\end{document} 
+
+
+SYNTAX
+
+
+
+
