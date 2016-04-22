@@ -14,14 +14,14 @@
 \usepackage{latexsym}
 \setbeamertemplate{footline}[frame number]
 
-\title[A Webassembly Primer]{A Webassembly Primer}
+\title[WebAssembly Primer]{A WebAssembly Primer}
 %% \title{Indexed Reactive Programming}
 
 \author{
 Alexandre St-Louis Fortier \\
 Stefan Knudsen \\
 Cheuk Chuen Siow }
-\institute[McGill] {COMP 527 - Group 14}
+\institute[McGill] {COMP 520 - Group 14}
 \date{\today}
 
 \begin{document}
@@ -41,7 +41,7 @@ Cheuk Chuen Siow }
 \begin{frame}
 \frametitle{}
 \begin{block}{}
-  Webassembly is a lowlevel programming language designed to be efficient and faster than javascript.
+  WebAssembly is a low-level programming language designed to be efficient and faster than JavaScript.
 \end{block}
 
 \end{frame}
@@ -51,7 +51,7 @@ Cheuk Chuen Siow }
 \begin{frame}
 \frametitle{}
 \begin{itemize}
-\item Webassembly has a binary format, .wasm, and an abstract tree format, .wast
+\item WebAssembly has a binary format, \texttt{.wasm}, and an abstract tree format, \texttt{.wast}
 \item We used the abstract tree format, which has a syntax based on S-expressions
 \end{itemize}
 \end{frame}
@@ -108,7 +108,7 @@ binop: eq | ne | lt_s | le_s | gt_s | ge_s | add
 | shr_s | and | or | shr_s
 unop:
 \end{verbatim}
-we ended up defining our golite unary primitives in terms of the binary operations
+We ended up defining our GoLite unary primitives in terms of the binary operations
 \end{frame}
 
 %------------------------------------------------
@@ -175,7 +175,7 @@ local:  ( local <type>* ) | ( local <name> <type> )
 \begin{frame}[fragile]
 \frametitle{Header}
 
-We used the following functions for the gen.ml header:
+We used the following functions for the \texttt{gen.ml} header:
 \begin{verbatim}
 expr:
 ( br_if <var> <expr>? <expr> )
