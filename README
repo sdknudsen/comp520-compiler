@@ -1,0 +1,182 @@
+Name: Alexandre St-Louis Fortier
+
+Name: Stefan Knudsen
+
+Name: Cheuk Chuen Siow
+
+
+Milestone #1
+============
+
+Instructions
+------------
+Build:
+- To build the compiler, go to src directory and type "make". (dependencies: menhir, ocamlfind, ocamlbuild)
+
+Clean:
+- To remove the compiler build directory and other files, go to src directory and type "make clean".
+
+Run:
+- To run the compiler for a program, go to src directory and type "./main.native <option> ../programs/foo/bar.go".
+- List of options: lex, parse, pretty
+
+Run __our__ test suite:
+- Go to programs/ and execute `dotests.sh [lex|parse|pretty]`
+
+Valid programs
+--------------
+(1) programs/valid/bitcount.go
+(2) programs/valid/ackermann.go
+(3) programs/valid/checkOverlap.go
+
+Code viewed or used
+-------------------
+[1] Viewed regex for block comment
+    * http://blog.ostermiller.org/find-comment
+[2] Used code on stackoverflow to create dotests.sh
+    * http://stackoverflow.com/questions/4409399/padding-characters-in-printf
+    * http://stackoverflow.com/questions/965053/extract-filename-and-extension-in-bash
+    * http://stackoverflow.com/questions/6971284/what-are-the-error-exit-values-for-diff
+[3] Viewed OCaml code for library information
+    * http://caml.inria.fr/pub/docs/manual-ocaml/libref/Map.Make.html
+    * http://caml.inria.fr/pub/docs/manual-ocaml/libref/Map.html
+    * http://caml.inria.fr/pub/docs/manual-ocaml/libref/Printf.html
+    * https://ocaml.org/learn/tutorials/map.html
+    * http://ocaml-lib.sourceforge.net/doc/Option.html
+    * http://caml.inria.fr/pub/docs/manual-ocaml/libref/String.html
+[4] Golang specification
+    * https://golang.org/ref/spec
+[5] Code in the assignment (which we gladly pillaged)
+    * http://www.sable.mcgill.ca/~hendren/520/2016/assignments/syntax.pdf
+[6] Menhir's manual
+    * http://pauillac.inria.fr/~fpottier/menhir/manual.pdf
+    
+Some of the code in our test suite is directly taken from the specification and the assignment.
+
+
+Milestone #2
+============
+
+Instructions
+------------
+Build:
+- To build the compiler, go to src/ and execute `make`. (dependencies: menhir, ocamlfind, ocamlbuild)
+
+Clean:
+- To remove the compiler build directory and other files, go to src/ and execute `make clean`.
+
+Run:
+- To run the compiler for a program, execute `<path_to_src>/main.native [lex|parse|weed|pretty|type] [-dumpsymtab] [-pptype] <path_to_programs>/foo/bar.go`.
+- If no action is provided, it'll default to typecheck in this milestone.
+- If additional flags are set, the output file will be in the same directory as the input file.
+
+Run __our__ test suite:
+- Go to programs/ and execute `dotests.sh [lex|parse|weed|pretty|type]`
+
+Invalid programs
+----------------
+(1) programs/invalid/types/1_functionDecl.go
+(2) programs/invalid/types/2_shortDeclaration.go
+(3) programs/invalid/types/3_opAssignment.go
+(4) programs/invalid/types/4_block.go
+(5) programs/invalid/types/5_forLoop.go
+(6) programs/invalid/types/6_switchStmt.go
+(7) programs/invalid/types/7_functionCall.go
+(8) programs/invalid/types/8_fieldSelection.go
+(9) programs/invalid/types/9_append.go
+(10) programs/invalid/types/10_typeCast.go
+(11) programs/invalid/types/11_typeRedeclaration.go
+
+Code viewed or used
+-------------------
+[7] Used code on stackoverflow to print the contents of a hash table
+    * http://stackoverflow.com/questions/4059978/converting-hash-table-to-list-of-pairs-key-value-in-ocaml
+[8] Used code for implementing flags in command line arguments
+    * http://scylardor.fr/2013/10/14/ocaml-parsing-a-programs-arguments-with-the-arg-module/
+[9] Viewed OCaml code for library information
+    * http://caml.inria.fr/pub/docs/manual-ocaml/libref/Hashtbl.html
+[10] Viewed webassembly readme for information on webassmbly constructs
+    * https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md
+
+
+Milestone #3
+============
+
+Instructions
+------------
+Build:
+- To build the compiler, go to src/ and execute `make`. (dependencies: menhir, ocamlfind, ocamlbuild)
+
+Clean:
+- To remove the compiler build directory and other files, go to src/ and execute `make clean`.
+
+Run:
+- To run the compiler for a program, execute `<path_to_src>/main.native [lex|parse|weed|pretty|type|compile] [-dumpsymtab] [-pptype] <path_to_programs>/foo/bar.go`.
+- If no action is provided, it'll default to code generation in this milestone.
+- If additional flags are set, the output file will be in the same directory as the input file.
+
+Run __our__ test suite:
+- Go to programs/ and execute `dotests.sh [lex|parse|weed|pretty|type]`
+
+Benchmark programs
+----------------
+(1) programs/benchmark/ackermann.go
+(2) programs/benchmark/fibonacci.go
+(3) programs/benchmark/prime.go
+
+Code viewed or used
+-------------------
+[11] Viewed WebAssembly specification and design documentation for information on WebAssembly constructs
+    * https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md
+    * https://github.com/WebAssembly/design/blob/master/AstSemantics.md
+
+
+Milestone #4
+============
+
+Instructions
+------------
+Build:
+- To build the compiler, go to src/ and execute `make`. (dependencies: menhir, ocamlfind, ocamlbuild)
+
+Clean:
+- To remove the compiler build directory and other files, go to src/ and execute `make clean`.
+
+Run:
+- To run the compiler for a program, execute `<path_to_src>/main.native [lex|parse|weed|pretty|type|compile] [-dumpsymtab] [-pptype] [-h] [-v] <path_to_programs>/foo/bar.go`.
+- If no action is provided, it'll default to code generation in this milestone.
+- If additional flags are set, the output file will be in the same directory as the input file.
+
+Run __our__ test suite:
+- Go to programs/ and execute `dotests.sh [lex|parse|weed|pretty|type]`
+
+Valid programs
+--------------
+(1) programs/valid/bitcount.go
+(2) programs/valid/checkOverlap.go
+
+Invalid programs
+----------------
+(1) programs/invalid/types/1_functionDecl.go
+(2) programs/invalid/types/2_shortDeclaration.go
+(3) programs/invalid/types/3_opAssignment.go
+(4) programs/invalid/types/4_block.go
+(5) programs/invalid/types/5_forLoop.go
+(6) programs/invalid/types/6_switchStmt.go
+(7) programs/invalid/types/7_functionCall.go
+(8) programs/invalid/types/8_fieldSelection.go
+(9) programs/invalid/types/9_append.go
+(10) programs/invalid/types/10_typeCast.go
+(11) programs/invalid/types/11_typeRedeclaration.go
+
+Benchmark programs
+------------------
+(1) programs/benchmark/ackermann.go
+(2) programs/benchmark/fibonacci.go
+(3) programs/benchmark/prime.go
+
+Code viewed or used
+-------------------
+[11] Viewed WebAssembly specification and design documentation for information on WebAssembly constructs
+    * https://github.com/WebAssembly/spec/blob/master/ml-proto/README.md
+    * https://github.com/WebAssembly/design/blob/master/AstSemantics.md
